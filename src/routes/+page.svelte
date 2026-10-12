@@ -1,172 +1,90 @@
 <script lang="ts">
-  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "#lib/convex.ts";
-  import FootballCard from "#lib/components/FootballCard.svelte";
-  import BasketballCard from "#lib/components/BasketballCard.svelte";
-  import { 
-    Activity, 
-    Flame, 
-    TrendingUp, 
-    ShieldCheck, 
-    Filter, 
-    CheckCircle2, 
-    Sparkles, 
-    Download 
-  } from "lucide-svelte";
+	import { app } from '#lib/state.svelte.ts';
+	import { pct, kickoff } from '#lib/format.ts';
+	import ScoreSurface3D from '#lib/components/ScoreSurface3D.svelte';
+	import FixtureCard from '#lib/components/FixtureCard.svelte';
+	import PickTicket from '#lib/components/PickTicket.svelte';
 
-  let selectedSport = $state<"all" | "football" | "basketball">("all");
-  let selectedLeague = $state<string>("all");
-  let minEdgeFilter = $state<number>(0);
+	let sport = $state<'all' | 'football' | 'basketball'>('all');
+	let innerWidth = $state(1024);
 
-  let filteredFootball = $derived(
-    FALLBACK_FOOTBALL.filter((m) => {
-      if (selectedSport === "basketball") return false;
-      if (selectedLeague !== "all" && m.league !== selectedLeague) return false;
-      if (m.bestValue.edgePercent < minEdgeFilter) return false;
-      return true;
-    })
-  );
-
-  let filteredBasketball = $derived(
-    FALLBACK_BASKETBALL.filter((b) => {
-      if (selectedSport === "football") return false;
-      if (selectedLeague !== "all" && b.league !== selectedLeague) return false;
-      if (b.bestValue.edgePercent < minEdgeFilter) return false;
-      return true;
-    })
-  );
-
-  let totalAvailableCount = $derived(filteredFootball.length + filteredBasketball.length);
+	const f = $derived(app.featured);
+	const top = $derived(f.topScorelines[0]);
+	const fixtures = $derived(app.all.filter((p) => sport === 'all' || p.sport === sport));
+	const picks = $derived(app.valueBets.slice(0, 3));
 </script>
 
-<svelte:head>
-  <title>QuantEdge | Sports Predictive Intelligence Dashboard</title>
-</svelte:head>
+<svelte:head><title>QuantEdge — fair prices and value bets</title></svelte:head>
+<svelte:window bind:innerWidth />
 
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-  <!-- Hero / Market Pulse Banner -->
-  <div class="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 p-6 sm:p-8 shadow-2xl">
-    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <div class="max-w-2xl">
-        <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400 mb-3">
-          <Sparkles class="h-3.5 w-3.5" />
-          <span>Real-Time Market Ingestion Active</span>
-        </div>
-        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-          Basketball & Football <br />
-          <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">
-            Quantitative Prediction Engine
-          </span>
-        </h1>
-        <p class="mt-2 text-sm text-slate-300">
-          Eliminating bookmaker margin with Dixon-Coles Poisson football matrix calculations and tempo-free basketball pace simulations.
-        </p>
-      </div>
+<!-- Hero: the engine's output for the strongest football edge, in 3D -->
+<section class="relative -mx-4 overflow-hidden sm:mx-0 sm:rounded-[var(--radius-sheet)] sm:border sm:border-line" aria-labelledby="hero-title">
+	<div class="grid md:grid-cols-[1.1fr_1fr] md:items-center">
+		<div class="order-2 px-4 pb-6 sm:px-8 md:order-1 md:py-10">
+			<p class="text-sm text-haze">
+				{f.league}, {kickoff(f.kickoffTime, app.now)}
+			</p>
+			<h1 id="hero-title" class="mt-2 text-[clamp(2.25rem,6vw,3.75rem)] font-bold leading-[0.95]">
+				{f.homeTeam}<br /><span class="text-haze">vs</span> {f.awayTeam}
+			</h1>
+			<p class="mt-4 max-w-md text-[17px] leading-relaxed text-chalk/85">
+				The most likely result is <strong class="font-display text-chalk">{top.home}–{top.away}</strong> ({pct(top.prob, 1)}).
+				{#if f.bestValue && f.bestValue.edgePercent > 0}
+					The market underprices one outcome:
+				{:else}
+					No price beats fair value here.
+				{/if}
+			</p>
+			{#if f.bestValue}
+				<div class="mt-4 max-w-md"><PickTicket pick={f.bestValue} /></div>
+			{/if}
+			<a href="/match/{f.fixtureId}" class="mt-4 inline-block text-sm text-model underline-offset-4 hover:underline">See every market and the full reasoning</a>
+		</div>
+		<div class="order-1 md:order-2">
+			{#key f.fixtureId}
+				<ScoreSurface3D matrix={f.matrix} homeTeam={f.homeTeam} awayTeam={f.awayTeam} height={innerWidth < 768 ? 300 : 420} />
+			{/key}
+		</div>
+	</div>
+</section>
 
-      <!-- Quick Stats KPI Cards -->
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 shrink-0">
-        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5 text-center">
-          <div class="text-[11px] font-semibold text-slate-400">Fixtures Modeled</div>
-          <div class="mt-1 font-mono text-xl font-extrabold text-white">5 Active</div>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5 text-center">
-          <div class="text-[11px] font-semibold text-slate-400">Best Edge Found</div>
-          <div class="mt-1 font-mono text-xl font-extrabold text-emerald-400">+8.68%</div>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5 text-center">
-          <div class="text-[11px] font-semibold text-slate-400">Avg Bookmaker Vig</div>
-          <div class="mt-1 font-mono text-xl font-extrabold text-amber-400">3.8% - 7.1%</div>
-        </div>
-        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3.5 text-center">
-          <div class="text-[11px] font-semibold text-slate-400">Value Grade A+</div>
-          <div class="mt-1 font-mono text-xl font-extrabold text-teal-400">3 Matches</div>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- Strongest edges on the board -->
+<section class="mt-10" aria-labelledby="picks-title">
+	<div class="flex items-baseline justify-between">
+		<h2 id="picks-title" class="text-2xl font-semibold">Strongest edges</h2>
+		<a href="/value-bets" class="text-sm text-haze hover:text-chalk">All {app.valueBets.length} value bets</a>
+	</div>
+	<div class="scrollbar-none -mx-4 mt-4 flex snap-x gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+		{#each picks as pick (pick.id)}
+			<div class="w-[85%] shrink-0 snap-start md:w-auto"><PickTicket {pick} showMatch /></div>
+		{/each}
+	</div>
+</section>
 
-  <!-- Filter & Sport Selector Bar -->
-  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 backdrop-blur-sm">
-    <!-- Sport Toggle Tabs -->
-    <div class="flex items-center gap-1 rounded-xl bg-slate-950 p-1 border border-slate-800">
-      <button
-        onclick={() => (selectedSport = "all")}
-        class="rounded-lg px-4 py-2 text-xs font-bold transition-all {selectedSport === 'all' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400 hover:text-white'}"
-      >
-        All Matches
-      </button>
-      <button
-        onclick={() => (selectedSport = "football")}
-        class="rounded-lg px-4 py-2 text-xs font-bold transition-all {selectedSport === 'football' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}"
-      >
-        ⚽ Football (11v11)
-      </button>
-      <button
-        onclick={() => (selectedSport = "basketball")}
-        class="rounded-lg px-4 py-2 text-xs font-bold transition-all {selectedSport === 'basketball' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}"
-      >
-        🏀 Basketball (5v5)
-      </button>
-    </div>
-
-    <!-- League & Edge Filters -->
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-1.5 text-xs text-slate-400">
-        <Filter class="h-3.5 w-3.5" />
-        <select
-          bind:value={selectedLeague}
-          class="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-white focus:border-emerald-500 focus:outline-none"
-        >
-          <option value="all">All Competitions</option>
-          <option value="English Premier League">Premier League</option>
-          <option value="La Liga (El Clásico)">La Liga</option>
-          <option value="Bundesliga">Bundesliga</option>
-          <option value="NBA">NBA</option>
-          <option value="EuroLeague">EuroLeague</option>
-        </select>
-      </div>
-
-      <!-- Edge Threshold -->
-      <select
-        bind:value={minEdgeFilter}
-        class="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-semibold text-white focus:border-emerald-500 focus:outline-none"
-      >
-        <option value={0}>Any Edge</option>
-        <option value={3}>Min +3% Edge</option>
-        <option value={5}>Min +5% Edge (Grade A+)</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Matches Grid -->
-  <div>
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2">
-        <span>Active Fixtures & Predictions</span>
-        <span class="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-mono font-bold text-slate-400">
-          {totalAvailableCount} Matches
-        </span>
-      </h2>
-    </div>
-
-    {#if totalAvailableCount === 0}
-      <div class="rounded-3xl border border-slate-800 bg-slate-900/40 p-16 text-center text-slate-500">
-        <p class="text-base font-semibold">No matches match your current filter.</p>
-        <button
-          onclick={() => { selectedSport = 'all'; selectedLeague = 'all'; minEdgeFilter = 0; }}
-          class="mt-3 text-xs font-bold text-emerald-400 hover:underline"
-        >
-          Reset All Filters
-        </button>
-      </div>
-    {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {#each filteredFootball as match}
-          <FootballCard {match} />
-        {/each}
-        {#each filteredBasketball as fixture}
-          <BasketballCard {fixture} />
-        {/each}
-      </div>
-    {/if}
-  </div>
-</div>
+<!-- Fixtures -->
+<section class="mt-10" aria-labelledby="fixtures-title">
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<h2 id="fixtures-title" class="text-2xl font-semibold">Fixtures</h2>
+		<div class="flex rounded-full bg-deep p-1 text-sm ring-1 ring-line" role="tablist" aria-label="Filter by sport">
+			{#each [['all', 'All'], ['football', 'Football'], ['basketball', 'Basketball']] as [value, label]}
+				<button
+					role="tab"
+					aria-selected={sport === value}
+					onclick={() => (sport = value as typeof sport)}
+					class="rounded-full px-3.5 py-1.5 transition-colors {sport === value ? 'bg-raised text-chalk' : 'text-haze hover:text-chalk'}"
+				>
+					{label}
+				</button>
+			{/each}
+		</div>
+	</div>
+	<div class="mt-4 grid gap-4 md:grid-cols-2">
+		{#each fixtures as p (p.fixtureId)}
+			<FixtureCard {p} />
+		{/each}
+	</div>
+	<p class="mt-6 text-sm text-haze">
+		Prices come from a sample feed refreshed on load; every probability, fair price and stake is computed on your device.
+		Model weight {Math.round(app.settings.modelWeight * 100)}% vs market, adjustable in <a href="/settings" class="text-chalk underline underline-offset-4">Settings</a>.
+	</p>
+</section>

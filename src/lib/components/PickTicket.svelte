@@ -1,0 +1,42 @@
+<script lang="ts">
+	/** A value pick printed as a betting-coupon stub: bookmaker price vs fair price. */
+	import { app, type ValueBet } from '#lib/state.svelte.ts';
+	import { odds, gradeTone, signed, ngn } from '#lib/format.ts';
+	import { Plus, Check } from 'lucide-svelte';
+
+	let { pick, showMatch = false }: { pick: ValueBet; showMatch?: boolean } = $props();
+	const selected = $derived(app.inSlip(pick.id));
+	const positive = $derived(pick.edgePercent > 0);
+</script>
+
+<div class="ticket flex items-stretch">
+	<div class="min-w-0 flex-1 px-4 py-3">
+		{#if showMatch}
+			<a href="/match/{pick.fixtureId}" class="block truncate text-xs text-haze hover:text-chalk">{pick.matchTitle}</a>
+		{/if}
+		<div class="flex items-center gap-2">
+			<span class="rounded-md px-1.5 py-0.5 text-[11px] font-semibold {gradeTone[pick.grade]}">{pick.grade}</span>
+			<span class="truncate font-display text-[15px] font-semibold">{pick.selection}</span>
+		</div>
+		<div class="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
+			<span><span class="text-book font-semibold">{odds(pick.bestOdds)}</span> <span class="text-haze">at {pick.bookmaker}</span></span>
+			<span><span class="text-model font-semibold">{odds(pick.fairOdds)}</span> <span class="text-haze">fair</span></span>
+			<span class={positive ? 'text-model' : 'text-loss'}>{signed(pick.edgePercent, 2)}% edge</span>
+		</div>
+	</div>
+	<div class="ticket-rule flex w-[5.5rem] shrink-0 flex-col items-center justify-center gap-1 px-2 py-3 text-center">
+		{#if positive}
+			<span class="text-[11px] leading-tight text-haze">Stake<br /><span class="text-chalk">{ngn(app.stakeFor(pick.kellyStakePercent))}</span></span>
+			<button
+				onclick={() => app.toggle(pick)}
+				aria-pressed={selected}
+				aria-label={selected ? `Remove ${pick.selection} from slip` : `Add ${pick.selection} to slip`}
+				class="grid h-8 w-8 place-items-center rounded-full transition-colors {selected ? 'bg-model text-ink' : 'bg-line text-chalk hover:bg-model/30'}"
+			>
+				{#if selected}<Check class="h-4 w-4" strokeWidth={3} />{:else}<Plus class="h-4 w-4" strokeWidth={3} />{/if}
+			</button>
+		{:else}
+			<span class="text-xs text-haze">No bet</span>
+		{/if}
+	</div>
+</div>

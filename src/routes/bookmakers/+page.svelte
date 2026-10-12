@@ -1,144 +1,112 @@
 <script lang="ts">
-  import { ShieldAlert, TrendingDown, Layers, CheckCircle2, AlertTriangle } from "lucide-svelte";
-  import { compareBookmakerOdds } from "#lib/engine/bookmaker_engine.js";
+	import { app } from '#lib/state.svelte.ts';
+	import { compareBookmakerOdds, calculateAccumulatorEconomics } from '#lib/engine/bookmaker_engine.js';
+	import { ngn, odds } from '#lib/format.ts';
 
-  // Real bookmaker sample odds for comparison
-  const sampleBooks = [
-    {
-      name: "1xBet (NG)",
-      engine: "BetB2B Global",
-      home: 2.02,
-      draw: 3.75,
-      away: 4.10,
-      margin: 2.76,
-      rating: "Tier 1 (Lowest Juice)",
-    },
-    {
-      name: "22Bet (NG)",
-      engine: "BetB2B Regional",
-      home: 2.01,
-      draw: 3.72,
-      away: 4.08,
-      margin: 3.12,
-      rating: "Tier 1 (Competitive)",
-    },
-    {
-      name: "SportyBet (NG)",
-      engine: "Sportradar MTS",
-      home: 1.95,
-      draw: 3.65,
-      away: 3.90,
-      margin: 6.84,
-      rating: "Tier 3 (High Margin)",
-    },
-  ];
+	/** Average margin per book across every priced fixture. */
+	const books = $derived.by(() => {
+		const sums = new Map<string, { total: number; n: number; best: number }>();
+		for (const p of app.all) {
+			for (const [book, m] of Object.entries(p.margins)) {
+				const s = sums.get(book) ?? { total: 0, n: 0, best: 0 };
+				s.total += m;
+				s.n += 1;
+				if (p.bestValue?.bookmaker === book) s.best += 1;
+				sums.set(book, s);
+			}
+		}
+		return [...sums.entries()]
+			.map(([name, s]) => ({ name, margin: s.total / s.n, bestPrices: s.best }))
+			.sort((a, b) => a.margin - b.margin);
+	});
+	const maxMargin = $derived(Math.max(...books.map((b) => b.margin)));
 
-  // Accumulator margin decay simulation table
-  const decayTable = [
-    { legs: 1, baseVig: "3.5%", totalVig: "3.5%", expectedLoss: "₦35 per ₦1k", safety: "Optimal" },
-    { legs: 2, baseVig: "3.5%", totalVig: "6.9%", expectedLoss: "₦69 per ₦1k", safety: "High" },
-    { legs: 3, baseVig: "3.5%", totalVig: "10.2%", expectedLoss: "₦102 per ₦1k", safety: "Acceptable" },
-    { legs: 4, baseVig: "3.5%", totalVig: "13.4%", expectedLoss: "₦134 per ₦1k", safety: "Moderate Caution" },
-    { legs: 5, baseVig: "3.5%", totalVig: "16.5%", expectedLoss: "₦165 per ₦1k", safety: "High Risk" },
-    { legs: 8, baseVig: "3.5%", totalVig: "25.2%", expectedLoss: "₦252 per ₦1k", safety: "Severe Risk" },
-    { legs: 12, baseVig: "3.5%", totalVig: "35.8%", expectedLoss: "₦358 per ₦1k", safety: "Dangerous (Bookie Trap)" },
-  ];
+	const arbs = $derived(
+		app.football.map((p) => {
+			const cmp = compareBookmakerOdds(
+				Object.entries(p.odds).map(([bookmaker, o]) => ({ bookmaker, odds: { home: o.home, draw: o.draw, away: o.away } }))
+			);
+			return { p, ...cmp.bestMarketConsensus };
+		})
+	);
+
+	let perLeg = $state(5);
+	const decay = $derived([1, 2, 3, 4, 5, 6, 8, 10, 12].map((legs) => ({ legs, ...calculateAccumulatorEconomics(Array(legs).fill(2), perLeg / 100) })));
 </script>
 
-<svelte:head>
-  <title>Bookmaker Audit | Margin Comparison & Accumulator Safety</title>
-</svelte:head>
+<svelte:head><title>Bookmakers — QuantEdge</title></svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-  <!-- Header -->
-  <div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 sm:p-8">
-    <div class="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-bold text-indigo-400 border border-indigo-500/20 mb-2">
-      <Layers class="h-3.5 w-3.5" />
-      <span>Institutional Bookmaker Economics</span>
-    </div>
-    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Bookmaker Margin Audit & Arbitrage Scanner</h1>
-    <p class="mt-1 text-xs sm:text-sm text-slate-300">
-      Real-time vigorish analysis across SportyBet, 1xBet, and 22Bet to safeguard punter capital against compounding accumulator traps.
-    </p>
-  </div>
+<header class="max-w-2xl">
+	<h1 class="text-4xl font-bold">Bookmakers</h1>
+	<p class="mt-2 text-haze">How much each book keeps, where the best prices sit, and what margin does to accumulators.</p>
+</header>
 
-  <!-- Bookmaker Margin Comparison Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {#each sampleBooks as book}
-      <div class="rounded-2xl border {book.margin < 3.5 ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800 bg-slate-900'} p-5 shadow-lg">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div>
-            <h3 class="font-bold text-white text-base">{book.name}</h3>
-            <span class="text-[11px] text-slate-400">{book.engine}</span>
-          </div>
-          <span class="rounded-md px-2 py-0.5 text-xs font-mono font-bold {book.margin < 3.5 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">
-            {book.margin}% Vig
-          </span>
-        </div>
+<section class="mt-8" aria-labelledby="margin-title">
+	<h2 id="margin-title" class="text-2xl font-semibold">Average margin on match result</h2>
+	<p class="mt-1 text-sm text-haze">Lower is better for you. Measured across all {app.all.length} fixtures in the feed.</p>
+	<div class="surface mt-4 space-y-4 p-5">
+		{#each books as b (b.name)}
+			<div class="grid grid-cols-[6rem_1fr_auto] items-center gap-3 text-sm">
+				<span class="font-semibold">{b.name}</span>
+				<div class="h-3 rounded-full bg-ink">
+					<div class="h-3 rounded-full bg-book transition-[width] duration-700" style="width: {(b.margin / maxMargin) * 100}%"></div>
+				</div>
+				<span class="w-36 text-right"><span class="text-book">{b.margin.toFixed(2)}%</span> <span class="text-haze">margin, {b.bestPrices} top picks</span></span>
+			</div>
+		{/each}
+	</div>
+</section>
 
-        <div class="my-4 space-y-2 text-xs">
-          <div class="flex justify-between text-slate-300 font-mono">
-            <span>Arsenal Win:</span>
-            <span class="font-bold text-white">{book.home}</span>
-          </div>
-          <div class="flex justify-between text-slate-300 font-mono">
-            <span>Draw:</span>
-            <span class="font-bold text-white">{book.draw}</span>
-          </div>
-          <div class="flex justify-between text-slate-300 font-mono">
-            <span>Chelsea Win:</span>
-            <span class="font-bold text-white">{book.away}</span>
-          </div>
-        </div>
+<section class="mt-10" aria-labelledby="arb-title">
+	<h2 id="arb-title" class="text-2xl font-semibold">Best price across books</h2>
+	<p class="mt-1 text-sm text-haze">
+		Backing every outcome at its best price costs the shown overround. Below 1.000 would be a guaranteed profit (an arbitrage).
+	</p>
+	<div class="mt-4 overflow-x-auto rounded-[var(--radius-card)] border border-line">
+		<table class="w-full min-w-[34rem] text-sm">
+			<thead class="bg-deep text-left text-haze">
+				<tr><th class="p-3 font-normal">Match</th><th class="p-3 font-normal">Home</th><th class="p-3 font-normal">Draw</th><th class="p-3 font-normal">Away</th><th class="p-3 text-right font-normal">Overround</th></tr>
+			</thead>
+			<tbody>
+				{#each arbs as a (a.p.fixtureId)}
+					<tr class="border-t border-line">
+						<td class="p-3"><a href="/match/{a.p.fixtureId}" class="hover:text-model">{a.p.matchTitle}</a></td>
+						<td class="p-3"><span class="text-book">{odds(a.bestHome.odds)}</span> <span class="text-xs text-haze">{a.bestHome.bookmaker}</span></td>
+						<td class="p-3"><span class="text-book">{odds(a.bestDraw.odds)}</span> <span class="text-xs text-haze">{a.bestDraw.bookmaker}</span></td>
+						<td class="p-3"><span class="text-book">{odds(a.bestAway.odds)}</span> <span class="text-xs text-haze">{a.bestAway.bookmaker}</span></td>
+						<td class="p-3 text-right {a.isArbitrage ? 'text-model font-semibold' : ''}">{a.arbOverround.toFixed(3)}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+</section>
 
-        <div class="pt-3 border-t border-slate-800/80 text-xs">
-          <span class="font-semibold text-slate-400">Classification:</span>
-          <span class="ml-1 font-bold {book.margin < 3.5 ? 'text-emerald-400' : 'text-amber-400'}">{book.rating}</span>
-        </div>
-      </div>
-    {/each}
-  </div>
-
-  <!-- Accumulator Economics Breakdown -->
-  <div class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 sm:p-8 space-y-4">
-    <div class="flex items-center gap-2">
-      <AlertTriangle class="h-5 w-5 text-amber-400" />
-      <h2 class="text-xl font-bold text-white">The Multi-Bet / Accumulator Compound Decay Formula</h2>
-    </div>
-    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-      Most punters lose money because each match added to an accumulator multiplies the bookmaker's edge against them: 
-      <code class="rounded bg-slate-950 px-2 py-0.5 font-mono text-emerald-400">Total Margin = 1 - (1 - Margin)^N</code>. 
-      Below is the real compounding impact per selection:
-    </p>
-
-    <!-- Table -->
-    <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80">
-      <table class="w-full text-left text-xs">
-        <thead class="border-b border-slate-800 text-slate-400 font-semibold bg-slate-900/50">
-          <tr>
-            <th class="p-3">Accumulator Legs</th>
-            <th class="p-3">Per-Match Margin</th>
-            <th class="p-3">Compound Margin Taken</th>
-            <th class="p-3">Expected Math Loss</th>
-            <th class="p-3">Punter Safety Rating</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-800/50 font-mono">
-          {#each decayTable as row}
-            <tr class="hover:bg-slate-800/30">
-              <td class="p-3 font-bold text-white">{row.legs} {row.legs === 1 ? 'Leg (Single)' : 'Legs'}</td>
-              <td class="p-3 text-slate-300">{row.baseVig}</td>
-              <td class="p-3 font-bold {parseFloat(row.totalVig) > 15 ? 'text-rose-400' : 'text-emerald-400'}">{row.totalVig}</td>
-              <td class="p-3 text-slate-300">{row.expectedLoss}</td>
-              <td class="p-3">
-                <span class="rounded px-2 py-0.5 text-[11px] font-sans font-bold {row.safety.includes('Dangerous') ? 'bg-rose-500/20 text-rose-300' : row.safety.includes('Caution') ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}">
-                  {row.safety}
-                </span>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+<section class="mt-10" aria-labelledby="acca-title">
+	<h2 id="acca-title" class="text-2xl font-semibold">What margin does to accumulators</h2>
+	<label class="mt-2 flex max-w-sm flex-col gap-1 text-sm">
+		<span class="text-haze">Margin per leg: <span class="text-chalk">{perLeg}%</span></span>
+		<input type="range" min="2" max="10" step="0.5" bind:value={perLeg} class="accent-[var(--color-book)]" />
+	</label>
+	<div class="mt-4 overflow-x-auto rounded-[var(--radius-card)] border border-line">
+		<table class="w-full min-w-[30rem] text-sm">
+			<thead class="bg-deep text-left text-haze">
+				<tr><th class="p-3 font-normal">Legs</th><th class="p-3 font-normal">Book keeps</th><th class="p-3 font-normal">Expected loss on ₦10,000</th><th class="p-3 font-normal"></th></tr>
+			</thead>
+			<tbody>
+				{#each decay as d (d.legs)}
+					<tr class="border-t border-line">
+						<td class="p-3">{d.legs}</td>
+						<td class="p-3 text-book">{d.compoundMarginRiskPct.toFixed(1)}%</td>
+						<td class="p-3">{ngn((10000 * d.compoundMarginRiskPct) / 100)}</td>
+						<td class="w-1/3 p-3"><div class="h-2 rounded-full bg-loss/80" style="width: {Math.min(100, d.compoundMarginRiskPct * 1.6)}%"></div></td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+	<p class="mt-3 max-w-2xl text-sm text-haze">
+		Without a genuine edge on each leg, every extra selection multiplies the book's share. A 10-leg slip at {perLeg}% per leg hands over
+		{decay.find((d) => d.legs === 10)?.compoundMarginRiskPct.toFixed(0)}% of your stake in expectation.
+	</p>
+</section>

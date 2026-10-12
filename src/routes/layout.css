@@ -1,41 +1,135 @@
 @import 'tailwindcss';
 
+/*
+ * QuantEdge design tokens.
+ * Colour carries meaning: teal = the model's fair price, amber = a
+ * bookmaker's price, coral = negative expectation. Nothing else is accented.
+ */
+@theme {
+	--color-ink: #0c1027;
+	--color-deep: #151a3a;
+	--color-raised: #1c2250;
+	--color-line: #2a3163;
+	--color-chalk: #eef0fa;
+	--color-haze: #8d93b8;
+	--color-model: #36e0c2;
+	--color-book: #ffb547;
+	--color-loss: #ff6f61;
+
+	--font-display: 'Bricolage Grotesque Variable', 'Instrument Sans Variable', system-ui, sans-serif;
+	--font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+	--radius-sheet: 1.5rem;
+	--radius-card: 1.125rem;
+	--radius-chip: 999px;
+
+	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @layer base {
-  :root {
-    --color-primary: #10b981;
-    --color-primary-hover: #059669;
-    --color-secondary: #6366f1;
-    --color-secondary-hover: #4f46e5;
-    --color-accent: #f59e0b;
-    --color-surface-dark: #0f172a;
-    --color-card-dark: #1e293b;
-    --color-border-dark: #334155;
-    --color-surface-light: #f8fafc;
-    --color-card-light: #ffffff;
-    --color-border-light: #e2e8f0;
-  }
+	html {
+		color-scheme: dark;
+		-webkit-tap-highlight-color: transparent;
+		background: var(--color-ink);
+	}
 
-  body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  }
+	body {
+		font-family: var(--font-sans);
+		background:
+			radial-gradient(120% 60% at 50% -10%, #1d2563 0%, transparent 60%),
+			var(--color-ink);
+		background-attachment: fixed;
+		color: var(--color-chalk);
+		font-feature-settings: 'tnum' 1, 'cv11' 1;
+		min-height: 100dvh;
+		overscroll-behavior-y: none;
+	}
 
-  .font-mono {
-    font-family: 'JetBrains Mono', monospace;
-  }
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-display);
+		font-optical-sizing: auto;
+		letter-spacing: -0.02em;
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-model);
+		outline-offset: 3px;
+		border-radius: 6px;
+	}
+
+	button {
+		cursor: pointer;
+	}
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@layer components {
+	/* Perforated coupon stub — the betting-shop ticket the pick is printed on. */
+	.ticket {
+		--notch: 9px;
+		position: relative;
+		background: var(--color-raised);
+		border-radius: 0.875rem;
+		mask:
+			radial-gradient(circle var(--notch) at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
+			radial-gradient(circle var(--notch) at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+	}
+	.ticket-rule {
+		border-left: 2px dashed color-mix(in oklab, var(--color-line) 80%, transparent);
+	}
+
+	.surface {
+		background: color-mix(in oklab, var(--color-deep) 88%, transparent);
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-card);
+	}
+
+	.tilt {
+		transform-style: preserve-3d;
+		transition: transform 500ms var(--ease-out-expo), box-shadow 500ms var(--ease-out-expo);
+		will-change: transform;
+	}
+
+	.safe-bottom {
+		padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+	}
+	.safe-top {
+		padding-top: env(safe-area-inset-top);
+	}
 }
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+
+@utility scrollbar-none {
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
-  border-radius: 9999px;
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.8);
+
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+	animation-duration: 0.01ms !important;
+	transition-duration: 0.01ms !important;
+}
+
+/* View transitions between routes (supported browsers only). */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 220ms;
+	animation-timing-function: var(--ease-out-expo);
 }
