@@ -3,7 +3,7 @@
 	import { theme } from '#lib/theme.svelte.ts';
 	import { kickoff, countdown, pct, odds } from '#lib/format.ts';
 	import ScoreSurface3D from '#lib/components/ScoreSurface3D.svelte';
-	import MarketTable from '#lib/components/MarketTable.svelte';
+	import MarketList from '#lib/components/MarketList.svelte';
 	import AgentPanel from '#lib/components/AgentPanel.svelte';
 	import PaceLab from '#lib/components/PaceLab.svelte';
 	import ProbBar from '#lib/components/ProbBar.svelte';
@@ -16,7 +16,7 @@
 	const p = $derived(app.byId(data.id)!);
 </script>
 
-<svelte:head><title>{p.matchTitle} — QuantEdge</title></svelte:head>
+<svelte:head><title>{p.matchTitle} — PuntersEdge</title></svelte:head>
 <svelte:window bind:innerWidth />
 
 <a href={p.sport === 'football' ? '/football' : '/basketball'} class="inline-flex items-center gap-1 text-sm text-haze hover:text-chalk">
@@ -92,9 +92,9 @@
 <section class="mt-10" aria-labelledby="markets-title">
 	<h2 id="markets-title" class="text-2xl font-bold text-chalk">🎯 Markets</h2>
 	<p class="mt-1 text-sm text-haze">
-		Model is the engine's blended estimate ({Math.round(p.modelWeight * 100)}% model, rest market). Fair is the price that estimate implies. Best price is the highest across {p.bookmakers.join(', ')}.
+		Every market we price for this match. Model is our blended estimate ({Math.round(p.modelWeight * 100)}% model, rest market), fair is the price it implies, and the amber price is the best across {p.bookmakers.join(', ')}.
 	</p>
-	<div class="mt-4"><MarketTable rows={p.valueBets} /></div>
+	<div class="mt-4"><MarketList groups={p.markets} /></div>
 </section>
 
 {#if p.sport === 'football'}

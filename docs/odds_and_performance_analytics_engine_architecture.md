@@ -1,11 +1,11 @@
-# QuantEdge Enterprise Production Architecture (Master Specification)
+# PuntersEdge Enterprise Production Architecture (Master Specification)
 ## High-Frequency Multi-Bookmaker Ingestion, AI Multi-Agent Reasoning & Quantitative Prediction Engine
 
 ---
 
 ### 1. Executive Summary
 
-**QuantEdge** is an enterprise-grade quantitative sports intelligence platform that fuses:
+**PuntersEdge** is an enterprise-grade quantitative sports intelligence platform that fuses:
 1. **Live Odds Velocity & Sharp Consensus (Matchplay & 24Live)**: Ingests tick-by-tick odds movement, closing line values (CLV), steam moves, and consensus sentiment.
 2. **Bookmaker Engineering & Margin Loading (SportyBet, 1xBet & 22Bet)**: Dissects bookmaker liability balancing algorithms, multi-market derivations (Double Chance, Draw No Bet, Asian Handicap, Over/Under, BTTS), and accumulator compound margin decay.
 3. **Tactical & Squad Injury Shocks (RedScores)**: Lineup confirmation webhooks, player minutes-weighted absence impacts, and situational form decay.
@@ -29,7 +29,7 @@ flowchart LR
         PARSER["Canonical Match Entity Parser<br/>(1X2, DC, DNB, O/U, BTTS, Lineups)"]
     end
 
-    subgraph CorePlatform ["QuantEdge Enterprise Core"]
+    subgraph CorePlatform ["PuntersEdge Enterprise Core"]
         ARB["Arb & +EV Engine<br/>• Cross-Bookmaker Surebet Detector<br/>• Vig Removal (Shin / Multiplicative)"]
         MATH["Simulation Core<br/>• Dixon-Coles Football (10x10 Matrix)<br/>• Tempo-Free Basketball Monte Carlo"]
         AGENTS["AI Multi-Agent Reasoning Hub<br/>• Market Agent<br/>• Tactical Agent<br/>• Quant Agent<br/>• Master Strategist"]
@@ -52,7 +52,7 @@ flowchart LR
   - When retail punter volume heavily concentrates on one outcome (e.g. $> 70\%$ stakes on Arsenal), the automated risk engine drops the odds from $1.62 \to 1.50$ to discourage further liability, while boosting the draw and away options.
 * **Accumulator / FlexiBet Margin Compounding (`oddsKeys`)**:
   - SportyBet's internal configuration revealed a mathematical retention curve (`oddsKeys: {3: 0.95, 4: 0.90, ..., 15: 0.65, ..., 50: 0.15}`).
-  - While single bets carry a $3.0\% - 4.5\%$ margin, a 4-leg accumulator carries an **$18.5\%$ compound bookmaker edge**, increasing to **$45\%$+** on 10+ legs. QuantEdge advises punters on optimal leg thresholds and single +EV value.
+  - While single bets carry a $3.0\% - 4.5\%$ margin, a 4-leg accumulator carries an **$18.5\%$ compound bookmaker edge**, increasing to **$45\%$+** on 10+ legs. PuntersEdge advises punters on optimal leg thresholds and single +EV value.
 
 #### B. 1xBet & 22Bet (BetB2B Platform)
 * **Market Granularity**: Over 1,500 available markets per match.
@@ -68,7 +68,7 @@ flowchart LR
 
 ### 3. In-App AI LLM Multi-Agent System Architecture
 
-QuantEdge introduces an autonomous multi-agent hierarchy where distinct AI sub-agents debate match conditions before presenting the final verdict to the user:
+PuntersEdge introduces an autonomous multi-agent hierarchy where distinct AI sub-agents debate match conditions before presenting the final verdict to the user:
 
 ```mermaid
 sequenceDiagram

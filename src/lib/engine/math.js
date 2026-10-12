@@ -1,5 +1,5 @@
 /**
- * QuantEdge numeric core.
+ * PuntersEdge numeric core.
  * Deterministic, dependency-free primitives shared by every model in the engine.
  */
 

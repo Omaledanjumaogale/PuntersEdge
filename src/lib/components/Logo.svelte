@@ -1,5 +1,5 @@
 <script lang="ts">
-	/** QuantEdge mark: three rising towers (the score surface) and a spark. */
+	/** PuntersEdge mark: three rising towers (the score surface) and a spark. */
 	let { size = 32, wordmark = true }: { size?: number; wordmark?: boolean } = $props();
 	const id = `qe-${Math.random().toString(36).slice(2, 8)}`;
 </script>
@@ -22,6 +22,6 @@
 		<path d="M170 92l16 38 38 16-38 16-16 38-16-38-38-16 38-16z" fill="#ffe08a" />
 	</svg>
 	{#if wordmark}
-		<span class="font-display text-[1.15rem] font-extrabold tracking-tight text-chalk">Quant<span class="brand-text">Edge</span></span>
+		<span class="font-display text-[1.15rem] font-extrabold tracking-tight text-chalk">Punters<span class="brand-text">Edge</span></span>
 	{/if}
 </span>

@@ -9,7 +9,7 @@
 	const positive = $derived(pick.edgePercent > 0);
 </script>
 
-<div class="ticket flex items-stretch">
+<div class="ticket flex min-w-0 items-stretch">
 	<div class="min-w-0 flex-1 px-4 py-3">
 		{#if showMatch}
 			<a href="/match/{pick.fixtureId}" class="block truncate text-xs font-medium text-haze hover:text-chalk">{pick.matchTitle}</a>
@@ -24,11 +24,11 @@
 			<span class={positive ? 'text-model' : 'text-loss'}>{signed(pick.edgePercent, 2)}% edge</span>
 		</div>
 	</div>
-	<div class="ticket-rule flex w-[5.5rem] shrink-0 flex-col items-center justify-center gap-1 px-2 py-3 text-center">
+	<div class="ticket-rule flex w-[4.75rem] shrink-0 sm:w-[5.5rem] flex-col items-center justify-center gap-1 px-2 py-3 text-center">
 		{#if positive}
 			<span class="text-xs leading-tight text-haze">Stake<br /><span class="font-semibold text-chalk">{ngn(app.stakeFor(pick.kellyStakePercent))}</span></span>
 			<button
-				onclick={() => app.toggle(pick)}
+				onclick={() => (selected ? app.toggle(pick) : app.addAndExplore(pick))}
 				aria-pressed={selected}
 				aria-label={selected ? `Remove ${pick.selection} from slip` : `Add ${pick.selection} to slip`}
 				class="grid h-9 w-9 place-items-center rounded-full transition-all active:scale-90 {selected ? 'bg-model text-ink' : 'bg-chalk text-ink hover:scale-105'}"

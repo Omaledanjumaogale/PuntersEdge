@@ -16,7 +16,7 @@
 	const totalStakePct = $derived(list.reduce((a, v) => a + v.kellyStakePercent, 0));
 </script>
 
-<svelte:head><title>Value bets — QuantEdge</title></svelte:head>
+<svelte:head><title>Value bets — PuntersEdge</title></svelte:head>
 
 <header class="max-w-2xl">
 	<h1 class="text-4xl font-extrabold text-chalk">🔥 Value bets</h1>

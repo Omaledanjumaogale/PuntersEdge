@@ -22,10 +22,10 @@ const pct = (p) => `${(p * 100).toFixed(1)}%`;
  * @property {string[]} findings
  */
 
-export class QuantEdgeAIAgentHub {
+export class PuntersEdgeAIAgentHub {
   /** @param {{ modelName?: string }} [config] */
   constructor(config = {}) {
-    this.modelName = config.modelName ?? 'QuantEdge Reasoner (deterministic)';
+    this.modelName = config.modelName ?? 'PuntersEdge Reasoner (deterministic)';
   }
 
   /**

@@ -75,6 +75,10 @@ class AppState {
 	slip = $state<SlipItem[]>(loadArray<SlipItem>(SLIP_KEY));
 	slipOpen = $state(false);
 	menuOpen = $state(false);
+	/** Fixture whose full market list is open in the picker sheet. */
+	pickerFixture = $state<string | null>(null);
+	/** Selection just added, so the picker can confirm it. */
+	lastAdded = $state<string | null>(null);
 	/** Snapshot of "now" so kickoff times are stable within a session. */
 	readonly now = Date.now();
 
@@ -126,11 +130,11 @@ class AppState {
 		return this.slip.some((s) => s.id === id);
 	}
 
-	/** One selection per fixture: adding a second replaces the first. */
+	/** Add or remove a selection. Several markets from one match are allowed. */
 	toggle(v: ValueBet) {
 		if (this.inSlip(v.id)) {
 			this.slip = this.slip.filter((s) => s.id !== v.id);
-			return;
+			return false;
 		}
 		const item: SlipItem = {
 			id: v.id,
@@ -144,8 +148,27 @@ class AppState {
 			modelProb: v.modelProb,
 			edgePercent: v.edgePercent
 		};
-		this.slip = [...this.slip.filter((s) => s.fixtureId !== v.fixtureId), item];
+		this.slip = [...this.slip, item];
+		return true;
 	}
+
+	/** Add a pick and show the rest of that fixture's markets. */
+	addAndExplore(v: ValueBet) {
+		const added = this.toggle(v);
+		if (added) {
+			this.lastAdded = v.selection;
+			this.pickerFixture = v.fixtureId;
+		}
+	}
+
+	/** Fixtures with more than one leg in the slip (correlated if combined). */
+	sameGameFixtures = $derived(
+		new Set(
+			this.slip
+				.map((s) => s.fixtureId)
+				.filter((id, i, arr) => arr.indexOf(id) !== i)
+		)
+	);
 
 	remove(id: string) {
 		this.slip = this.slip.filter((s) => s.id !== id);

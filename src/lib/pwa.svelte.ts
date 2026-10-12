@@ -91,7 +91,7 @@ class PwaState {
 				if (document.visibilityState === 'visible') reg.update().catch(() => {});
 			});
 		} catch (err) {
-			console.warn('[QuantEdge] service worker registration failed', err);
+			console.warn('[PuntersEdge] service worker registration failed', err);
 		}
 	}
 

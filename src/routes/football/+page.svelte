@@ -5,7 +5,7 @@
 	const edges = $derived(app.football.filter((p) => p.bestValue && p.bestValue.edgePercent > 0).length);
 </script>
 
-<svelte:head><title>Football — QuantEdge</title></svelte:head>
+<svelte:head><title>Football — PuntersEdge</title></svelte:head>
 
 <header class="max-w-2xl">
 	<h1 class="text-4xl font-extrabold text-chalk">⚽ Football</h1>

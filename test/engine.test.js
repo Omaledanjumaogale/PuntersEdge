@@ -9,7 +9,7 @@ import { deriveDoubleChance, deriveDrawNoBet, compareBookmakerOdds, calculateAcc
 import { buildFootballPrediction, buildBasketballPrediction } from '../src/lib/engine/prediction_pipeline.js';
 import { mulberry32, normalCdf, poissonPmf } from '../src/lib/engine/math.js';
 import { UnifiedSportsFetcher } from '../src/lib/engine/data_fetcher.js';
-import { QuantEdgeAIAgentHub } from '../src/lib/engine/ai_agent_orchestrator.js';
+import { PuntersEdgeAIAgentHub } from '../src/lib/engine/ai_agent_orchestrator.js';
 import { FOOTBALL_INPUTS, BASKETBALL_INPUTS } from '../src/lib/data/fixtures.js';
 
 const close = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
@@ -175,7 +175,7 @@ test('pipeline: model weight 0 reproduces the market exactly (no edge from blend
 
 // ── agents ──────────────────────────────────────────────────────────────
 test('agents: hub analyses a prediction and never invents an edge', () => {
-  const hub = new QuantEdgeAIAgentHub();
+  const hub = new PuntersEdgeAIAgentHub();
   for (const input of FOOTBALL_INPUTS) {
     const p = buildFootballPrediction(input);
     const a = hub.analyze(p);
@@ -187,7 +187,7 @@ test('agents: hub analyses a prediction and never invents an edge', () => {
 
 test('agents: legacy feed entity path still works', async () => {
   const match = await new UnifiedSportsFetcher().getLiveFeedSnapshot('football');
-  const report = await new QuantEdgeAIAgentHub().synthesizeMatchPrediction(match);
+  const report = await new PuntersEdgeAIAgentHub().synthesizeMatchPrediction(match);
   assert.ok(report.matchOverview.fixture.includes('Arsenal'));
   assert.ok(report.comprehensiveMarketProbabilities.doubleChance['1X']);
   assert.ok(['BET', 'PASS'].includes(report.primaryRecommendation.action));

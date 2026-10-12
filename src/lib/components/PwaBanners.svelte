@@ -23,7 +23,7 @@
 
 	{#if pwa.canInstall}
 		<div transition:fly={{ y: 16, duration: 250 }} class="pointer-events-auto flex items-center gap-3 rounded-2xl bg-raised py-2 pl-4 pr-2 text-sm ring-1 ring-line sm:hidden">
-			<span>Install QuantEdge for full-screen, offline use.</span>
+			<span>Install PuntersEdge for full-screen, offline use.</span>
 			<button onclick={() => pwa.install()} class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-model px-3 py-1.5 font-semibold text-ink">
 				<Download class="h-4 w-4" /> Install
 			</button>
@@ -35,7 +35,7 @@
 			<button onclick={() => pwa.dismissIOSHint()} aria-label="Dismiss" class="absolute right-2 top-2 rounded-full p-1.5 text-haze hover:text-chalk">
 				<X class="h-4 w-4" />
 			</button>
-			<p class="font-semibold">Add QuantEdge to your Home Screen</p>
+			<p class="font-semibold">Add PuntersEdge to your Home Screen</p>
 			<p class="mt-1 text-haze">
 				Tap <Share class="inline h-4 w-4 align-text-bottom text-chalk" /> Share in Safari, then <span class="text-chalk">Add to Home Screen</span>.
 			</p>

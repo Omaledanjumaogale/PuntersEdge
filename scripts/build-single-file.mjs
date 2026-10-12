@@ -69,7 +69,7 @@ css = css.replace(/url\(\.?\/?([^)]+\.woff2)\)/g, (_, file) => {
 	return `url(data:font/woff2;base64,${readFileSync(join(assets, name)).toString('base64')})`;
 });
 
-const page = `<title>QuantEdge</title>
+const page = `<title>PuntersEdge</title>
 <meta name="theme-color" content="#0c1027">
 <style>${css}</style>
 <div id="qe-root" style="display:contents"></div>

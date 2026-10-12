@@ -68,7 +68,8 @@
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-xs text-haze">{i.matchTitle}</p>
 						<p class="truncate font-semibold text-chalk">{i.selection}</p>
-						<p class="text-xs text-haze">{i.bookmaker}, model {pct(i.modelProb, 1)}</p>
+						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}</p>
+						{#if app.sameGameFixtures.has(i.fixtureId)}<p class="mt-0.5 text-xs font-semibold text-book">🔗 Same match as another pick</p>{/if}
 					</div>
 					<span class="font-display text-lg font-semibold text-book">{odds(i.odds)}</span>
 					<button onclick={() => app.remove(i.id)} class="rounded-full p-1.5 text-haze hover:text-loss" aria-label="Remove {i.selection}"><X class="h-4 w-4" /></button>
@@ -124,15 +125,18 @@
 					<dd class="text-right font-semibold {expected >= 0 ? 'text-model' : 'text-loss'}">{expected >= 0 ? '+' : '−'}{ngn(Math.abs(expected))}</dd>
 				</dl>
 
+				{#if isAcca && app.sameGameFixtures.size > 0}
+					<p class="rounded-xl tint-book px-3 py-2 text-xs font-medium text-chalk ring-1 ring-book/50">🔗 Some picks are from the same match. Their results are linked, so the combined chance above is only a rough guide, and many bookmakers won't accept them in one accumulator. Singles are safer.</p>
+				{/if}
 				{#if isAcca && econ.evPercent < 0}
-					<p class="rounded-xl bg-loss/10 px-3 py-2 text-xs text-loss">This combination has negative expected value ({signed(econ.evPercent)}%). Singles keep each edge intact.</p>
+					<p class="rounded-xl tint-loss px-3 py-2 text-xs text-loss">This combination has negative expected value ({signed(econ.evPercent)}%). Singles keep each edge intact.</p>
 				{/if}
 
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">
 					{#if copied}<Check class="h-4 w-4" /> Copied{:else}<Copy class="h-4 w-4" /> Copy slip for your bookmaker{/if}
 				</button>
 				<p class="text-center text-xs text-haze">
-					{#if auth.signedIn && auth.mode === 'convex'}☁️ Synced to your account. {:else if !auth.signedIn}<a href="/login" onclick={close} class="font-semibold text-pop underline">Log in</a> to sync this slip. {/if}QuantEdge doesn't place bets. 18+, bet within your means.
+					{#if auth.signedIn && auth.mode === 'convex'}☁️ Synced to your account. {:else if !auth.signedIn}<a href="/login" onclick={close} class="font-semibold text-pop underline">Log in</a> to sync this slip. {/if}PuntersEdge doesn't place bets. 18+, bet within your means.
 				</p>
 			</footer>
 		{/if}

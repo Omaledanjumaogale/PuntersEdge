@@ -11,7 +11,7 @@ export class UnifiedSportsFetcher {
   }
 
   /**
-   * Normalizes raw fixture structures into canonical QuantEdge Match Entity
+   * Normalizes raw fixture structures into canonical PuntersEdge Match Entity
    */
   /** @param {any} raw */
   normalizeMatchEntity(raw) {

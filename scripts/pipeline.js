@@ -1,14 +1,14 @@
 /**
- * QuantEdge CLI — runs the full prediction pipeline over the sample feed and
+ * PuntersEdge CLI — runs the full prediction pipeline over the sample feed and
  * prints each fixture's agent analysis. `npm run pipeline`
  */
 
 import { FOOTBALL_INPUTS, BASKETBALL_INPUTS } from '../src/lib/data/fixtures.js';
 import { buildFootballPrediction, buildBasketballPrediction } from '../src/lib/engine/prediction_pipeline.js';
 import { compareBookmakerOdds, evaluateAccumulator } from '../src/lib/engine/bookmaker_engine.js';
-import { QuantEdgeAIAgentHub } from '../src/lib/engine/ai_agent_orchestrator.js';
+import { PuntersEdgeAIAgentHub } from '../src/lib/engine/ai_agent_orchestrator.js';
 
-const hub = new QuantEdgeAIAgentHub();
+const hub = new PuntersEdgeAIAgentHub();
 const line = '─'.repeat(72);
 const pct = (/** @type {number} */ p) => `${(p * 100).toFixed(1)}%`;
 

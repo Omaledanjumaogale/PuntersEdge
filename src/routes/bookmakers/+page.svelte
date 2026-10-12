@@ -34,7 +34,7 @@
 	const decay = $derived([1, 2, 3, 4, 5, 6, 8, 10, 12].map((legs) => ({ legs, ...calculateAccumulatorEconomics(Array(legs).fill(2), perLeg / 100) })));
 </script>
 
-<svelte:head><title>Bookmakers — QuantEdge</title></svelte:head>
+<svelte:head><title>Bookmakers — PuntersEdge</title></svelte:head>
 
 <header class="max-w-2xl">
 	<h1 class="text-4xl font-extrabold text-chalk">🏦 Bookmakers</h1>

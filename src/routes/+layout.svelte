@@ -9,6 +9,7 @@
 	import { theme } from '#lib/theme.svelte.ts';
 	import { startSlipSync } from '#lib/sync.svelte.ts';
 	import MenuDrawer from '#lib/components/MenuDrawer.svelte';
+	import MarketPicker from '#lib/components/MarketPicker.svelte';
 	import TopBar from '#lib/components/TopBar.svelte';
 	import BottomNav from '#lib/components/BottomNav.svelte';
 	import SlipSheet from '#lib/components/SlipSheet.svelte';
@@ -46,4 +47,5 @@
 <BottomNav />
 <SlipSheet />
 <MenuDrawer />
+<MarketPicker />
 <PwaBanners />

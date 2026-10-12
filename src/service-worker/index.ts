@@ -3,7 +3,7 @@
 /// <reference lib="webworker" />
 
 /**
- * QuantEdge service worker.
+ * PuntersEdge service worker.
  *
  * - Precaches the app shell: every hashed build asset, static file and
  *   prerendered page, versioned by the build so deploys never mix assets.
@@ -64,7 +64,7 @@ async function networkFirstPage(request: Request, path: string): Promise<Respons
 			(await cache.match(path)) ??
 			(await cache.match(path.replace(/\/$/, '') || '/')) ??
 			(await cache.match('/')) ??
-			new Response('QuantEdge is offline and this page has not been saved yet.', {
+			new Response('PuntersEdge is offline and this page has not been saved yet.', {
 				status: 503,
 				headers: { 'content-type': 'text/plain; charset=utf-8' }
 			})

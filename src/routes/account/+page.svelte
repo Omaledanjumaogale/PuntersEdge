@@ -31,7 +31,7 @@
 	}
 </script>
 
-<svelte:head><title>Your account — QuantEdge</title></svelte:head>
+<svelte:head><title>Your account — PuntersEdge</title></svelte:head>
 
 {#if auth.status === 'loading'}
 	<p class="py-20 text-center text-haze">Loading your account…</p>

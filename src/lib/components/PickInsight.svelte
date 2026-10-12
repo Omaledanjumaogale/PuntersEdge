@@ -5,12 +5,12 @@
 	 * market consensus (outline). Drivers: the inputs that moved the number.
 	 */
 	import { app, type Prediction } from '#lib/state.svelte.ts';
-	import { QuantEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
+	import { PuntersEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
 	import { pct, odds, ngn, gradeEmoji, gradeMeaning } from '#lib/format.ts';
 
 	let { p, compact = false }: { p: Prediction; compact?: boolean } = $props();
 
-	const hub = new QuantEdgeAIAgentHub();
+	const hub = new PuntersEdgeAIAgentHub();
 	const v = $derived(p.bestValue);
 	const positive = $derived(Boolean(v && v.edgePercent > 0 && v.grade !== 'PASS'));
 	const needs = $derived(v ? 1 / v.bestOdds : 0);
