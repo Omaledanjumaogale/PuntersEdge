@@ -1,20 +1,40 @@
 {
-  "name": "sports-predict-engine",
+  "name": "quantedge-sports-pwa",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "description": "Enterprise Sports Analytics and Mathematical Prediction Engine reverse engineered from Matchplay and Redscores",
+  "description": "Enterprise Quantitative Sports Analytics, Predictions & PWA for Basketball Fixtures and Football Matches",
   "scripts": {
-    "start": "node src/index.js",
-    "test": "node --test test/*.test.js"
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "wrangler pages dev .svelte-kit/cloudflare --port 4173",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "gen": "wrangler types",
+    "test": "node --test test/*.test.js",
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy"
   },
-  "keywords": [
-    "sports-betting",
-    "dixon-coles",
-    "poisson",
-    "basketball-pace",
-    "expected-value",
-    "odds-movement"
-  ],
-  "author": "Antigravity Engineering",
-  "license": "MIT"
+  "dependencies": {
+    "convex": "^1.19.0",
+    "@convex-dev/auth": "^0.0.86",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.0",
+    "lucide-svelte": "^1.0.1"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-cloudflare": "^8.0.0",
+    "@sveltejs/kit": "^3.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.6.0",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0",
+    "wrangler": "^4.97.0"
+  },
+  "imports": {
+    "#lib": "./src/lib/index.ts",
+    "#lib/*": "./src/lib/*"
+  }
 }

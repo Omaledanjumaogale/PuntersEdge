@@ -10,6 +10,7 @@ coverage/
 # Production build outputs
 dist/
 build/
+.svelte-kit/
 .vercel/
 .output/
 
