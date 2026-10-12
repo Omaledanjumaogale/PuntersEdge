@@ -11,7 +11,17 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			// Registered manually in #lib/pwa.svelte.ts so the app can surface
+			// an "update ready" prompt instead of swapping versions silently.
+			serviceWorker: { register: false },
+			prerender: {
+				handleHttpError: ({ path, message }) => {
+					// Manifest screenshots are optional assets, not crawlable pages.
+					if (path.startsWith('/screenshots/')) return;
+					throw new Error(message);
+				}
+			}
 		})
 	]
 });
