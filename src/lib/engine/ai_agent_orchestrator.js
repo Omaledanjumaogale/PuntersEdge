@@ -1,188 +1,215 @@
 /**
- * In-App AI LLM Multi-Agent Reasoning & Orchestration Engine
- * Coordinates specialized sub-agents to deliver conversational, high-confidence,
- * data-driven betting intelligence and market option recommendations.
+ * Multi-agent reasoning hub.
+ *
+ * Four deterministic specialist agents each inspect one aspect of a pipeline
+ * prediction and emit findings; the master agent reconciles them into a
+ * recommendation. Every sentence is generated from computed numbers — the
+ * hub never asserts facts it did not derive.
  */
 
-import { generateScoreMatrix } from './football_model.js';
-import { adjustParametersForLineups } from './lineup_impact.js';
-import { deriveDoubleChance, deriveDrawNoBet } from './bookmaker_engine.js';
-import { calculateExpectedValue, calculateKellyStake, analyzeOddsMovement } from './decision_screener.js';
+import { buildFootballPrediction } from './prediction_pipeline.js';
+
+/** @param {number} p */
+const pct = (p) => `${(p * 100).toFixed(1)}%`;
+
+/**
+ * @typedef {Object} AgentReport
+ * @property {string} agent
+ * @property {string} role
+ * @property {'bullish' | 'bearish' | 'neutral'} stance
+ * @property {number} confidence 0…1
+ * @property {string} headline
+ * @property {string[]} findings
+ */
 
 export class QuantEdgeAIAgentHub {
+  /** @param {{ modelName?: string }} [config] */
   constructor(config = {}) {
-    this.modelName = config.modelName || 'Gemini 3.8 Flash (High-Speed Reasoning)';
+    this.modelName = config.modelName ?? 'QuantEdge Reasoner (deterministic)';
   }
 
   /**
-   * Sub-Agent 1: Market Intelligence Agent
+   * Market agent: price discovery, margins, movement.
+   * @param {any} p prediction from the pipeline
+   * @returns {AgentReport}
    */
-  async runMarketIntelligenceAgent(marketData) {
-    const openingOdds = marketData.openingOdds || marketData.currentOdds.home * 0.95;
-    const movement = analyzeOddsMovement(openingOdds, marketData.currentOdds.home, marketData.publicPct || 65);
-    
+  marketAgent(p) {
+    const margins = /** @type {[string, number][]} */ (Object.entries(p.margins));
+    const sharpest = margins.reduce((a, b) => (b[1] < a[1] ? b : a));
+    const softest = margins.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const findings = [
+      `Lowest margin: ${sharpest[0]} at ${sharpest[1].toFixed(2)}%; highest: ${softest[0]} at ${softest[1].toFixed(2)}%.`,
+      p.movement ? p.movement.explanation : 'No opening price on record, so movement cannot be assessed.'
+    ];
     return {
-      agent: 'MarketIntelligenceAgent',
-      role: 'Cross-Bookmaker & Odds Drift Specialist',
-      verdict: movement.signalType,
-      smartMoneyDetected: movement.smartMoneyIndication,
-      analysisSummary: movement.explanation
+      agent: 'Market Intelligence',
+      role: 'Price discovery & line movement',
+      stance: p.movement?.smartMoneyIndication ? 'bullish' : 'neutral',
+      confidence: p.movement?.smartMoneyIndication ? 0.7 : 0.5,
+      headline: p.movement?.smartMoneyIndication ? 'Informed money is moving this market' : 'Market is quiet and efficiently priced',
+      findings
     };
   }
 
   /**
-   * Sub-Agent 2: Squad & Tactical Context Agent
+   * Squad agent: absences and their modelled effect.
+   * @param {any} p
+   * @returns {AgentReport}
    */
-  async runSquadTacticalAgent(homeMissing, awayMissing) {
-    const totalMissing = (homeMissing?.length || 0) + (awayMissing?.length || 0);
-    const criticalImpact = homeMissing?.some(p => p.impactRating >= 0.07);
+  squadAgent(p) {
+    const n = p.absences.length;
+    return {
+      agent: 'Squad & Context',
+      role: 'Availability & lineup impact',
+      stance: n > 0 ? 'bearish' : 'neutral',
+      confidence: n > 0 ? 0.65 : 0.55,
+      headline: n === 0 ? 'Full-strength lineups' : `${n} absence${n > 1 ? 's' : ''} priced into the model`,
+      findings: [p.lineupAlert]
+    };
+  }
 
-    let narrative = '';
-    if (criticalImpact) {
-      narrative = `Severe squad disruption: Key tactical anchors are absent (${homeMissing.map(p => p.name).join(', ')}). Expect reduced finishing efficiency and altered pressing intensity.`;
+  /**
+   * Quant agent: model vs market disagreement.
+   * @param {any} p
+   * @returns {AgentReport}
+   */
+  quantAgent(p) {
+    const findings = [];
+    if (p.sport === 'football') {
+      findings.push(
+        `Expected goals ${p.expectedGoals.homeLambda.toFixed(2)} – ${p.expectedGoals.awayMu.toFixed(2)} (ρ ${p.expectedGoals.rho.toFixed(2)}).`,
+        `Model 1X2 ${pct(p.modelProbabilities.homeWin)} / ${pct(p.modelProbabilities.draw)} / ${pct(p.modelProbabilities.awayWin)} vs market ${pct(p.marketProbabilities.homeWin)} / ${pct(p.marketProbabilities.draw)} / ${pct(p.marketProbabilities.awayWin)}.`,
+        `Most likely score ${p.topScorelines[0].home}–${p.topScorelines[0].away} (${pct(p.topScorelines[0].prob)}).`
+      );
     } else {
-      narrative = `Routine squad rotation. Missing personnel do not compromise team tactical baseline.`;
+      findings.push(
+        `Projected ${p.projectedScore.home} – ${p.projectedScore.away} at ${p.paceMetrics.possessionsPer48} possessions.`,
+        `Model total ${p.projectedScore.total} vs market line ${p.marketLines.total}; model margin ${p.projectedScore.spread > 0 ? '+' : ''}${p.projectedScore.spread} vs line ${-p.marketLines.spread > 0 ? '+' : ''}${-p.marketLines.spread}.`,
+        `Outcome dispersion: margin σ ${p.dispersion.marginSd}, total σ ${p.dispersion.totalSd}.`
+      );
     }
-
+    const gap = p.bestValue ? Math.abs(p.bestValue.modelProb - p.bestValue.marketProb) : 0;
     return {
-      agent: 'SquadTacticalAgent',
-      role: 'Lineup & Team Context Specialist',
-      missingPlayerCount: totalMissing,
-      criticalImpact,
-      tacticalReport: narrative
+      agent: 'Quantitative Model',
+      role: p.sport === 'football' ? 'Dixon–Coles distribution' : 'Tempo-free projection',
+      stance: gap > 0.02 ? 'bullish' : 'neutral',
+      confidence: Math.max(0.35, 0.8 - gap * 2),
+      headline: gap > 0.08 ? 'Large model–market gap: treat with caution' : gap > 0.02 ? 'Model sees a mispricing' : 'Model agrees with the market',
+      findings
     };
   }
 
   /**
-   * Sub-Agent 3: Quantitative Modeling Agent
+   * Risk agent: staking discipline.
+   * @param {any} p
+   * @returns {AgentReport}
    */
-  async runQuantitativeModelingAgent(baselineGoals, homeMissing, awayMissing) {
-    const adjusted = adjustParametersForLineups(baselineGoals, homeMissing, awayMissing);
-    const footballSim = generateScoreMatrix(adjusted.adjusted.lambdaHome, adjusted.adjusted.muAway);
-    const doubleChance = deriveDoubleChance(footballSim.probabilities.oneXTwo);
-    const dnb = deriveDrawNoBet(footballSim.probabilities.oneXTwo);
-
+  riskAgent(p) {
+    const v = p.bestValue;
+    const positive = v && v.edgePercent > 0;
     return {
-      agent: 'QuantitativeModelingAgent',
-      role: 'Dixon-Coles & Poisson Math Core',
-      adjustedExpectancy: adjusted.adjusted,
-      distributions: footballSim.probabilities,
-      doubleChance,
-      drawNoBet: dnb
+      agent: 'Risk Manager',
+      role: 'Kelly sizing & exposure',
+      stance: positive ? 'neutral' : 'bearish',
+      confidence: 0.75,
+      headline: positive ? `Stake ${v.kellyStakePercent}% of bankroll (¼ Kelly, capped 3.5%)` : 'No stake — no positive expectation',
+      findings: positive
+        ? [
+            `Break-even probability at ${v.bestOdds.toFixed(2)} is ${pct(1 / v.bestOdds)}; blended estimate is ${pct(v.modelProb)}.`,
+            'Quarter-Kelly keeps drawdowns survivable if the model is overconfident.'
+          ]
+        : ['Every available price is at or below fair value after removing margin.']
     };
   }
 
   /**
-   * Master Agent: Synthesizes sub-agents into the final enterprise intelligence dossier
+   * Run all agents over a pipeline prediction and reconcile.
+   * @param {any} prediction
+   */
+  analyze(prediction) {
+    const agents = [this.marketAgent(prediction), this.squadAgent(prediction), this.quantAgent(prediction), this.riskAgent(prediction)];
+    const v = prediction.bestValue;
+    const hasValue = Boolean(v && v.edgePercent > 0 && v.grade !== 'PASS');
+
+    const recommendation = hasValue
+      ? {
+          action: 'BET',
+          market: v.market,
+          selection: v.selection,
+          bookmaker: v.bookmaker,
+          odds: v.bestOdds,
+          fairOdds: v.fairOdds,
+          edgePercent: v.edgePercent,
+          stakePercent: v.kellyStakePercent,
+          grade: v.grade,
+          rationale: `Blending the model (${Math.round(prediction.modelWeight * 100)}%) with the de-vigged market puts ${v.selection} at ${pct(v.modelProb)} against a market consensus of ${pct(v.marketProb)}. ${v.bookmaker}'s ${v.bestOdds.toFixed(2)} beats the fair price of ${v.fairOdds.toFixed(2)}, an expected edge of +${v.edgePercent.toFixed(2)}%.`
+        }
+      : {
+          action: 'PASS',
+          market: v?.market ?? '—',
+          selection: v?.selection ?? '—',
+          bookmaker: v?.bookmaker ?? '—',
+          odds: v?.bestOdds ?? 0,
+          fairOdds: v?.fairOdds ?? 0,
+          edgePercent: v?.edgePercent ?? 0,
+          stakePercent: 0,
+          grade: 'PASS',
+          rationale: 'No selection clears fair value at the best available price. Passing is a position: the margin is the bookmaker’s edge, not yours.'
+        };
+
+    const consensusConfidence = agents.reduce((a, g) => a + g.confidence, 0) / agents.length;
+    return { engine: this.modelName, fixture: prediction.matchTitle, agents, recommendation, consensusConfidence };
+  }
+
+  /**
+   * Backwards-compatible entry point used by the CLI pipeline: accepts a
+   * normalised feed entity from UnifiedSportsFetcher.
+   * @param {any} matchEntity
+   * @param {{ lambdaHome: number, muAway: number }} [baselineParams]
    */
   async synthesizeMatchPrediction(matchEntity, baselineParams = { lambdaHome: 1.85, muAway: 0.85 }) {
-    // 1. Concurrently execute sub-agents
-    const marketReport = await this.runMarketIntelligenceAgent({
-      openingOdds: 1.62,
-      currentOdds: matchEntity.oddsMarket.sportyBet,
-      publicPct: 72
+    /** @type {Record<string, Record<string, number>>} */
+    const odds = {};
+    const names = { sportyBet: 'SportyBet', oneXBet: '1xBet', twentyTwoBet: '22Bet' };
+    for (const [key, label] of Object.entries(names)) {
+      const o = matchEntity.oddsMarket[key];
+      if (o) odds[label] = { home: o.home, draw: o.draw, away: o.away, over25: o.over2_5, under25: o.under2_5 };
+    }
+    const prediction = buildFootballPrediction({
+      fixtureId: matchEntity.matchId,
+      homeTeam: matchEntity.homeTeam.name,
+      awayTeam: matchEntity.awayTeam.name,
+      league: matchEntity.tournament,
+      kickoffTime: matchEntity.startTimeUtc,
+      ratings: baselineParams,
+      absences: { home: matchEntity.lineups.homeMissing, away: matchEntity.lineups.awayMissing },
+      odds
     });
-
-    const squadReport = await this.runSquadTacticalAgent(
-      matchEntity.lineups.homeMissing,
-      matchEntity.lineups.awayMissing
-    );
-
-    const quantReport = await this.runQuantitativeModelingAgent(
-      baselineParams,
-      matchEntity.lineups.homeMissing,
-      matchEntity.lineups.awayMissing
-    );
-
-    // 2. Evaluate all market options for +EV value
-    const sporty = matchEntity.oddsMarket.sportyBet;
-    const valueCatalog = [];
-
-    // Check Home Win
-    const evHome = calculateExpectedValue(quantReport.distributions.oneXTwo.home, sporty.home);
-    if (evHome.isPositiveEV) {
-      valueCatalog.push({ market: '1X2 - Home Win', odds: sporty.home, ...evHome, stake: calculateKellyStake(evHome.modelProbability, sporty.home) });
-    }
-
-    // Check Over 2.5 Goals
-    const evOver = calculateExpectedValue(quantReport.distributions.overUnder[2.5].over, sporty.over2_5);
-    if (evOver.isPositiveEV) {
-      valueCatalog.push({ market: 'Goals - Over 2.5', odds: sporty.over2_5, ...evOver, stake: calculateKellyStake(evOver.modelProbability, sporty.over2_5) });
-    }
-
-    // Check Both Teams to Score (BTTS)
-    const evBtts = calculateExpectedValue(quantReport.distributions.btts.yes, 1.95);
-    if (evBtts.isPositiveEV) {
-      valueCatalog.push({ market: 'BTTS - Yes', odds: 1.95, ...evBtts, stake: calculateKellyStake(evBtts.modelProbability, 1.95) });
-    }
-
-    // Sort by edge percentage descending
-    valueCatalog.sort((a, b) => b.edgePercent - a.edgePercent);
-
-    const bestPick = valueCatalog[0] || {
-      market: 'Double Chance - 1X',
-      odds: 1.25,
-      edgePercent: 2.1,
-      stake: { recommendedStakePct: 1.0, action: 'LOW_RISK_ACCUMULATOR' }
-    };
-
-    // Confidence tiering
-    let confidenceGrade = 'A';
-    if (marketReport.smartMoneyDetected && bestPick.edgePercent > 3.0) {
-      confidenceGrade = 'A+ (High Conviction)';
-    } else if (bestPick.edgePercent < 2.0) {
-      confidenceGrade = 'B (Moderate Value)';
-    }
+    const analysis = this.analyze(prediction);
+    const p = prediction.probabilities;
+    const dc = prediction.derived.doubleChance;
+    const dnb = prediction.derived.drawNoBet;
 
     return {
-      matchOverview: {
-        fixture: `${matchEntity.homeTeam.name} vs ${matchEntity.awayTeam.name}`,
-        competition: matchEntity.tournament,
-        kickoffUtc: matchEntity.startTimeUtc
-      },
-      aiAgentOrchestration: {
-        leadEngine: this.modelName,
-        agent1_Market: marketReport,
-        agent2_Squad: squadReport,
-        agent3_Math: {
-          adjustedGoals: quantReport.adjustedExpectancy,
-          topPredictedScores: quantReport.distributions.topPredictedScores.slice(0, 3)
-        }
-      },
+      prediction,
+      analysis,
+      matchOverview: { fixture: prediction.matchTitle, competition: prediction.league, kickoffUtc: prediction.kickoffTime },
       comprehensiveMarketProbabilities: {
-        oneXTwo: {
-          home: `${(quantReport.distributions.oneXTwo.home * 100).toFixed(1)}%`,
-          draw: `${(quantReport.distributions.oneXTwo.draw * 100).toFixed(1)}%`,
-          away: `${(quantReport.distributions.oneXTwo.away * 100).toFixed(1)}%`
-        },
-        doubleChance: {
-          '1X': `${(quantReport.doubleChance['1X'].prob * 100).toFixed(1)}%`,
-          '12': `${(quantReport.doubleChance['12'].prob * 100).toFixed(1)}%`,
-          'X2': `${(quantReport.doubleChance['X2'].prob * 100).toFixed(1)}%`
-        },
-        drawNoBet: {
-          home: `${(quantReport.drawNoBet.homeDNB.prob * 100).toFixed(1)}%`,
-          away: `${(quantReport.drawNoBet.awayDNB.prob * 100).toFixed(1)}%`
-        },
-        overUnderGoals: {
-          over1_5: `${(quantReport.distributions.overUnder[1.5].over * 100).toFixed(1)}%`,
-          over2_5: `${(quantReport.distributions.overUnder[2.5].over * 100).toFixed(1)}%`,
-          under2_5: `${(quantReport.distributions.overUnder[2.5].under * 100).toFixed(1)}%`,
-          over3_5: `${(quantReport.distributions.overUnder[3.5].over * 100).toFixed(1)}%`
-        },
-        bothTeamsToScore: {
-          yes: `${(quantReport.distributions.btts.yes * 100).toFixed(1)}%`,
-          no: `${(quantReport.distributions.btts.no * 100).toFixed(1)}%`
-        }
+        oneXTwo: { home: pct(p.homeWin), draw: pct(p.draw), away: pct(p.awayWin) },
+        doubleChance: { '1X': pct(dc['1X'].prob), '12': pct(dc['12'].prob), X2: pct(dc.X2.prob) },
+        drawNoBet: { home: pct(dnb.homeDNB.prob), away: pct(dnb.awayDNB.prob) },
+        overUnderGoals: { over2_5: pct(p.over25), under2_5: pct(p.under25) },
+        bothTeamsToScore: { yes: pct(prediction.modelProbabilities.bttsYes), no: pct(prediction.modelProbabilities.bttsNo) }
       },
       primaryRecommendation: {
-        recommendedMarket: bestPick.market,
-        targetBookmaker: 'SportyBet / 1xBet',
-        quotedOdds: bestPick.odds,
-        mathematicalEdge: `+${bestPick.edgePercent}%`,
-        confidenceRating: confidenceGrade,
-        suggestedStakePct: `${bestPick.stake.recommendedStakePct}% of Bankroll`,
-        plainEnglishRationale: `AI Multi-Agent consensus confirms positive mathematical expectancy. While public retail volume is heavily backing the home side, bookmakers shaded the line upward due to confirmed injuries noted in RedScores. At current quoted odds of ${bestPick.odds}, the market misprices the option, creating a verified +EV window.`
+        action: analysis.recommendation.action,
+        recommendedMarket: analysis.recommendation.selection,
+        targetBookmaker: analysis.recommendation.bookmaker,
+        quotedOdds: analysis.recommendation.odds,
+        mathematicalEdge: `${analysis.recommendation.edgePercent >= 0 ? '+' : ''}${analysis.recommendation.edgePercent}%`,
+        confidenceRating: analysis.recommendation.grade,
+        suggestedStakePct: `${analysis.recommendation.stakePercent}% of bankroll`,
+        plainEnglishRationale: analysis.recommendation.rationale
       }
     };
   }

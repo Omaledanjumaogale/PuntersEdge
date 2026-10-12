@@ -4,6 +4,7 @@
  */
 
 export class UnifiedSportsFetcher {
+  /** @param {{ timeout?: number, userAgent?: string }} [options] */
   constructor(options = {}) {
     this.timeout = options.timeout || 8000;
     this.userAgent = options.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
@@ -12,6 +13,7 @@ export class UnifiedSportsFetcher {
   /**
    * Normalizes raw fixture structures into canonical QuantEdge Match Entity
    */
+  /** @param {any} raw */
   normalizeMatchEntity(raw) {
     return {
       matchId: raw.id || `match_${Date.now()}`,

@@ -1,87 +1,115 @@
 /**
- * Quantitative Market Vig Removal and Fair Implied Probability Module
- * Reverse engineered from Matchplay.com odds consensus & movements.
+ * Bookmaker margin (vig) removal.
+ *
+ * Converts quoted decimal odds into fair implied probabilities with three
+ * standard methods: multiplicative (proportional), power, and Shin — the last
+ * corrects for favourite–longshot bias and is the default consensus method.
  */
 
 /**
- * Calculates bookmaker margin (overround).
- * Example: Odds of [2.00, 3.40, 3.80] gives Overround ~ 1.057 (5.7% margin)
- * @param {number[]} odds
- * @returns {number}
+ * @typedef {{ home: number, draw?: number, away: number }} OddsSet
+ * @typedef {'multiplicative' | 'power' | 'shin'} VigMethod
+ */
+
+/**
+ * Sum of implied probabilities (1 + margin).
+ * @param {number[]} odds decimal odds
  */
 export function calculateOverround(odds) {
-  return odds.reduce((acc, o) => acc + (1 / o), 0);
+  return odds.reduce((acc, o) => acc + 1 / o, 0);
+}
+
+/** @param {OddsSet} odds */
+function toList(odds) {
+  return odds.draw !== undefined ? [odds.home, odds.draw, odds.away] : [odds.home, odds.away];
 }
 
 /**
- * Multiplicative margin removal (Standard Proportional normalization).
- * @param {{ home: number, draw?: number, away: number }} odds
+ * @param {OddsSet} odds
+ * @param {number[]} probs
  */
+function fromList(odds, probs) {
+  const overround = calculateOverround(toList(odds));
+  const base = { overround, marginPercent: (overround - 1) * 100 };
+  return odds.draw !== undefined
+    ? { home: probs[0], draw: probs[1], away: probs[2], ...base }
+    : { home: probs[0], away: probs[1], ...base };
+}
+
+/**
+ * Proportional normalisation of any outcome list.
+ * @param {number[]} odds
+ */
+export function fairMultiplicative(odds) {
+  const o = calculateOverround(odds);
+  return odds.map((x) => 1 / x / o);
+}
+
+/**
+ * Power method: find k with Σ(1/oᵢ)^k = 1.
+ * @param {number[]} odds
+ */
+export function fairPower(odds) {
+  const raw = odds.map((o) => 1 / o);
+  let lo = 0.5, hi = 3, k = 1;
+  for (let i = 0; i < 80; i++) {
+    k = (lo + hi) / 2;
+    const s = raw.reduce((acc, p) => acc + p ** k, 0);
+    if (Math.abs(s - 1) < 1e-12) break;
+    if (s > 1) lo = k;
+    else hi = k;
+  }
+  return raw.map((p) => p ** k);
+}
+
+/**
+ * Shin (1993) method: models the margin as protection against insider
+ * traders with share z. Solved by fixed-point iteration (Jullien–Salanié).
+ * @param {number[]} odds
+ */
+export function fairShin(odds) {
+  const pi = odds.map((o) => 1 / o);
+  const beta = pi.reduce((a, b) => a + b, 0);
+  if (beta <= 1) return pi.map((p) => p / beta);
+  /** @param {number} z insider share */
+  const probs = (z) =>
+    pi.map((p) => (Math.sqrt(z * z + (4 * (1 - z) * p * p) / beta) - z) / (2 * (1 - z)));
+  /** @param {number} z */
+  const excess = (z) => probs(z).reduce((acc, x) => acc + x, 0) - 1;
+  // Σp(z) falls monotonically from √β > 1 at z = 0, so bisection is exact.
+  let lo = 0, hi = 0.99;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    if (excess(mid) > 0) lo = mid;
+    else hi = mid;
+  }
+  const p = probs((lo + hi) / 2);
+  const s = p.reduce((acc, x) => acc + x, 0);
+  return p.map((x) => x / s);
+}
+
+/**
+ * Fair probabilities for an outcome list with the chosen method.
+ * @param {number[]} odds
+ * @param {VigMethod} [method]
+ */
+export function fairProbabilities(odds, method = 'shin') {
+  if (method === 'multiplicative') return fairMultiplicative(odds);
+  if (method === 'power') return fairPower(odds);
+  return fairShin(odds);
+}
+
+/** @param {OddsSet} odds */
 export function removeVigMultiplicative(odds) {
-  const isThreeWay = odds.draw !== undefined;
-  const oddsList = isThreeWay ? [odds.home, odds.draw, odds.away] : [odds.home, odds.away];
-  const overround = calculateOverround(oddsList);
-
-  const rawHome = 1 / odds.home;
-  const rawAway = 1 / odds.away;
-
-  if (isThreeWay) {
-    const rawDraw = 1 / odds.draw;
-    return {
-      home: rawHome / overround,
-      draw: rawDraw / overround,
-      away: rawAway / overround,
-      overround,
-      marginPercent: (overround - 1) * 100
-    };
-  }
-
-  return {
-    home: rawHome / overround,
-    away: rawAway / overround,
-    overround,
-    marginPercent: (overround - 1) * 100
-  };
+  return fromList(odds, fairMultiplicative(toList(odds)));
 }
 
-/**
- * Power Method for vig removal (handles longshot bias where bookmakers add higher vig to longshots).
- * @param {{ home: number, draw?: number, away: number }} odds
- */
+/** @param {OddsSet} odds */
 export function removeVigPower(odds) {
-  const isThreeWay = odds.draw !== undefined;
-  const rawList = isThreeWay ? [1 / odds.home, 1 / odds.draw, 1 / odds.away] : [1 / odds.home, 1 / odds.away];
-  const overround = calculateOverround(isThreeWay ? [odds.home, odds.draw, odds.away] : [odds.home, odds.away]);
+  return fromList(odds, fairPower(toList(odds)));
+}
 
-  let low = 0.5;
-  let high = 2.0;
-  let k = 1.0;
-
-  for (let i = 0; i < 50; i++) {
-    k = (low + high) / 2;
-    const sum = rawList.reduce((acc, p) => acc + Math.pow(p, k), 0);
-    if (Math.abs(sum - 1.0) < 1e-6) break;
-    if (sum > 1.0) {
-      low = k;
-    } else {
-      high = k;
-    }
-  }
-
-  if (isThreeWay) {
-    return {
-      home: Math.pow(1 / odds.home, k),
-      draw: Math.pow(1 / odds.draw, k),
-      away: Math.pow(1 / odds.away, k),
-      overround,
-      marginPercent: (overround - 1) * 100
-    };
-  }
-
-  return {
-    home: Math.pow(1 / odds.home, k),
-    away: Math.pow(1 / odds.away, k),
-    overround,
-    marginPercent: (overround - 1) * 100
-  };
+/** @param {OddsSet} odds */
+export function removeVigShin(odds) {
+  return fromList(odds, fairShin(toList(odds)));
 }

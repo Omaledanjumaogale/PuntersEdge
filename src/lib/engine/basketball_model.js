@@ -1,122 +1,163 @@
 /**
- * Basketball Team Performance & Tempo-Free Modeling Engine
- * Reverse engineered from Matchplay.com Basketball Team Performance Interface (sr:sport:2).
+ * Tempo-free basketball model.
+ *
+ * Projects pace and per-possession efficiency into a bivariate-normal score
+ * distribution. Market probabilities are computed analytically (exact and
+ * deterministic for any line); a seeded Monte Carlo is available for the
+ * simulation histogram shown in the UI.
  */
 
+import { normalCdf, mulberry32, gaussian, hashString, fairOdds, round } from './math.js';
+
 /**
- * Standard normal random variable generator (Box-Muller transform)
+ * @typedef {{ pace: number, offRtg: number, defRtg: number }} TeamRatings
+ * @typedef {{ pace: number, offRtg: number, teamSd?: number, scoreCorrelation?: number }} LeagueProfile
  */
-function randomNormal(mean = 0, stdDev = 1) {
-  let u1 = 0, u2 = 0;
-  while (u1 === 0) u1 = Math.random();
-  while (u2 === 0) u2 = Math.random();
-  const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-  return z0 * stdDev + mean;
+
+/** League presets. EuroLeague plays 40-minute games at a slower tempo. */
+export const LEAGUE_PROFILES = {
+  NBA: { pace: 99.5, offRtg: 114.5, teamSd: 11.0, scoreCorrelation: 0.25 },
+  EuroLeague: { pace: 72.5, offRtg: 112.0, teamSd: 9.0, scoreCorrelation: 0.22 }
+};
+
+/**
+ * Core projection: expected points, margin and total plus their spread.
+ * @param {TeamRatings} home
+ * @param {TeamRatings} away
+ * @param {LeagueProfile} [league]
+ * @param {{ hcaPoints?: number }} [options]
+ */
+export function projectScores(home, away, league = LEAGUE_PROFILES.NBA, options = {}) {
+  const hca = options.hcaPoints ?? 2.8;
+  const expectedPace = (home.pace * away.pace) / league.pace;
+
+  const homeAdjOff = (home.offRtg * away.defRtg) / league.offRtg;
+  const awayAdjOff = (away.offRtg * home.defRtg) / league.offRtg;
+
+  const homePts = expectedPace * (homeAdjOff / 100) + hca / 2;
+  const awayPts = expectedPace * (awayAdjOff / 100) - hca / 2;
+
+  // Scoring variance grows with possessions (√pace scaling).
+  const sd = (league.teamSd ?? 11) * Math.sqrt(expectedPace / league.pace);
+  const corr = league.scoreCorrelation ?? 0.25;
+
+  return {
+    expectedPace,
+    home: homePts,
+    away: awayPts,
+    total: homePts + awayPts,
+    margin: homePts - awayPts,
+    teamSd: sd,
+    marginSd: Math.sqrt(2 * sd * sd * (1 - corr)),
+    totalSd: Math.sqrt(2 * sd * sd * (1 + corr))
+  };
 }
 
 /**
- * Simulates and projects basketball game outcome based on team performance metrics.
- * 
- * @param {Object} home Team performance stats
- * @param {Object} away Team performance stats
- * @param {Object} leagueAverages
- * @param {Object} options
+ * P(total > line), analytic.
+ * @param {ReturnType<typeof projectScores>} proj
+ * @param {number} line
  */
-export function projectBasketballGame(home, away, leagueAverages = { pace: 100.0, offRtg: 114.0 }, options = {}) {
-  const hcaPoints = options?.hcaPoints ?? 2.8;
-  const sims = options?.simulations ?? 25000;
+export function probabilityOver(proj, line) {
+  return 1 - normalCdf(line, proj.total, proj.totalSd);
+}
 
-  // 1. Calculate Expected Game Pace (Possessions per 48 mins)
-  const expectedPace = (home.pace * away.pace) / leagueAverages.pace;
+/**
+ * P(home covers) for a home handicap, e.g. −7.5 means home must win by 8+.
+ * @param {ReturnType<typeof projectScores>} proj
+ * @param {number} homeLine
+ */
+export function probabilityHomeCovers(proj, homeLine) {
+  return 1 - normalCdf(-homeLine, proj.margin, proj.marginSd);
+}
 
-  // 2. Calculate Efficiency Ratings
-  // Home Offensive Rating adjusted for Away Defensive Rating
-  const homeAdjOffRtg = (home.offRtg * away.defRtg) / leagueAverages.offRtg;
-  // Away Offensive Rating adjusted for Home Defensive Rating
-  const awayAdjOffRtg = (away.offRtg * home.defRtg) / leagueAverages.offRtg;
+/**
+ * Seeded Monte Carlo of the joint score distribution.
+ * Returns a margin histogram plus empirical win rate — reproducible per seed.
+ * @param {ReturnType<typeof projectScores>} proj
+ * @param {{ simulations?: number, seed?: number, binWidth?: number }} [options]
+ */
+export function simulateGame(proj, options = {}) {
+  const sims = options.simulations ?? 10000;
+  const rand = mulberry32(options.seed ?? 42);
+  const binWidth = options.binWidth ?? 3;
+  const corr = 1 - (proj.marginSd ** 2) / (2 * proj.teamSd ** 2);
+  const sqrtComp = Math.sqrt(Math.max(0, 1 - corr * corr));
 
-  // 3. Expected Points before variance
-  const homeBasePoints = expectedPace * (homeAdjOffRtg / 100) + (hcaPoints / 2);
-  const awayBasePoints = expectedPace * (awayAdjOffRtg / 100) - (hcaPoints / 2);
-
-  const projectedTotal = homeBasePoints + awayBasePoints;
-  const projectedSpread = homeBasePoints - awayBasePoints; // Positive means Home favored
-
-  // 4. Monte Carlo Simulation for Distribution & Betting Lines
-  const stdDevTeam = 11.2; // Typical NBA single-game points standard deviation
-
+  /** @type {Map<number, number>} */
+  const bins = new Map();
   let homeWins = 0;
-  let awayWins = 0;
-
-  // Standard bookmaker lines tracking
-  const linesToEvaluate = [
-    projectedTotal - 5,
-    projectedTotal,
-    projectedTotal + 5
-  ];
-
-  const totalProbabilities = {};
-  for (const line of linesToEvaluate) {
-    totalProbabilities[line.toFixed(1)] = { over: 0, under: 0 };
-  }
-
-  const spreadProbabilities = {
-    coverHomeMinus3_5: 0,
-    coverHomeMinus5_5: 0,
-    coverHomeMinus7_5: 0,
-  };
-
+  let totalSum = 0;
   for (let i = 0; i < sims; i++) {
-    const simHome = randomNormal(homeBasePoints, stdDevTeam);
-    const simAway = randomNormal(awayBasePoints, stdDevTeam);
-
-    if (simHome > simAway) homeWins++;
-    else awayWins++;
-
-    const simTotal = simHome + simAway;
-    for (const line of linesToEvaluate) {
-      if (simTotal > line) totalProbabilities[line.toFixed(1)].over++;
-      else totalProbabilities[line.toFixed(1)].under++;
-    }
-
-    const simDiff = simHome - simAway;
-    if (simDiff > 3.5) spreadProbabilities.coverHomeMinus3_5++;
-    if (simDiff > 5.5) spreadProbabilities.coverHomeMinus5_5++;
-    if (simDiff > 7.5) spreadProbabilities.coverHomeMinus7_5++;
+    const z1 = gaussian(rand);
+    const z2 = corr * z1 + sqrtComp * gaussian(rand);
+    const h = proj.home + proj.teamSd * z1;
+    const a = proj.away + proj.teamSd * z2;
+    if (h > a) homeWins++;
+    totalSum += h + a;
+    const bin = Math.floor((h - a) / binWidth) * binWidth;
+    bins.set(bin, (bins.get(bin) ?? 0) + 1);
   }
 
-  // Normalize simulation counts to probabilities
-  const probHomeWin = homeWins / sims;
-  const probAwayWin = awayWins / sims;
+  const histogram = [...bins.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([from, count]) => ({ from, to: from + binWidth, share: count / sims }));
 
-  for (const line of Object.keys(totalProbabilities)) {
-    totalProbabilities[line].overProb = totalProbabilities[line].over / sims;
-    totalProbabilities[line].underProb = totalProbabilities[line].under / sims;
-    totalProbabilities[line].fairOverOdds = 1 / totalProbabilities[line].overProb;
-    totalProbabilities[line].fairUnderOdds = 1 / totalProbabilities[line].underProb;
+  return { simulations: sims, homeWinRate: homeWins / sims, meanTotal: totalSum / sims, histogram };
+}
+
+/**
+ * Backwards-compatible full projection used by the CLI, tests and UI.
+ *
+ * @param {TeamRatings} home
+ * @param {TeamRatings} away
+ * @param {LeagueProfile} [leagueAverages]
+ * @param {{ hcaPoints?: number, simulations?: number, seed?: number,
+ *           totalLines?: number[], spreadLines?: number[] }} [options]
+ */
+export function projectBasketballGame(home, away, leagueAverages = LEAGUE_PROFILES.NBA, options = {}) {
+  const proj = projectScores(home, away, leagueAverages, options);
+  const pHome = probabilityHomeCovers(proj, 0);
+
+  const totalLines = options.totalLines ?? [proj.total - 5, proj.total, proj.total + 5].map((l) => Math.round(l) + 0.5);
+  const spreadLines = options.spreadLines ?? [-3.5, -5.5, -7.5];
+
+  /** @type {Record<string, { overProb: number, underProb: number, fairOverOdds: number, fairUnderOdds: number }>} */
+  const overUnderDistributions = {};
+  for (const line of totalLines) {
+    const over = probabilityOver(proj, line);
+    overUnderDistributions[line.toFixed(1)] = {
+      overProb: over,
+      underProb: 1 - over,
+      fairOverOdds: fairOdds(over),
+      fairUnderOdds: fairOdds(1 - over)
+    };
   }
+
+  /** @type {Record<string, number>} */
+  const spreadCoverage = {};
+  for (const line of spreadLines) spreadCoverage[line.toFixed(1)] = probabilityHomeCovers(proj, line);
+
+  const seed = options.seed ?? hashString(`${home.offRtg}:${away.offRtg}:${home.pace}:${away.pace}`);
+  const simulation = simulateGame(proj, { simulations: options.simulations ?? 10000, seed });
 
   return {
-    expectedPace: Math.round(expectedPace * 10) / 10,
+    expectedPace: round(proj.expectedPace, 1),
     projectedScore: {
-      home: Math.round(homeBasePoints * 10) / 10,
-      away: Math.round(awayBasePoints * 10) / 10,
-      total: Math.round(projectedTotal * 10) / 10,
-      spread: Math.round(projectedSpread * 10) / 10
+      home: round(proj.home, 1),
+      away: round(proj.away, 1),
+      total: round(proj.total, 1),
+      spread: round(proj.margin, 1)
     },
+    dispersion: { marginSd: round(proj.marginSd, 2), totalSd: round(proj.totalSd, 2) },
     winProbabilities: {
-      home: probHomeWin,
-      away: probAwayWin,
-      fairOdds: {
-        home: 1 / probHomeWin,
-        away: 1 / probAwayWin
-      }
+      home: pHome,
+      away: 1 - pHome,
+      fairOdds: { home: fairOdds(pHome), away: fairOdds(1 - pHome) }
     },
-    overUnderDistributions: totalProbabilities,
-    spreadCoverage: {
-      coverHomeMinus3_5: spreadProbabilities.coverHomeMinus3_5 / sims,
-      coverHomeMinus5_5: spreadProbabilities.coverHomeMinus5_5 / sims,
-      coverHomeMinus7_5: spreadProbabilities.coverHomeMinus7_5 / sims,
-    }
+    overUnderDistributions,
+    spreadCoverage,
+    simulation,
+    projection: proj
   };
 }

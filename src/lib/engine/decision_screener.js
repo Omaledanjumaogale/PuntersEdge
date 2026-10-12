@@ -1,101 +1,107 @@
 /**
- * Quantitative Decision & Value Screener Engine
- * Evaluates Positive Expected Value (+EV), Line Drift / RLM, and Optimal Fractional Kelly Staking.
+ * Decision layer: expected value, fractional Kelly staking, value grading and
+ * odds-movement signals (steam / reverse line movement / closing line value).
  */
 
+import { round } from './math.js';
+
 /**
- * Calculates Expected Value (+EV) of a wager.
- * 
- * @param {number} modelProbability True estimated win probability (0.0 to 1.0)
- * @param {number} bookmakerOdds Decimal odds offered by bookmaker (e.g. 2.15)
+ * Expected value per unit staked.
+ * @param {number} modelProbability true win probability (0…1)
+ * @param {number} bookmakerOdds decimal odds
  */
 export function calculateExpectedValue(modelProbability, bookmakerOdds) {
-  const edge = (modelProbability * bookmakerOdds) - 1.0;
-  const isPositiveEV = edge > 0;
+  const edge = modelProbability * bookmakerOdds - 1;
   return {
     modelProbability,
     bookmakerOdds,
     impliedBookmakerProb: 1 / bookmakerOdds,
-    edgePercent: Math.round(edge * 10000) / 100, // e.g. 5.25%
-    isPositiveEV
+    edgePercent: round(edge * 100, 2),
+    isPositiveEV: edge > 0
   };
 }
 
 /**
- * Calculates Fractional Kelly Criterion bet size.
- * 
- * @param {number} modelProbability (p)
- * @param {number} bookmakerOdds (decimal)
- * @param {number} kellyFraction (e.g., 0.25 for Quarter Kelly)
- * @param {number} maxBankrollPct (Safety cap, e.g., 0.03 for 3% max bet)
+ * Fractional Kelly stake with a hard bankroll cap.
+ * @param {number} modelProbability
+ * @param {number} bookmakerOdds
+ * @param {number} [kellyFraction] e.g. 0.25 = quarter Kelly
+ * @param {number} [maxBankrollPct] cap as a fraction of bankroll
  */
 export function calculateKellyStake(modelProbability, bookmakerOdds, kellyFraction = 0.25, maxBankrollPct = 0.035) {
-  const b = bookmakerOdds - 1.0; // Net odds
+  const b = bookmakerOdds - 1;
   const p = modelProbability;
-  const q = 1.0 - p;
-
-  const fullKelly = (b * p - q) / b;
+  const fullKelly = b > 0 ? (b * p - (1 - p)) / b : 0;
 
   if (fullKelly <= 0) {
-    return {
-      recommendedStakePct: 0,
-      fullKelly: 0,
-      adjustedKelly: 0,
-      action: 'PASS / NO VALUE'
-    };
+    return { fullKellyPct: 0, recommendedStakePct: 0, cappedAtMaximum: false, action: 'PASS' };
   }
 
-  const scaledKelly = fullKelly * kellyFraction;
-  const finalStake = Math.min(scaledKelly, maxBankrollPct);
-
+  const scaled = fullKelly * kellyFraction;
+  const finalStake = Math.min(scaled, maxBankrollPct);
   return {
-    fullKellyPct: Math.round(fullKelly * 10000) / 100,
-    recommendedStakePct: Math.round(finalStake * 10000) / 100,
-    cappedAtMaximum: scaledKelly > maxBankrollPct,
+    fullKellyPct: round(fullKelly * 100, 2),
+    recommendedStakePct: round(finalStake * 100, 2),
+    cappedAtMaximum: scaled > maxBankrollPct,
     action: 'BET_VALUE'
   };
 }
 
 /**
- * Detects Market Signals: Reverse Line Movement (RLM) & Steam Moves
- * 
- * @param {number} openingOdds Opening decimal odds
- * @param {number} currentOdds Current closing decimal odds
- * @param {number} publicBetPercent Percentage of public bets on this selection (0 to 100)
+ * Grade a selection by edge, discounted when the model is far from the
+ * market (large disagreement is more often model error than market error).
+ * @param {number} edgePercent
+ * @param {number} [modelMarketGapPct] |model − market| probability gap in points
+ * @returns {'A+' | 'A' | 'B' | 'C' | 'PASS'}
+ */
+export function gradeSelection(edgePercent, modelMarketGapPct = 0) {
+  const penalty = Math.max(0, modelMarketGapPct - 8) * 0.35;
+  const score = edgePercent - penalty;
+  if (score >= 6) return 'A+';
+  if (score >= 3.5) return 'A';
+  if (score >= 1.5) return 'B';
+  if (score > 0) return 'C';
+  return 'PASS';
+}
+
+/**
+ * Closing line value: how much better the taken price was than the close.
+ * Positive CLV is the most reliable long-run indicator of a sharp bettor.
+ * @param {number} takenOdds
+ * @param {number} closingFairOdds de-vigged closing odds
+ */
+export function calculateClosingLineValue(takenOdds, closingFairOdds) {
+  return round((takenOdds / closingFairOdds - 1) * 100, 2);
+}
+
+/**
+ * Detect steam moves and reverse line movement.
+ * @param {number} openingOdds
+ * @param {number} currentOdds
+ * @param {number} [publicBetPercent] share of tickets on this selection (0…100)
  */
 export function analyzeOddsMovement(openingOdds, currentOdds, publicBetPercent = 50) {
-  const oddsRatio = currentOdds / openingOdds;
-  const oddsMovementPct = ((currentOdds - openingOdds) / openingOdds) * 100;
+  const move = ((currentOdds - openingOdds) / openingOdds) * 100;
 
   let signalType = 'NEUTRAL';
   let smartMoneyIndication = false;
-  let explanation = '';
+  let explanation;
 
-  // Reverse Line Movement (RLM):
-  // If public bets are heavily on this side (> 60%), but odds lengthened (went up, indicating bookmaker is making it more tempting to attract dumb money while sharp money hit the other side)
-  // OR public is low on this side (< 40%), but odds shortened (dropped, indicating bookmaker lowered odds despite low public tickets because sharp money bet heavily on it)
-  if (publicBetPercent < 45 && oddsMovementPct < -3.5) {
+  if (publicBetPercent < 45 && move < -3.5) {
     signalType = 'REVERSE_LINE_MOVEMENT_SHARP_INFLOW';
     smartMoneyIndication = true;
-    explanation = `Smart money detected: Low public action (${publicBetPercent}%) but odds dropped by ${Math.abs(oddsMovementPct).toFixed(1)}%, indicating heavy institutional/syndicate volume.`;
-  } else if (publicBetPercent > 65 && oddsMovementPct > +3.0) {
+    explanation = `Price shortened ${Math.abs(move).toFixed(1)}% while only ${publicBetPercent}% of tickets backed it — money, not tickets, moved this line.`;
+  } else if (publicBetPercent > 65 && move > 3) {
     signalType = 'REVERSE_LINE_MOVEMENT_FADE_PUBLIC';
     smartMoneyIndication = true;
-    explanation = `Bookmaker shading: High public action (${publicBetPercent}%) but odds drifted up by ${oddsMovementPct.toFixed(1)}%. Bookmakers are accepting risk on the public side.`;
-  } else if (oddsMovementPct < -6.0) {
+    explanation = `Price drifted ${move.toFixed(1)}% despite ${publicBetPercent}% of tickets — books are happy to hold public liability here.`;
+  } else if (move < -6) {
     signalType = 'STEAM_MOVE';
     smartMoneyIndication = true;
-    explanation = `Rapid steam move: Odds collapsed by ${Math.abs(oddsMovementPct).toFixed(1)}% across market consensus.`;
+    explanation = `Steam: price collapsed ${Math.abs(move).toFixed(1)}% from the open across the market.`;
   } else {
-    explanation = `Normal market fluctuation within standard liquidity bands (${oddsMovementPct.toFixed(1)}% drift).`;
+    explanation = `Normal fluctuation (${move >= 0 ? '+' : ''}${move.toFixed(1)}% from open).`;
   }
 
-  return {
-    openingOdds,
-    currentOdds,
-    oddsMovementPct: Math.round(oddsMovementPct * 100) / 100,
-    signalType,
-    smartMoneyIndication,
-    explanation
-  };
+  return { openingOdds, currentOdds, oddsMovementPct: round(move, 2), signalType, smartMoneyIndication, explanation };
 }

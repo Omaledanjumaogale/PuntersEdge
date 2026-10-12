@@ -1,66 +1,54 @@
 /**
- * Lineup and Squad Absence Impact Recalibration Engine
- * Reverse engineered from RedScores.com squad nomination & injury/suspension news.
+ * Lineup & absence recalibration.
+ *
+ * Each missing player removes a share of his side's attack and defence
+ * according to position. Impacts compound multiplicatively, so ten absences
+ * can never remove more than 100% of a team.
  */
+
+import { round } from './math.js';
 
 /**
- * Calculates adjusted offensive and defensive parameters after accounting for missing players.
- * 
- * @param {Object} baselineParams { lambdaHome, muAway }
- * @param {Array} homeAbsences Array of missing players: { name, position, impactRating, minutesWeight }
- * @param {Array} awayAbsences Array of missing players: { name, position, impactRating, minutesWeight }
+ * @typedef {{ name: string, position: 'GK' | 'DEF' | 'MID' | 'FWD', impactRating?: number, minutesWeight?: number }} Absence
+ */
+
+/** Attack / defence split of a player's impact by position. */
+export const POSITION_WEIGHTS = {
+  FWD: { attack: 0.7, defense: 0.3 },
+  MID: { attack: 0.5, defense: 0.5 },
+  DEF: { attack: 0.1, defense: 0.9 },
+  GK: { attack: 0.0, defense: 1.0 }
+};
+
+/**
+ * Multiplicative degradation of a team's attack and defence.
+ * @param {Absence[]} absences
+ */
+export function teamDegradation(absences = []) {
+  let attackKeep = 1;
+  let defenseKeep = 1;
+  for (const player of absences) {
+    const w = POSITION_WEIGHTS[player.position];
+    if (!w) continue;
+    const impact = (player.impactRating ?? 0.05) * (player.minutesWeight ?? 1);
+    attackKeep *= 1 - impact * w.attack;
+    defenseKeep *= 1 - impact * w.defense;
+  }
+  return { attack: 1 - attackKeep, defense: 1 - defenseKeep };
+}
+
+/**
+ * Adjust λ / μ for both teams' absences.
+ * @param {{ lambdaHome: number, muAway: number }} baselineParams
+ * @param {Absence[]} [homeAbsences]
+ * @param {Absence[]} [awayAbsences]
  */
 export function adjustParametersForLineups(baselineParams, homeAbsences = [], awayAbsences = []) {
-  // Typical position impact weights on attack vs defense:
-  // FWD: 70% attack, 30% pressing/defense
-  // MID: 50% attack, 50% defense
-  // DEF/GK: 10% attack, 90% defense
-  
-  let homeAttackDegradation = 0.0;
-  let homeDefenseDegradation = 0.0;
+  const home = teamDegradation(homeAbsences);
+  const away = teamDegradation(awayAbsences);
 
-  for (const player of homeAbsences) {
-    const weight = player.minutesWeight || 1.0;
-    const rating = player.impactRating || 0.05; // 0.05 = 5% baseline team impact
-
-    if (player.position === 'FWD') {
-      homeAttackDegradation += rating * 0.70 * weight;
-      homeDefenseDegradation += rating * 0.30 * weight;
-    } else if (player.position === 'MID') {
-      homeAttackDegradation += rating * 0.50 * weight;
-      homeDefenseDegradation += rating * 0.50 * weight;
-    } else if (player.position === 'DEF' || player.position === 'GK') {
-      homeAttackDegradation += rating * 0.10 * weight;
-      homeDefenseDegradation += rating * 0.90 * weight;
-    }
-  }
-
-  let awayAttackDegradation = 0.0;
-  let awayDefenseDegradation = 0.0;
-
-  for (const player of awayAbsences) {
-    const weight = player.minutesWeight || 1.0;
-    const rating = player.impactRating || 0.05;
-
-    if (player.position === 'FWD') {
-      awayAttackDegradation += rating * 0.70 * weight;
-      awayDefenseDegradation += rating * 0.30 * weight;
-    } else if (player.position === 'MID') {
-      awayAttackDegradation += rating * 0.50 * weight;
-      awayDefenseDegradation += rating * 0.50 * weight;
-    } else if (player.position === 'DEF' || player.position === 'GK') {
-      awayAttackDegradation += rating * 0.10 * weight;
-      awayDefenseDegradation += rating * 0.90 * weight;
-    }
-  }
-
-  // Adjusted Home Expected Goals (Lambda):
-  // Decreases with Home attack degradation, increases with Away defense degradation
-  const adjustedLambda = baselineParams.lambdaHome * (1 - homeAttackDegradation) * (1 + awayDefenseDegradation);
-
-  // Adjusted Away Expected Goals (Mu):
-  // Decreases with Away attack degradation, increases with Home defense degradation
-  const adjustedMu = baselineParams.muAway * (1 - awayAttackDegradation) * (1 + homeDefenseDegradation);
+  const lambda = baselineParams.lambdaHome * (1 - home.attack) * (1 + away.defense);
+  const mu = baselineParams.muAway * (1 - away.attack) * (1 + home.defense);
 
   return {
     original: {
@@ -69,15 +57,15 @@ export function adjustParametersForLineups(baselineParams, homeAbsences = [], aw
       total: baselineParams.lambdaHome + baselineParams.muAway
     },
     adjusted: {
-      lambdaHome: Math.max(0.15, Math.round(adjustedLambda * 1000) / 1000),
-      muAway: Math.max(0.15, Math.round(adjustedMu * 1000) / 1000),
-      total: Math.round((adjustedLambda + adjustedMu) * 1000) / 1000
+      lambdaHome: Math.max(0.15, round(lambda, 3)),
+      muAway: Math.max(0.15, round(mu, 3)),
+      total: round(lambda + mu, 3)
     },
     impactDelta: {
-      homeAttackChangePct: -(homeAttackDegradation * 100).toFixed(2),
-      homeDefenseChangePct: +(homeDefenseDegradation * 100).toFixed(2),
-      awayAttackChangePct: -(awayAttackDegradation * 100).toFixed(2),
-      awayDefenseChangePct: +(awayDefenseDegradation * 100).toFixed(2)
+      homeAttackChangePct: -round(home.attack * 100, 2),
+      homeDefenseChangePct: round(home.defense * 100, 2),
+      awayAttackChangePct: -round(away.attack * 100, 2),
+      awayDefenseChangePct: round(away.defense * 100, 2)
     }
   };
 }
