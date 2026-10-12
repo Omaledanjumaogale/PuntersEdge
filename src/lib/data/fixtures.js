@@ -103,44 +103,6 @@ export const FOOTBALL_INPUTS = [
 /** @type {import('../engine/prediction_pipeline.js').BasketballInput[]} */
 export const BASKETBALL_INPUTS = [
   {
-    fixtureId: 'bb_celtics_heat',
-    homeTeam: 'Boston Celtics',
-    awayTeam: 'Miami Heat',
-    league: 'NBA',
-    kickoffOffsetHours: 9,
-    ratings: {
-      home: { pace: 99.6, offRtg: 117.4, defRtg: 110.6 },
-      away: { pace: 98.8, offRtg: 113.6, defRtg: 113.1 }
-    },
-    absences: [{ name: 'B. Adebayo', team: 'away', netRtgImpact: 2.1 }],
-    odds: {
-      SportyBet: { homeMoneyline: 1.3, awayMoneyline: 3.6, spreadLine: -8.5, homeSpreadOdds: 1.88, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.89, underOdds: 1.89 },
-      '1xBet': { homeMoneyline: 1.33, awayMoneyline: 3.45, spreadLine: -8.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.93, underOdds: 1.91 },
-      '22Bet': { homeMoneyline: 1.32, awayMoneyline: 3.7, spreadLine: -8.5, homeSpreadOdds: 1.93, awaySpreadOdds: 1.89, totalLine: 219.5, overOdds: 1.92, underOdds: 1.9 }
-    },
-    openingOdds: { home: 1.4, away: 3.1 },
-    publicPct: { home: 44 }
-  },
-  {
-    fixtureId: 'bb_lakers_warriors',
-    homeTeam: 'Los Angeles Lakers',
-    awayTeam: 'Golden State Warriors',
-    league: 'NBA',
-    kickoffOffsetHours: 12,
-    ratings: {
-      home: { pace: 99.8, offRtg: 115.3, defRtg: 114.4 },
-      away: { pace: 100.4, offRtg: 114.9, defRtg: 114.1 }
-    },
-    absences: [],
-    odds: {
-      SportyBet: { homeMoneyline: 1.92, awayMoneyline: 1.92, spreadLine: -1.5, homeSpreadOdds: 1.9, awaySpreadOdds: 1.9, totalLine: 229.5, overOdds: 1.86, underOdds: 1.94 },
-      '1xBet': { homeMoneyline: 1.95, awayMoneyline: 1.93, spreadLine: -1.5, homeSpreadOdds: 1.95, awaySpreadOdds: 1.92, totalLine: 229.5, overOdds: 1.92, underOdds: 1.95 },
-      '22Bet': { homeMoneyline: 1.96, awayMoneyline: 1.94, spreadLine: -1.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.91, totalLine: 229.5, overOdds: 1.91, underOdds: 1.95 }
-    },
-    openingOdds: { home: 1.9, away: 1.95 },
-    publicPct: { home: 58 }
-  },
-  {
     fixtureId: 'bb_panathinaikos_olympiacos',
     homeTeam: 'Panathinaikos',
     awayTeam: 'Olympiacos',
@@ -161,7 +123,66 @@ export const BASKETBALL_INPUTS = [
     publicPct: { home: 60 }
   },
   {
-    fixtureId: 'bb_nuggets_thunder',
+    fixtureId: 'bb_realmadrid_fenerbahce',
+    homeTeam: 'Real Madrid',
+    awayTeam: 'Fenerbahçe',
+    league: 'EuroLeague',
+    kickoffOffsetHours: 31,
+    ratings: {
+      home: { pace: 73.4, offRtg: 116.2, defRtg: 108.9 },
+      away: { pace: 71.8, offRtg: 114.8, defRtg: 107.6 }
+    },
+    absences: [],
+    odds: {
+      SportyBet: { homeMoneyline: 1.62, awayMoneyline: 2.3, spreadLine: -3.5, homeSpreadOdds: 1.87, awaySpreadOdds: 1.9, totalLine: 162.5, overOdds: 1.88, underOdds: 1.88 },
+      '1xBet': { homeMoneyline: 1.66, awayMoneyline: 2.28, spreadLine: -3.5, homeSpreadOdds: 1.92, awaySpreadOdds: 1.9, totalLine: 162.5, overOdds: 1.91, underOdds: 1.9 },
+      '22Bet': { homeMoneyline: 1.65, awayMoneyline: 2.3, spreadLine: -3.5, homeSpreadOdds: 1.91, awaySpreadOdds: 1.89, totalLine: 163.5, overOdds: 1.9, underOdds: 1.9 }
+    }
+  }
+];
+
+/** @type {import('../engine/prediction_pipeline.js').BasketballInput[]} */
+export const NBA_INPUTS = [
+  {
+    fixtureId: 'nba_celtics_heat',
+    homeTeam: 'Boston Celtics',
+    awayTeam: 'Miami Heat',
+    league: 'NBA',
+    kickoffOffsetHours: 9,
+    ratings: {
+      home: { pace: 99.6, offRtg: 117.4, defRtg: 110.6 },
+      away: { pace: 98.8, offRtg: 113.6, defRtg: 113.1 }
+    },
+    absences: [{ name: 'B. Adebayo', team: 'away', netRtgImpact: 2.1 }],
+    odds: {
+      SportyBet: { homeMoneyline: 1.3, awayMoneyline: 3.6, spreadLine: -8.5, homeSpreadOdds: 1.88, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.89, underOdds: 1.89 },
+      '1xBet': { homeMoneyline: 1.33, awayMoneyline: 3.45, spreadLine: -8.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.93, underOdds: 1.91 },
+      '22Bet': { homeMoneyline: 1.32, awayMoneyline: 3.7, spreadLine: -8.5, homeSpreadOdds: 1.93, awaySpreadOdds: 1.89, totalLine: 219.5, overOdds: 1.92, underOdds: 1.9 }
+    },
+    openingOdds: { home: 1.4, away: 3.1 },
+    publicPct: { home: 44 }
+  },
+  {
+    fixtureId: 'nba_lakers_warriors',
+    homeTeam: 'Los Angeles Lakers',
+    awayTeam: 'Golden State Warriors',
+    league: 'NBA',
+    kickoffOffsetHours: 12,
+    ratings: {
+      home: { pace: 99.8, offRtg: 115.3, defRtg: 114.4 },
+      away: { pace: 100.4, offRtg: 114.9, defRtg: 114.1 }
+    },
+    absences: [],
+    odds: {
+      SportyBet: { homeMoneyline: 1.92, awayMoneyline: 1.92, spreadLine: -1.5, homeSpreadOdds: 1.9, awaySpreadOdds: 1.9, totalLine: 229.5, overOdds: 1.86, underOdds: 1.94 },
+      '1xBet': { homeMoneyline: 1.95, awayMoneyline: 1.93, spreadLine: -1.5, homeSpreadOdds: 1.95, awaySpreadOdds: 1.92, totalLine: 229.5, overOdds: 1.92, underOdds: 1.95 },
+      '22Bet': { homeMoneyline: 1.96, awayMoneyline: 1.94, spreadLine: -1.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.91, totalLine: 229.5, overOdds: 1.91, underOdds: 1.95 }
+    },
+    openingOdds: { home: 1.9, away: 1.95 },
+    publicPct: { home: 58 }
+  },
+  {
+    fixtureId: 'nba_nuggets_thunder',
     homeTeam: 'Denver Nuggets',
     awayTeam: 'Oklahoma City Thunder',
     league: 'NBA',
@@ -178,5 +199,73 @@ export const BASKETBALL_INPUTS = [
     },
     openingOdds: { home: 2.15, away: 1.72 },
     publicPct: { home: 63 }
+  }
+];
+
+/**
+ * NHL: expected regulation goals per side; books quote moneyline (OT and
+ * shootout included), the puck line at ±1.5 and a main total.
+ * @type {import('../engine/score_sports.js').ScoreSportInput[]}
+ */
+export const HOCKEY_INPUTS = [
+  {
+    fixtureId: 'nhl_oilers_flames',
+    homeTeam: 'Edmonton Oilers',
+    awayTeam: 'Calgary Flames',
+    league: 'NHL',
+    kickoffOffsetHours: 14,
+    ratings: { homeMean: 3.45, awayMean: 2.75 },
+    odds: {
+      SportyBet: { homeMoneyline: 1.6, awayMoneyline: 2.35, totalLine: 6.5, overOdds: 1.95, underOdds: 1.82, spreadLine: -1.5, homeSpreadOdds: 2.45, awaySpreadOdds: 1.52 },
+      '1xBet': { homeMoneyline: 1.64, awayMoneyline: 2.36, totalLine: 6.5, overOdds: 1.98, underOdds: 1.86, spreadLine: -1.5, homeSpreadOdds: 2.5, awaySpreadOdds: 1.55 },
+      '22Bet': { homeMoneyline: 1.63, awayMoneyline: 2.33, totalLine: 6.5, overOdds: 1.97, underOdds: 1.85 }
+    }
+  },
+  {
+    fixtureId: 'nhl_rangers_bruins',
+    homeTeam: 'New York Rangers',
+    awayTeam: 'Boston Bruins',
+    league: 'NHL',
+    kickoffOffsetHours: 36,
+    ratings: { homeMean: 3.05, awayMean: 2.95 },
+    odds: {
+      SportyBet: { homeMoneyline: 1.88, awayMoneyline: 1.95, totalLine: 5.5, overOdds: 1.82, underOdds: 1.96, spreadLine: 1.5, homeSpreadOdds: 1.3, awaySpreadOdds: 3.4 },
+      '1xBet': { homeMoneyline: 1.93, awayMoneyline: 1.97, totalLine: 5.5, overOdds: 1.86, underOdds: 2.0 },
+      '22Bet': { homeMoneyline: 1.9, awayMoneyline: 1.98, totalLine: 6.5, overOdds: 2.25, underOdds: 1.62 }
+    }
+  }
+];
+
+/**
+ * MLB: expected runs per side (starting pitchers already reflected); books
+ * quote moneyline, the run line at ±1.5 and a main total.
+ * @type {import('../engine/score_sports.js').ScoreSportInput[]}
+ */
+export const BASEBALL_INPUTS = [
+  {
+    fixtureId: 'mlb_dodgers_padres',
+    homeTeam: 'Los Angeles Dodgers',
+    awayTeam: 'San Diego Padres',
+    league: 'MLB',
+    kickoffOffsetHours: 11,
+    ratings: { homeMean: 4.75, awayMean: 3.95 },
+    odds: {
+      SportyBet: { homeMoneyline: 1.66, awayMoneyline: 2.22, totalLine: 8.5, overOdds: 1.9, underOdds: 1.88, spreadLine: -1.5, homeSpreadOdds: 2.25, awaySpreadOdds: 1.62 },
+      '1xBet': { homeMoneyline: 1.7, awayMoneyline: 2.25, totalLine: 8.5, overOdds: 1.95, underOdds: 1.9, spreadLine: -1.5, homeSpreadOdds: 2.3, awaySpreadOdds: 1.66 },
+      '22Bet': { homeMoneyline: 1.69, awayMoneyline: 2.24, totalLine: 8.5, overOdds: 1.94, underOdds: 1.89 }
+    }
+  },
+  {
+    fixtureId: 'mlb_yankees_astros',
+    homeTeam: 'New York Yankees',
+    awayTeam: 'Houston Astros',
+    league: 'MLB',
+    kickoffOffsetHours: 35,
+    ratings: { homeMean: 4.35, awayMean: 4.25 },
+    odds: {
+      SportyBet: { homeMoneyline: 1.85, awayMoneyline: 1.98, totalLine: 7.5, overOdds: 1.8, underOdds: 2.0, spreadLine: 1.5, homeSpreadOdds: 1.42, awaySpreadOdds: 2.85 },
+      '1xBet': { homeMoneyline: 1.9, awayMoneyline: 2.0, totalLine: 7.5, overOdds: 1.84, underOdds: 2.02 },
+      '22Bet': { homeMoneyline: 1.89, awayMoneyline: 1.98, totalLine: 8.5, overOdds: 2.2, underOdds: 1.68 }
+    }
   }
 ];

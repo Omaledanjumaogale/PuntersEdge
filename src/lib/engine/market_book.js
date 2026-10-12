@@ -24,7 +24,7 @@ const MAX_CREDIBLE_EDGE = 25;
  * @typedef {Object} MarketSelection
  * @property {string} id
  * @property {string} fixtureId
- * @property {'football' | 'basketball'} sport
+ * @property {'football' | 'basketball' | 'nba' | 'hockey' | 'baseball'} sport
  * @property {string} matchTitle
  * @property {string} league
  * @property {string} market
@@ -65,7 +65,7 @@ const fitCache = new Map();
 
 /**
  * Turn candidates into priced selections.
- * @param {{ fixtureId: string, sport: 'football' | 'basketball', matchTitle: string, league: string }} ctx
+ * @param {{ fixtureId: string, sport: 'football' | 'basketball' | 'nba' | 'hockey' | 'baseball', matchTitle: string, league: string }} ctx
  * @param {Candidate[]} candidates
  * @param {number} w model weight
  * @param {number} kellyFraction
@@ -121,20 +121,26 @@ export function buildFootballMarkets(input, mp, rho, opts) {
   const A = input.awayTeam;
 
   // Each book's implied world: fair 1X2, fair totals, fitted goal model, margins.
-  const books = Object.entries(input.odds).map(([book, o]) => {
-    const [ph, pd, pa] = fairProbabilities([o.home, o.draw, o.away]);
-    const [po] = fairProbabilities([o.over25, o.under25]);
-    const key = `${input.fixtureId}:${book}:${o.home}:${o.draw}:${o.away}:${o.over25}:${o.under25}`;
-    let fit = fitCache.get(key);
-    if (!fit) {
-      fit = fitGoalParametersFromProbabilities({ home: ph, away: pa, over2_5: po }, rho);
-      fitCache.set(key, fit);
-    }
-    const m = generateScoreMatrix(fit.lambdaHome, fit.muAway, rho, 10).probabilities;
-    const m3 = 1 / o.home + 1 / o.draw + 1 / o.away - 1;
-    const m2 = 1 / o.over25 + 1 / o.under25 - 1;
-    return { book, o, ph, pd, pa, m, m3, m2 };
-  });
+  // Only books with a full 1X2 can be inverted; totals are optional.
+  const books = Object.entries(input.odds ?? {})
+    .filter(([, o]) => o.home > 1 && o.draw > 1 && o.away > 1)
+    .map(([book, o]) => {
+      const [ph, pd, pa] = fairProbabilities([o.home, o.draw, o.away]);
+      const hasOu = o.over25 > 1 && o.under25 > 1;
+      const po = hasOu ? fairProbabilities([o.over25, o.under25])[0] : undefined;
+      const key = `${input.fixtureId}:${book}:${o.home}:${o.draw}:${o.away}:${o.over25}:${o.under25}`;
+      let fit = fitCache.get(key);
+      if (!fit) {
+        fit = fitGoalParametersFromProbabilities({ home: ph, away: pa, over2_5: po }, rho);
+        if (fitCache.size > 400) fitCache.clear();
+        fitCache.set(key, fit);
+      }
+      const m = generateScoreMatrix(fit.lambdaHome, fit.muAway, rho, 10).probabilities;
+      const m3 = 1 / o.home + 1 / o.draw + 1 / o.away - 1;
+      // Two-way markets usually carry about two thirds of the 1X2 margin.
+      const m2 = hasOu ? 1 / o.over25 + 1 / o.under25 - 1 : m3 * 0.66;
+      return { book, o, ph, pd, pa, m, m3, m2, hasOu };
+    });
 
   /**
    * @param {string} key @param {string} market @param {string} label @param {number} model
@@ -211,12 +217,12 @@ export function buildFootballMarkets(input, mp, rho, opts) {
 
   const totals = [];
   for (const line of [1.5, 2.5, 3.5]) {
-    const quoted = line === 2.5;
+    const quoted = line === 2.5 && books.some((b) => b.hasOu);
     totals.push(
       cand(`o${line}`, 'Total Goals', `Over ${line} goals`, ou[line].over, (b) =>
-        quoted ? { odds: b.o.over25, prob: fairProbabilities([b.o.over25, b.o.under25])[0] } : { odds: bookPrice(b.m.overUnder[line].over, b.m2), prob: b.m.overUnder[line].over }, quoted ? 'quoted' : 'derived'),
+        quoted && b.hasOu ? { odds: b.o.over25, prob: fairProbabilities([b.o.over25, b.o.under25])[0] } : quoted ? null : { odds: bookPrice(b.m.overUnder[line].over, b.m2), prob: b.m.overUnder[line].over }, quoted ? 'quoted' : 'derived'),
       cand(`u${line}`, 'Total Goals', `Under ${line} goals`, ou[line].under, (b) =>
-        quoted ? { odds: b.o.under25, prob: fairProbabilities([b.o.over25, b.o.under25])[1] } : { odds: bookPrice(b.m.overUnder[line].under, b.m2), prob: b.m.overUnder[line].under }, quoted ? 'quoted' : 'derived')
+        quoted && b.hasOu ? { odds: b.o.under25, prob: fairProbabilities([b.o.over25, b.o.under25])[1] } : quoted ? null : { odds: bookPrice(b.m.overUnder[line].under, b.m2), prob: b.m.overUnder[line].under }, quoted ? 'quoted' : 'derived')
     );
   }
   groups.push([{ key: 'totals', title: 'Total goals', emoji: '⚽', blurb: 'Goals by both teams combined.' }, totals]);
@@ -225,9 +231,9 @@ export function buildFootballMarkets(input, mp, rho, opts) {
     { key: 'btts', title: 'Both teams to score', emoji: '🎯', blurb: 'Does each side find the net?' },
     [
       cand('bttsYes', 'Both Teams To Score', 'BTTS Yes', btts.yes, (b) =>
-        b.o.bttsYes ? { odds: b.o.bttsYes, prob: fairProbabilities([b.o.bttsYes, b.o.bttsNo])[0] } : null, 'quoted'),
+        b.o.bttsYes > 1 && b.o.bttsNo > 1 ? { odds: b.o.bttsYes, prob: fairProbabilities([b.o.bttsYes, b.o.bttsNo])[0] } : null, 'quoted'),
       cand('bttsNo', 'Both Teams To Score', 'BTTS No', btts.no, (b) =>
-        b.o.bttsNo ? { odds: b.o.bttsNo, prob: fairProbabilities([b.o.bttsYes, b.o.bttsNo])[1] } : null, 'quoted')
+        b.o.bttsYes > 1 && b.o.bttsNo > 1 ? { odds: b.o.bttsNo, prob: fairProbabilities([b.o.bttsYes, b.o.bttsNo])[1] } : null, 'quoted')
     ]
   ]);
 
@@ -261,42 +267,62 @@ export function buildFootballMarkets(input, mp, rho, opts) {
  * @returns {MarketGroup[]}
  */
 export function buildBasketballMarkets(input, proj, opts) {
-  const ctx = { fixtureId: input.fixtureId, sport: /** @type {const} */ ('basketball'), matchTitle: `${input.homeTeam} vs ${input.awayTeam}`, league: input.league };
+  const ctx = { fixtureId: input.fixtureId, sport: /** @type {'basketball' | 'nba'} */ (input.sport ?? 'basketball'), matchTitle: `${input.homeTeam} vs ${input.awayTeam}`, league: input.league };
   const H = input.homeTeam;
   const A = input.awayTeam;
   const { marginSd, totalSd } = proj;
 
   // Each book's implied mean margin and total, from its de-vigged main lines.
-  const books = Object.entries(input.odds).map(([book, o]) => {
-    const [pml] = fairProbabilities([o.homeMoneyline, o.awayMoneyline]);
-    const [pcover] = fairProbabilities([o.homeSpreadOdds, o.awaySpreadOdds]);
-    const [pover] = fairProbabilities([o.overOdds, o.underOdds]);
-    // P(margin > -L) = pcover  →  mean = -L - σ·Φ⁻¹(1 - pcover)
-    const mean = -o.spreadLine - marginSd * probit(1 - pcover);
-    // P(total > T) = pover  →  mean = T - σ·Φ⁻¹(1 - pover)
-    const total = o.totalLine - totalSd * probit(1 - pover);
-    const mSpread = 1 / o.homeSpreadOdds + 1 / o.awaySpreadOdds - 1;
-    const mTotal = 1 / o.overOdds + 1 / o.underOdds - 1;
-    return { book, o, pml, pcover, pover, mean, total, mSpread, mTotal };
-  });
+  // A moneyline is required; spread and total are optional.
+  const books = Object.entries(input.odds ?? {})
+    .filter(([, o]) => o.homeMoneyline > 1 && o.awayMoneyline > 1)
+    .map(([book, o]) => {
+      const [pml] = fairProbabilities([o.homeMoneyline, o.awayMoneyline]);
+      const mMl = 1 / o.homeMoneyline + 1 / o.awayMoneyline - 1;
+      const hasSpread = typeof o.spreadLine === 'number' && o.homeSpreadOdds > 1 && o.awaySpreadOdds > 1;
+      const hasTotal = typeof o.totalLine === 'number' && o.overOdds > 1 && o.underOdds > 1;
+      const pcover = hasSpread ? fairProbabilities([o.homeSpreadOdds, o.awaySpreadOdds])[0] : NaN;
+      const pover = hasTotal ? fairProbabilities([o.overOdds, o.underOdds])[0] : NaN;
+      // P(margin > -L) = pcover  →  mean = -L - σ·Φ⁻¹(1 - pcover); without a spread, read it off the moneyline.
+      const mean = hasSpread ? -o.spreadLine - marginSd * probit(1 - pcover) : -marginSd * probit(1 - pml);
+      // P(total > T) = pover  →  mean = T - σ·Φ⁻¹(1 - pover)
+      const total = hasTotal ? o.totalLine - totalSd * probit(1 - pover) : NaN;
+      const mSpread = hasSpread ? 1 / o.homeSpreadOdds + 1 / o.awaySpreadOdds - 1 : mMl;
+      const mTotal = hasTotal ? 1 / o.overOdds + 1 / o.underOdds - 1 : mMl;
+      return { book, o, pml, pcover, pover, mean, total, mSpread, mTotal, hasSpread, hasTotal };
+    });
 
-  const n = books.length;
-  const mainSpread = Math.round((books.reduce((a, b) => a + b.o.spreadLine, 0) / n) * 2) / 2;
-  const mainTotal = Math.round((books.reduce((a, b) => a + b.o.totalLine, 0) / n) * 2) / 2;
+  const avg = (/** @type {number[]} */ xs) => xs.reduce((a, x) => a + x, 0) / xs.length;
+  const spreadBooks = books.filter((b) => b.hasSpread);
+  const totalBooks = books.filter((b) => b.hasTotal);
+  const half = (/** @type {number} */ x) => Math.round(x * 2) / 2;
+  const mainSpread = spreadBooks.length ? half(avg(spreadBooks.map((b) => b.o.spreadLine))) : half(-proj.margin);
+  const mainTotal = totalBooks.length ? half(avg(totalBooks.map((b) => b.o.totalLine))) : half(proj.total);
 
   const coverModel = (/** @type {number} */ L) => 1 - normalCdf(-L, proj.margin, marginSd);
   const overModel = (/** @type {number} */ T) => 1 - normalCdf(T, proj.total, totalSd);
 
   /**
    * @param {string} key @param {string} market @param {string} label @param {number} model
-   * @param {(b: typeof books[number]) => { odds: number, prob: number }} quote
+   * @param {(b: typeof books[number]) => { odds: number, prob: number, quoted?: boolean } | null} quote
    * @param {'quoted' | 'derived'} pricing
    * @returns {Candidate}
    */
-  const cand = (key, market, label, model, quote, pricing) => ({
-    key, market, label, model, pricing,
-    quotes: Object.fromEntries(books.map((b) => [b.book, quote(b)]))
-  });
+  const cand = (key, market, label, model, quote, pricing) => {
+    /** @type {Candidate['quotes']} */
+    let quotes = {};
+    for (const b of books) {
+      const q = quote(b);
+      if (q && q.odds > 1 && Number.isFinite(q.odds) && Number.isFinite(q.prob)) quotes[b.book] = q;
+    }
+    if (pricing === 'quoted') {
+      // Real quotes only compete with real quotes; fall back to derived when nobody hangs the line.
+      const real = Object.entries(quotes).filter(([, q]) => /** @type {any} */ (q).quoted !== false);
+      if (real.length) quotes = Object.fromEntries(real);
+      else pricing = 'derived';
+    }
+    return { key, market, label, model, pricing, quotes };
+  };
 
   const spreads = [];
   for (const d of [-4, -2, 0, 2, 4]) {
@@ -304,14 +330,14 @@ export function buildBasketballMarkets(input, proj, opts) {
     const isMain = d === 0;
     spreads.push(
       cand(`sph${L}`, 'Point Spread', `${H} ${fmtLine(L)}`, coverModel(L), (b) => {
-        if (isMain && b.o.spreadLine === L) return { odds: b.o.homeSpreadOdds, prob: b.pcover };
+        if (isMain && b.hasSpread && b.o.spreadLine === L) return { odds: b.o.homeSpreadOdds, prob: b.pcover };
         const p = 1 - normalCdf(-L, b.mean, marginSd);
-        return { odds: bookPrice(p, b.mSpread), prob: p };
+        return { odds: bookPrice(p, b.mSpread), prob: p, quoted: false };
       }, isMain ? 'quoted' : 'derived'),
       cand(`spa${-L}`, 'Point Spread', `${A} ${fmtLine(-L)}`, 1 - coverModel(L), (b) => {
-        if (isMain && b.o.spreadLine === L) return { odds: b.o.awaySpreadOdds, prob: 1 - b.pcover };
+        if (isMain && b.hasSpread && b.o.spreadLine === L) return { odds: b.o.awaySpreadOdds, prob: 1 - b.pcover };
         const p = normalCdf(-L, b.mean, marginSd);
-        return { odds: bookPrice(p, b.mSpread), prob: p };
+        return { odds: bookPrice(p, b.mSpread), prob: p, quoted: false };
       }, isMain ? 'quoted' : 'derived')
     );
   }
@@ -322,14 +348,16 @@ export function buildBasketballMarkets(input, proj, opts) {
     const isMain = d === 0;
     totals.push(
       cand(`o${T}`, 'Total Points', `Over ${T}`, overModel(T), (b) => {
-        if (isMain && b.o.totalLine === T) return { odds: b.o.overOdds, prob: b.pover };
+        if (isMain && b.hasTotal && b.o.totalLine === T) return { odds: b.o.overOdds, prob: b.pover };
+        if (!b.hasTotal) return null;
         const p = 1 - normalCdf(T, b.total, totalSd);
-        return { odds: bookPrice(p, b.mTotal), prob: p };
+        return { odds: bookPrice(p, b.mTotal), prob: p, quoted: false };
       }, isMain ? 'quoted' : 'derived'),
       cand(`u${T}`, 'Total Points', `Under ${T}`, 1 - overModel(T), (b) => {
-        if (isMain && b.o.totalLine === T) return { odds: b.o.underOdds, prob: 1 - b.pover };
+        if (isMain && b.hasTotal && b.o.totalLine === T) return { odds: b.o.underOdds, prob: 1 - b.pover };
+        if (!b.hasTotal) return null;
         const p = normalCdf(T, b.total, totalSd);
-        return { odds: bookPrice(p, b.mTotal), prob: p };
+        return { odds: bookPrice(p, b.mTotal), prob: p, quoted: false };
       }, isMain ? 'quoted' : 'derived')
     );
   }

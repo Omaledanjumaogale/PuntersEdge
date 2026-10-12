@@ -238,3 +238,127 @@ test('math: probit inverts the normal CDF', async () => {
   const { probit } = await import('../src/lib/engine/math.js');
   for (const p of [0.001, 0.05, 0.3, 0.5, 0.77, 0.999]) assert.ok(close(normalCdf(probit(p)), p, 1e-6), `p=${p}`); // erf approximation is good to ~1.5e-7
 });
+
+// ── hockey & baseball ───────────────────────────────────────────────────
+import { scoreDistribution, fitMeans, SCORE_SPORTS, buildScoreSportPrediction } from '../src/lib/engine/score_sports.js';
+import { footballRatings, scoreSportRatings, basketballRatings, marketRatings, tableFromResults } from '../src/lib/engine/ratings.js';
+import { settle, profitFor } from '../src/lib/engine/settlement.js';
+import { HOCKEY_INPUTS, BASEBALL_INPUTS, NBA_INPUTS } from '../src/lib/data/fixtures.js';
+
+test('score sports: regulation grid sums to one; ties go to extra play', () => {
+  for (const fam of /** @type {const} */ (['hockey', 'baseball'])) {
+    const cfg = SCORE_SPORTS[fam];
+    const d = scoreDistribution(fam === 'hockey' ? 3.1 : 4.6, fam === 'hockey' ? 2.8 : 4.2, cfg);
+    const reg = d.regulation.home + d.regulation.draw + d.regulation.away;
+    assert.ok(close(reg, 1, 1e-6), `${fam} grid sums to ${reg}`);
+    assert.ok(close(d.moneyline.home + d.moneyline.away, 1, 1e-6));
+    assert.ok(close(d.moneyline.home, d.regulation.home + d.regulation.draw * cfg.extraHomeWin, 1e-9));
+    // Ladders are monotonic.
+    for (let i = 1; i < cfg.totalLines.length; i++) assert.ok(d.over(cfg.totalLines[i]) < d.over(cfg.totalLines[i - 1]));
+    assert.ok(d.cover(-1.5) < d.moneyline.home && d.moneyline.home < d.cover(1.5));
+  }
+});
+
+test('score sports: baseball runs are over-dispersed relative to Poisson', () => {
+  const nb = scoreDistribution(4.5, 4.5, SCORE_SPORTS.baseball);
+  const po = scoreDistribution(4.5, 4.5, { ...SCORE_SPORTS.baseball, distribution: 'poisson' });
+  // Fatter tails: more 12+ run games.
+  assert.ok(nb.over(11.5) > po.over(11.5));
+});
+
+test('score sports: fitting means reproduces a book\'s prices', () => {
+  const cfg = SCORE_SPORTS.hockey;
+  const target = scoreDistribution(3.4, 2.7, cfg);
+  const fit = fitMeans({ homeWin: target.moneyline.home, over: { line: 6.5, prob: target.over(6.5) } }, cfg, { home: 3, away: 3 });
+  assert.ok(Math.abs(fit.home - 3.4) < 0.05 && Math.abs(fit.away - 2.7) < 0.05, JSON.stringify(fit));
+});
+
+test('score sports: quoted lines are priced as quoted, derived ones labelled', () => {
+  for (const input of [...HOCKEY_INPUTS, ...BASEBALL_INPUTS]) {
+    const fam = input.league === 'NHL' ? 'hockey' : 'baseball';
+    const p = buildScoreSportPrediction(input, fam, { now: Date.parse('2026-10-12T00:00:00Z') });
+    const ml = p.markets.find((g) => g.key === 'ml');
+    assert.ok(ml && ml.selections.every((s) => s.pricing === 'quoted'));
+    for (const s of ml.selections) {
+      const quoted = Object.values(input.odds).map((o) => (s.selection.startsWith(input.homeTeam) ? o.homeMoneyline : o.awayMoneyline));
+      assert.equal(s.bestOdds, Math.max(...quoted));
+    }
+    assert.ok(p.markets.find((g) => g.key === 'team')?.selections.every((s) => s.pricing === 'derived'));
+    if (fam === 'hockey') assert.ok(p.markets.some((g) => g.key === 'reg'));
+    assert.ok(new PuntersEdgeAIAgentHub().analyze(p).agents.length >= 3);
+  }
+});
+
+test('nba: sample games run through the basketball engine as their own sport', () => {
+  for (const input of NBA_INPUTS) {
+    const p = buildBasketballPrediction(input, { sport: 'nba' });
+    assert.equal(p.sport, 'nba');
+    assert.ok(p.markets.flatMap((g) => g.selections).every((s) => s.sport === 'nba'));
+  }
+});
+
+test('pipeline: partial and missing prices never produce NaN', () => {
+  const fb = buildFootballPrediction({ ...FOOTBALL_INPUTS[0], odds: { A: { home: 2.1, draw: 3.4, away: 3.6 } } });
+  assert.ok(Number.isFinite(fb.probabilities.over25));
+  assert.ok(fb.markets.flatMap((g) => g.selections).every((s) => Number.isFinite(s.bestOdds) && Number.isFinite(s.edgePercent)));
+  const none = buildFootballPrediction({ ...FOOTBALL_INPUTS[0], odds: {} });
+  assert.equal(none.valueBets.length, 0);
+  assert.ok(new PuntersEdgeAIAgentHub().analyze(none).agents.length > 0);
+  const bb = buildBasketballPrediction({ ...BASKETBALL_INPUTS[0], odds: { A: { homeMoneyline: 1.7, awayMoneyline: 2.2 } } });
+  assert.ok(Number.isFinite(bb.marketLines.total) && Number.isFinite(bb.marketLines.spread));
+  assert.ok(bb.markets.flatMap((g) => g.selections).every((s) => Number.isFinite(s.bestOdds)));
+});
+
+// ── ratings ─────────────────────────────────────────────────────────────
+test('ratings: stronger table teams get higher expected scores, shrunk early on', () => {
+  const rows = [
+    { teamId: 1, team: 'Top', played: 10, for: 25, against: 8, home: { played: 5, for: 15, against: 3 }, away: { played: 5, for: 10, against: 5 } },
+    { teamId: 2, team: 'Bottom', played: 10, for: 8, against: 24, home: { played: 5, for: 5, against: 10 }, away: { played: 5, for: 3, against: 14 } },
+    { teamId: 3, team: 'Mid', played: 10, for: 14, against: 14, home: { played: 5, for: 8, against: 6 }, away: { played: 5, for: 6, against: 8 } }
+  ];
+  const r = footballRatings(rows, 1, 2);
+  const rev = footballRatings(rows, 2, 1);
+  assert.ok(r && rev && r.lambdaHome > rev.lambdaHome && r.muAway < rev.muAway);
+  const scale = (/** @type {any} */ x, /** @type {number} */ k) => ({ played: x.played / k, for: x.for / k, against: x.against / k });
+  const early = footballRatings(rows.map((x) => ({ ...x, ...scale(x, 5), home: scale(x.home, 5), away: scale(x.away, 5) })), 1, 2);
+  assert.ok(early && early.lambdaHome / early.muAway < r.lambdaHome / r.muAway, 'one game says less than ten');
+  const h = scoreSportRatings(tableFromResults([{ homeId: 1, awayId: 2, home: 'A', away: 'B', homeScore: 5, awayScore: 1 }, { homeId: 2, awayId: 1, home: 'B', away: 'A', homeScore: 2, awayScore: 4 }]), 1, 2, 'hockey');
+  assert.ok(h && h.homeMean > h.awayMean);
+  const nba = basketballRatings([{ teamId: 1, team: 'A', played: 20, for: 0, against: 0, wins: 16, losses: 4 }, { teamId: 2, team: 'B', played: 20, for: 0, against: 0, wins: 4, losses: 16 }], 1, 2, 'NBA');
+  assert.ok(nba && nba.home.offRtg - nba.home.defRtg > nba.away.offRtg - nba.away.defRtg);
+});
+
+test('ratings: market-implied ratings reproduce the consensus', () => {
+  const odds = { A: { home: 1.8, draw: 3.8, away: 4.6, over25: 1.75, under25: 2.1 } };
+  const r = marketRatings('football', odds);
+  const p = buildFootballPrediction({ fixtureId: 'm', homeTeam: 'H', awayTeam: 'A', league: 'X', ratings: r, odds });
+  assert.ok(Math.abs(p.modelProbabilities.homeWin - p.marketProbabilities.homeWin) < 0.01);
+  const hk = { A: { homeMoneyline: 1.7, awayMoneyline: 2.25, totalLine: 6.5, overOdds: 2.05, underOdds: 1.8 } };
+  const hr = marketRatings('hockey', hk);
+  const hp = buildScoreSportPrediction({ fixtureId: 'h', homeTeam: 'H', awayTeam: 'A', league: 'NHL', ratings: hr, odds: hk }, 'hockey');
+  assert.ok(Math.abs(hp.modelProbabilities.homeWin - hp.marketProbabilities.homeWin) < 0.01);
+  const bk = { A: { homeMoneyline: 1.5, awayMoneyline: 2.7, spreadLine: -5.5, homeSpreadOdds: 1.91, awaySpreadOdds: 1.91, totalLine: 224.5, overOdds: 1.91, underOdds: 1.91 } };
+  const br = marketRatings('basketball', bk, 'NBA');
+  const bp = buildBasketballPrediction({ fixtureId: 'b', homeTeam: 'H', awayTeam: 'A', league: 'NBA', ratings: br, odds: bk });
+  assert.ok(Math.abs(bp.projectedScore.total - 224.5) < 2, `total ${bp.projectedScore.total}`);
+  assert.ok(Math.abs(bp.projectedScore.spread - 5.5) < 1.5, `spread ${bp.projectedScore.spread}`);
+});
+
+// ── settlement ──────────────────────────────────────────────────────────
+test('settlement: football on 90 minutes, other sports include extra play', () => {
+  const fb = { home: 2, away: 2, regHome: 1, regAway: 1 };
+  assert.equal(settle('football', 'draw', fb), 'won');
+  assert.equal(settle('football', 'o2.5', fb), 'lost');
+  assert.equal(settle('football', 'ahh-1', { home: 2, away: 1 }), 'push');
+  assert.equal(settle('football', 'aha0.5', { home: 1, away: 1 }), 'won');
+  assert.equal(settle('football', 'dnbh', { home: 0, away: 0 }), 'push');
+  const ot = { home: 4, away: 3, regHome: 3, regAway: 3 };
+  assert.equal(settle('hockey', 'homeMl', ot), 'won');
+  assert.equal(settle('hockey', 'regX', ot), 'won');
+  assert.equal(settle('hockey', 'sph-1.5', ot), 'lost');
+  assert.equal(settle('baseball', 'o8.5', { home: 5, away: 4 }), 'won');
+  assert.equal(settle('basketball', 'spa5.5', { home: 110, away: 105 }), 'won');
+  assert.equal(settle('basketball', 'mystery', { home: 1, away: 0 }), null);
+  assert.equal(profitFor('won', 2.5), 1.5);
+  assert.equal(profitFor('half-lost', 2), -0.5);
+});

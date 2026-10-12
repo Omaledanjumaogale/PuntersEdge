@@ -34,11 +34,13 @@ export class PuntersEdgeAIAgentHub {
    * @returns {AgentReport}
    */
   marketAgent(p) {
-    const margins = /** @type {[string, number][]} */ (Object.entries(p.margins));
-    const sharpest = margins.reduce((a, b) => (b[1] < a[1] ? b : a));
-    const softest = margins.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const margins = /** @type {[string, number][]} */ (Object.entries(p.margins ?? {}).filter(([, m]) => Number.isFinite(m)));
+    const sharpest = margins.length ? margins.reduce((a, b) => (b[1] < a[1] ? b : a)) : null;
+    const softest = margins.length ? margins.reduce((a, b) => (b[1] > a[1] ? b : a)) : null;
     const findings = [
-      `Lowest margin: ${sharpest[0]} at ${sharpest[1].toFixed(2)}%; highest: ${softest[0]} at ${softest[1].toFixed(2)}%.`,
+      sharpest && softest
+        ? `Lowest margin: ${sharpest[0]} at ${sharpest[1].toFixed(2)}%; highest: ${softest[0]} at ${softest[1].toFixed(2)}%.`
+        : 'No complete bookmaker market yet, so margins cannot be compared.',
       p.movement ? p.movement.explanation : 'No opening price on record, so movement cannot be assessed.'
     ];
     return {
@@ -75,7 +77,14 @@ export class PuntersEdgeAIAgentHub {
    */
   quantAgent(p) {
     const findings = [];
-    if (p.sport === 'football') {
+    const family = p.family ?? p.sport;
+    if (family === 'hockey' || family === 'baseball') {
+      findings.push(
+        `Expected ${p.summary.unit}: ${p.projectedScore.home} – ${p.projectedScore.away}; most likely regulation score ${p.summary.scoreline}.`,
+        `Model moneyline ${pct(p.modelProbabilities.homeWin)} / ${pct(p.modelProbabilities.awayWin)} vs market ${pct(p.marketProbabilities.homeWin)} / ${pct(p.marketProbabilities.awayWin)}.`,
+        `Over ${p.marketLines.total}: model ${pct(p.modelProbabilities.overTotal)} vs market ${pct(p.marketProbabilities.overTotal)}.`
+      );
+    } else if (family === 'football') {
       findings.push(
         `Expected goals ${p.expectedGoals.homeLambda.toFixed(2)} – ${p.expectedGoals.awayMu.toFixed(2)} (ρ ${p.expectedGoals.rho.toFixed(2)}).`,
         `Model 1X2 ${pct(p.modelProbabilities.homeWin)} / ${pct(p.modelProbabilities.draw)} / ${pct(p.modelProbabilities.awayWin)} vs market ${pct(p.marketProbabilities.homeWin)} / ${pct(p.marketProbabilities.draw)} / ${pct(p.marketProbabilities.awayWin)}.`,
@@ -88,10 +97,15 @@ export class PuntersEdgeAIAgentHub {
         `Outcome dispersion: margin σ ${p.dispersion.marginSd}, total σ ${p.dispersion.totalSd}.`
       );
     }
+    if (p.ratingsSource === 'market') {
+      findings.push('No independent team ratings for this game yet: the model is fitted to the market consensus, so any edge comes from finding the best price.');
+    } else if (p.ratingsSource && p.ratingsSource !== 'sample') {
+      findings.push(`Team strengths come from ${p.ratingsSource}.`);
+    }
     const gap = p.bestValue ? Math.abs(p.bestValue.modelProb - p.bestValue.marketProb) : 0;
     return {
       agent: 'Quantitative Model',
-      role: p.sport === 'football' ? 'Dixon–Coles distribution' : 'Tempo-free projection',
+      role: family === 'football' ? 'Dixon–Coles distribution' : family === 'hockey' ? 'Poisson goal model' : family === 'baseball' ? 'Negative-binomial run model' : 'Tempo-free projection',
       stance: gap > 0.02 ? 'bullish' : 'neutral',
       confidence: Math.max(0.35, 0.8 - gap * 2),
       headline: gap > 0.08 ? 'Large model–market gap: treat with caution' : gap > 0.02 ? 'Model sees a mispricing' : 'Model agrees with the market',

@@ -226,7 +226,8 @@ export function fitGoalParametersFromProbabilities(target, rho = -0.05) {
   /** @param {number} l @param {number} m */
   const loss = (l, m) => {
     const p = headlineProbabilities(l, m, rho);
-    return (p.home - target.home) ** 2 + (p.away - target.away) ** 2 + (p.over2_5 - target.over2_5) ** 2;
+    const totals = target.over2_5 === undefined ? 0.01 * ((l + m - 2.6) / 2.6) ** 2 : (p.over2_5 - target.over2_5) ** 2;
+    return (p.home - target.home) ** 2 + (p.away - target.away) ** 2 + totals;
   };
 
   let best = { l: 1.4, m: 1.1, e: Infinity };
