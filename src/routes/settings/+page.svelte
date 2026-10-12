@@ -18,7 +18,7 @@
 	];
 </script>
 
-<svelte:head><title>Settings — QuantEdge</title></svelte:head>
+<svelte:head><title>Settings — PuntersEdge</title></svelte:head>
 
 <header class="max-w-2xl">
 	<h1 class="text-4xl font-extrabold text-chalk">⚙️ Settings</h1>
@@ -49,7 +49,7 @@
 					role="radio"
 					aria-checked={app.settings.theme === t.value}
 					onclick={() => (app.settings.theme = t.value)}
-					class="flex flex-col items-start gap-1 rounded-xl px-3 py-3 text-left ring-1 transition-colors {app.settings.theme === t.value ? 'bg-pop/15 ring-pop' : 'bg-ink ring-line hover:ring-haze'}"
+					class="flex flex-col items-start gap-1 rounded-xl px-3 py-3 text-left ring-1 transition-colors {app.settings.theme === t.value ? 'tint-pop ring-pop' : 'bg-ink ring-line hover:ring-haze'}"
 				>
 					<span class="text-xl" aria-hidden="true">{t.emoji}</span>
 					<span class="text-sm font-semibold text-chalk">{t.label}</span>
@@ -78,7 +78,7 @@
 					role="radio"
 					aria-checked={app.settings.kellyFraction === k.value}
 					onclick={() => (app.settings.kellyFraction = k.value)}
-					class="rounded-xl px-3 py-3 text-left ring-1 transition-colors {app.settings.kellyFraction === k.value ? 'bg-pop/15 ring-pop' : 'bg-ink ring-line hover:ring-haze'}"
+					class="rounded-xl px-3 py-3 text-left ring-1 transition-colors {app.settings.kellyFraction === k.value ? 'tint-pop ring-pop' : 'bg-ink ring-line hover:ring-haze'}"
 				>
 					<span class="block font-semibold text-chalk">{k.label}</span>
 					<span class="text-xs text-haze">{k.note}</span>
@@ -121,10 +121,10 @@
 	<section class="surface p-5" aria-labelledby="app-title">
 		<h2 id="app-title" class="text-lg font-bold text-chalk">📲 App</h2>
 		{#if pwa.installed}
-			<p class="mt-1 text-sm text-haze">Installed. QuantEdge works offline with the last prices it loaded.</p>
+			<p class="mt-1 text-sm text-haze">Installed. PuntersEdge works offline with the last prices it loaded.</p>
 		{:else if pwa.canInstall}
 			<p class="mt-1 text-sm text-haze">Install for a full-screen app that opens from your home screen and works offline.</p>
-			<button onclick={() => pwa.install()} class="btn-primary mt-3">📲 Install QuantEdge</button>
+			<button onclick={() => pwa.install()} class="btn-primary mt-3">📲 Install PuntersEdge</button>
 		{:else if pwa.isIOS}
 			<p class="mt-1 text-sm text-haze">In Safari, tap Share, then Add to Home Screen.</p>
 		{:else}

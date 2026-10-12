@@ -15,7 +15,7 @@
 			<div class="{tone[s.tone]} transition-[flex-grow] duration-700 ease-out" style="flex-grow: {s.value}"></div>
 		{/each}
 	</div>
-	<div class="mt-1.5 flex justify-between text-xs text-haze">
+	<div class="mt-1.5 flex justify-between gap-2 text-xs text-haze">
 		{#each segments as s (s.label)}
 			<span><span class="text-chalk">{(s.value * 100).toFixed(0)}%</span> {s.label}</span>
 		{/each}

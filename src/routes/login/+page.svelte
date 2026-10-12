@@ -31,7 +31,7 @@
 	}
 </script>
 
-<svelte:head><title>Log in — QuantEdge</title></svelte:head>
+<svelte:head><title>Log in — PuntersEdge</title></svelte:head>
 
 <AuthShell title="Welcome back 👋" subtitle="Log in to pick up your slip where you left it.">
 	<form onsubmit={submit} class="grid gap-4" novalidate>
@@ -48,7 +48,7 @@
 		</div>
 
 		{#if error}
-			<p class="rounded-xl bg-loss/15 px-3 py-2 text-sm font-medium text-chalk ring-1 ring-loss/60" role="alert">⚠️ {error}</p>
+			<p class="rounded-xl tint-loss px-3 py-2 text-sm font-medium text-chalk ring-1 ring-loss/60" role="alert">⚠️ {error}</p>
 		{/if}
 
 		<button type="submit" class="btn-primary w-full text-base" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>

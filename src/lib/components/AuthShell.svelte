@@ -22,7 +22,7 @@
 		<p class="mt-2 text-haze">{subtitle}</p>
 
 		{#if auth.mode === 'demo'}
-			<p class="mt-4 rounded-xl bg-book/15 px-3 py-2 text-sm text-chalk ring-1 ring-book/50" role="note">
+			<p class="mt-4 rounded-xl tint-book px-3 py-2 text-sm text-chalk ring-1 ring-book/50" role="note">
 				🧪 Preview mode: accounts are saved on this device only. The live app uses your Convex backend.
 			</p>
 		{/if}

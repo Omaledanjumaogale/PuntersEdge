@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /*
- * QuantEdge design tokens.
+ * PuntersEdge design tokens.
  * Colour carries meaning: teal = the model's fair price, amber = a bookmaker's
  * price, coral = negative expectation, violet = the brand and primary actions.
  * Tokens are semantic: `ink` is the page, `chalk` is text. The light theme
@@ -47,26 +47,38 @@
 	color-scheme: light;
 }
 
+/*
+ * Page root. Deliberately unlayered and slightly more specific than a bare
+ * `:root` / `body` so a host page's reset (e.g. an embedding frame that sets
+ * a white background, black 14px text and color-scheme: light) can never
+ * replace the theme. Layered rules always lose to unlayered ones.
+ */
+html:root {
+	color-scheme: dark;
+	-webkit-tap-highlight-color: transparent;
+	background: var(--color-ink);
+	color: var(--color-chalk);
+}
+html:root[data-theme='light'] {
+	color-scheme: light;
+}
+html body {
+	margin: 0;
+	font-family: var(--font-sans);
+	font-size: 16px;
+	line-height: 1.5;
+	background:
+		radial-gradient(110% 55% at 50% -12%, var(--color-glow) 0%, transparent 62%),
+		var(--color-ink);
+	background-attachment: fixed;
+	color: var(--color-chalk);
+	font-feature-settings: 'tnum' 1, 'cv11' 1;
+	min-height: 100dvh;
+	overscroll-behavior-y: none;
+	transition: background-color 300ms ease, color 300ms ease;
+}
+
 @layer base {
-	html {
-		color-scheme: dark;
-		-webkit-tap-highlight-color: transparent;
-		background: var(--color-ink);
-	}
-
-	body {
-		font-family: var(--font-sans);
-		background:
-			radial-gradient(110% 55% at 50% -12%, var(--color-glow) 0%, transparent 62%),
-			var(--color-ink);
-		background-attachment: fixed;
-		color: var(--color-chalk);
-		font-feature-settings: 'tnum' 1, 'cv11' 1;
-		min-height: 100dvh;
-		overscroll-behavior-y: none;
-		transition: background-color 300ms ease, color 300ms ease;
-	}
-
 	h1,
 	h2,
 	h3 {
@@ -245,4 +257,21 @@
 ::view-transition-new(root) {
 	animation-duration: 220ms;
 	animation-timing-function: var(--ease-out-expo);
+}
+
+/*
+ * Solid tints: an accent mixed into the surface colour. Used wherever text
+ * sits on a tinted panel, so contrast never depends on what is behind it.
+ */
+@utility tint-model {
+	background-color: color-mix(in oklab, var(--color-model) 14%, var(--color-deep));
+}
+@utility tint-book {
+	background-color: color-mix(in oklab, var(--color-book) 16%, var(--color-deep));
+}
+@utility tint-loss {
+	background-color: color-mix(in oklab, var(--color-loss) 16%, var(--color-deep));
+}
+@utility tint-pop {
+	background-color: color-mix(in oklab, var(--color-pop) 16%, var(--color-deep));
 }

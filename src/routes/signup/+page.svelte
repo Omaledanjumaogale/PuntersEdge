@@ -25,7 +25,7 @@
 		e.preventDefault();
 		error = '';
 		if (!adult) {
-			error = 'You need to be 18 or older to use QuantEdge.';
+			error = 'You need to be 18 or older to use PuntersEdge.';
 			return;
 		}
 		busy = true;
@@ -40,9 +40,9 @@
 	}
 </script>
 
-<svelte:head><title>Sign up — QuantEdge</title></svelte:head>
+<svelte:head><title>Sign up — PuntersEdge</title></svelte:head>
 
-<AuthShell title="Join QuantEdge ⚡" subtitle="Free account. Save your slip, bankroll and settings everywhere.">
+<AuthShell title="Join PuntersEdge ⚡" subtitle="Free account. Save your slip, bankroll and settings everywhere.">
 	<form onsubmit={submit} class="grid gap-4" novalidate>
 		<label class="grid gap-1.5" for="signup-name">
 			<span class="text-sm font-semibold text-chalk">What should we call you?</span>
@@ -78,7 +78,7 @@
 		</label>
 
 		{#if error}
-			<p class="rounded-xl bg-loss/15 px-3 py-2 text-sm font-medium text-chalk ring-1 ring-loss/60" role="alert">⚠️ {error}</p>
+			<p class="rounded-xl tint-loss px-3 py-2 text-sm font-medium text-chalk ring-1 ring-loss/60" role="alert">⚠️ {error}</p>
 		{/if}
 
 		<button type="submit" class="btn-primary w-full text-base" disabled={busy}>{busy ? 'Creating your account…' : 'Create account'}</button>

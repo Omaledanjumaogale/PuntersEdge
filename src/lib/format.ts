@@ -34,7 +34,7 @@ export function countdown(iso: string, now = Date.now()) {
 export const gradeTone: Record<string, string> = {
 	'A+': 'bg-model text-ink',
 	A: 'bg-model text-ink',
-	B: 'bg-model/15 text-model ring-1 ring-model/50',
+	B: 'tint-model text-model ring-1 ring-model/50',
 	C: 'bg-raised text-chalk ring-1 ring-line',
 	PASS: 'bg-raised text-haze ring-1 ring-line'
 };

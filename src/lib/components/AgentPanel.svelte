@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Prediction } from '#lib/state.svelte.ts';
-	import { QuantEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
+	import { PuntersEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
 	import { odds, ngn } from '#lib/format.ts';
 	import { app } from '#lib/state.svelte.ts';
 
 	let { p }: { p: Prediction } = $props();
-	const hub = new QuantEdgeAIAgentHub();
+	const hub = new PuntersEdgeAIAgentHub();
 	const analysis = $derived(hub.analyze(p));
 	const rec = $derived(analysis.recommendation);
 	const stanceTone = { bullish: 'bg-model', bearish: 'bg-loss', neutral: 'bg-haze' } as const;
@@ -33,7 +33,7 @@
 		{/each}
 	</div>
 
-	<div class="mt-4 rounded-[var(--radius-card)] p-5 ring-1 {rec.action === 'BET' ? 'bg-model/[0.07] ring-model/40' : 'bg-deep ring-line'}">
+	<div class="mt-4 rounded-[var(--radius-card)] p-5 ring-1 {rec.action === 'BET' ? 'tint-model ring-model/40' : 'bg-deep ring-line'}">
 		<p class="text-sm font-semibold text-haze">{rec.action === 'BET' ? '✅ Verdict' : '✋ Verdict'}</p>
 		{#if rec.action === 'BET'}
 			<p class="mt-1 font-display text-2xl font-semibold">
