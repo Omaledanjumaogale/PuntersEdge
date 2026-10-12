@@ -1,4 +1,4 @@
 import { redirect } from '@sveltejs/kit';
 
-// Accounts aren't enabled yet; preferences live on the device.
-export const load = () => redirect(308, '/settings');
+// Legacy route: accounts now live at /login and /signup.
+export const load = () => redirect(308, '/login');
