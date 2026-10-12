@@ -219,7 +219,7 @@ export function headlineProbabilities(lambda, mu, rho = -0.05) {
  * (home win and over 2.5). Coarse grid then local refinement — robust,
  * dependency-free and fast enough to run per fixture in the browser.
  *
- * @param {{ home: number, away: number, over2_5: number }} target fair probabilities
+ * @param {{ home: number, away: number, over2_5?: number }} target fair probabilities (over 2.5 optional)
  * @param {number} [rho]
  */
 export function fitGoalParametersFromProbabilities(target, rho = -0.05) {

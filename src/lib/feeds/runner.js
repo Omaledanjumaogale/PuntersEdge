@@ -132,7 +132,8 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
     switch (p.kind) {
       case 'games': {
         const def = SPORTS[/** @type {import('./catalog.js').SportKey} */ (p.sport)];
-        const params = def.shape === 'fixtures' ? { date: p.date, timezone: 'UTC' } : def.shape === 'nba' ? { date: p.date } : { date: p.date, timezone: 'UTC' };
+        /** @type {Record<string, string>} */
+        const params = def.shape === 'nba' ? { date: p.date } : { date: p.date, timezone: 'UTC' };
         const body = await call('api-sports', job.ledger, apiSportsUrl(p.sport, def.gamesPath, params), 1);
         const errs = apiSportsErrors(body);
         if (errs.length) throw new Error(errs.join('; '));
@@ -152,6 +153,7 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
         return rows.length > 0;
       }
       case 'odds': {
+        /** @type {Record<string, string | number>} */
         const base = p.sport === 'football' ? { league: p.leagueId, season: p.season, date: p.date } : { league: p.leagueId, season: p.season };
         let page = 1, total = 1, n = 0;
         do {
@@ -259,6 +261,7 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
     const host = j.ledger;
     (byHost[host] ??= []).push(j);
   }
+  /** @type {string[]} */
   const ran = [];
   await Promise.all(
     Object.values(byHost).map(async (list) => {

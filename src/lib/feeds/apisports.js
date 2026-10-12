@@ -239,7 +239,7 @@ function mainLine(/** @type {Array<{ value: string, odd: string }>} */ values, /
   }
   let best;
   for (const [L, p] of lines) {
-    if (!(p.over > 1 && p.under > 1)) continue;
+    if (!((p.over ?? 0) > 1 && (p.under ?? 0) > 1)) continue;
     const gap = Math.abs(/** @type {number} */ (p.over) - /** @type {number} */ (p.under));
     if (!best || gap < best.gap) best = { line: L, over: /** @type {number} */ (p.over), under: /** @type {number} */ (p.under), gap };
   }
@@ -299,7 +299,7 @@ export function parseOdds(sport, body) {
         }
         let best;
         for (const [L, p] of hc) {
-          if (!(p.home > 1 && p.away > 1)) continue;
+          if (!((p.home ?? 0) > 1 && (p.away ?? 0) > 1)) continue;
           const gap = Math.abs(/** @type {number} */ (p.home) - /** @type {number} */ (p.away));
           if (!best || gap < best.gap) best = { L, ...p, gap };
         }

@@ -26,11 +26,20 @@ const DAY = 24 * H;
  * @typedef {import('./catalog.js').SportKey} SportKey
  */
 
-/** Strip fetch timestamps; keep prices only. */
+/** Books shown first (Nigerian favourites, then the sharp anchor); the rest by name. */
+const BOOK_ORDER = ['SportyBet', '1xBet', '22Bet', 'Pinnacle', 'Bet365', 'Betway', 'Betfair', 'William Hill', 'Unibet', 'Marathonbet'];
+/** Keep feeds small and on-device pricing fast. */
+const MAX_BOOKS = 6;
+
+/** Strip fetch timestamps; keep prices only, for the most relevant books. */
 function pricesOf(/** @type {StoredGame} */ g) {
+  const rank = (/** @type {string} */ b) => {
+    const i = BOOK_ORDER.indexOf(b);
+    return i === -1 ? BOOK_ORDER.length : i;
+  };
   /** @type {Record<string, Record<string, number>>} */
   const out = {};
-  for (const [book, o] of Object.entries(g.odds)) {
+  for (const [book, o] of Object.entries(g.odds).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0])).slice(0, MAX_BOOKS)) {
     const { at, ...rest } = o;
     out[book] = rest;
   }

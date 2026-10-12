@@ -47,7 +47,7 @@ export const SCORE_SPORTS = {
     family: 'baseball',
     distribution: 'negbin',
     dispersion: 3.8,
-    maxScore: 25,
+    maxScore: 22,
     extraHomeWin: 0.52,
     totalLines: [6.5, 7.5, 8.5, 9.5, 10.5],
     teamLines: [3.5, 4.5],
@@ -172,11 +172,14 @@ export function scoreDistribution(homeMean, awayMean, cfg) {
  * @param {{ home: number, away: number }} start fallback means
  */
 export function fitMeans(target, cfg, start) {
+  const key = `${cfg.family}:${target.homeWin.toFixed(5)}:${target.over ? `${target.over.line}:${target.over.prob.toFixed(5)}` : '-'}:${start.home.toFixed(2)}:${start.away.toFixed(2)}`;
+  const hit = fitMemo.get(key);
+  if (hit) return hit;
   const totalGuess = start.home + start.away;
   const loss = (/** @type {number} */ h, /** @type {number} */ a) => {
-    const d = scoreDistribution(h, a, cfg);
-    let e = (d.moneyline.home - target.homeWin) ** 2;
-    if (target.over) e += (d.over(target.over.line) - target.over.prob) ** 2;
+    const d = headline(h, a, cfg, target.over?.line);
+    let e = (d.homeWin - target.homeWin) ** 2;
+    if (target.over) e += (d.over - target.over.prob) ** 2;
     else e += 0.02 * ((h + a - totalGuess) / totalGuess) ** 2;
     return e;
   };
@@ -196,7 +199,36 @@ export function fitMeans(target, cfg, start) {
     }
     if (!improved) step /= 2;
   }
-  return { home: best.h, away: best.a, residual: best.e };
+  const out = { home: best.h, away: best.a, residual: best.e };
+  if (fitMemo.size > 500) fitMemo.clear();
+  fitMemo.set(key, out);
+  return out;
+}
+
+/** Memo for book-side fits: identical prices are refitted only once. */
+const fitMemo = new Map();
+
+/**
+ * Fast kernel for fitting: final-result home-win probability and P(total > line),
+ * without building the full distribution.
+ * @param {number} h @param {number} a @param {ScoreSportConfig} cfg @param {number} [line]
+ */
+function headline(h, a, cfg, line) {
+  const hp = scorePmf(h, cfg);
+  const ap = scorePmf(a, cfg);
+  const N = cfg.maxScore;
+  let home = 0, draw = 0, over = 0;
+  for (let x = 0; x <= N; x++) {
+    const px = hp[x];
+    for (let y = 0; y <= N; y++) {
+      const p = px * ap[y];
+      if (x > y) home += p;
+      else if (x === y) draw += p;
+      // A tie gains one in extra play.
+      if (line !== undefined && x + y + (x === y ? 1 : 0) > line) over += p;
+    }
+  }
+  return { homeWin: home + draw * cfg.extraHomeWin, over };
 }
 
 const fmtLine = (/** @type {number} */ l) => (l > 0 ? `+${l}` : `${l}`);
@@ -212,7 +244,8 @@ const bookPrice = (/** @type {number} */ p, /** @type {number} */ margin) => Mat
  * @property {number} [kickoffOffsetHours]
  * @property {{ homeMean: number, awayMean: number, source?: string }} ratings
  * @property {Record<string, { homeMoneyline?: number, awayMoneyline?: number, totalLine?: number, overOdds?: number, underOdds?: number, spreadLine?: number, homeSpreadOdds?: number, awaySpreadOdds?: number }>} odds
- * @property {{ state: 'scheduled' | 'live' | 'finished', home?: number, away?: number, detail?: string }} [status]
+ * @property {{ state: 'scheduled' | 'live' | 'finished' | 'postponed', home?: number, away?: number, detail?: string }} [status]
+ * @property {string} [ratingsSource]
  */
 
 /**
@@ -405,6 +438,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
     league: input.league,
     kickoffTime,
     status: input.status ?? { state: 'scheduled' },
+    ratingsSource: input.ratingsSource ?? 'sample',
     modelWeight: w,
     ratings: input.ratings,
     projectedScore: { home: round(model.homeMean, 2), away: round(model.awayMean, 2), total: round(projTotal, 2), spread: round(model.homeMean - model.awayMean, 2) },
@@ -423,7 +457,12 @@ export function buildScoreSportPrediction(input, family, options = {}) {
     movement: null,
     marketSteamAlert: false,
     absences: [],
-    lineupAlert: input.ratings.source ? `Team strength from ${input.ratings.source}.` : 'Team strength from recent scoring.',
+    lineupAlert:
+      input.ratingsSource === 'market'
+        ? 'Team strength read from the market consensus (no league table yet).'
+        : input.ratingsSource && input.ratingsSource !== 'sample'
+          ? `Team strength from ${input.ratingsSource}, shrunk toward the league average.`
+          : 'Team strength from season scoring rates.',
     summary: {
       scoreline: `${top.home}–${top.away}`,
       caption: `Most likely regulation score (expected ${round(model.homeMean, 1)}–${round(model.awayMean, 1)} ${cfg.unit})`,

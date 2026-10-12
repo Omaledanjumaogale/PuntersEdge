@@ -104,7 +104,7 @@ export function parseOddsApiEvents(body) {
           }
           let best;
           for (const [L, p] of lines) {
-            if (!(p.over > 1 && p.under > 1)) continue;
+            if (!((p.over ?? 0) > 1 && (p.under ?? 0) > 1)) continue;
             const gap = fam === 'football' ? Math.abs(L - 2.5) : Math.abs(/** @type {number} */ (p.over) - /** @type {number} */ (p.under));
             if (!best || gap < best.gap) best = { L, ...p, gap };
           }

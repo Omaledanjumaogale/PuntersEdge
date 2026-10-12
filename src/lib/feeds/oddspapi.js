@@ -80,7 +80,7 @@ export function resolveBookmakers(body) {
 }
 
 /**
- * @typedef {{ kind: '1x2' | 'ml' | 'total' | 'spread' | 'btts', line: number, outcomes: Record<string, string> }} MarketDef
+ * @typedef {{ kind: '1x2' | 'ml' | 'total' | 'spread' | 'btts', line: number, outcomes: Record<string, string>, sportId?: number }} MarketDef
  */
 
 /**

@@ -326,6 +326,7 @@ function describeAbsences(absences, delta, home, away) {
  * @property {{ home: import('./basketball_model.js').TeamRatings, away: import('./basketball_model.js').TeamRatings }} ratings
  * @property {number} [hcaPoints]
  * @property {Array<{ name: string, team: 'home' | 'away', netRtgImpact: number }>} [absences]
+ * @property {'basketball' | 'nba'} [sport]
  * @property {Record<string, { homeMoneyline: number, awayMoneyline: number, spreadLine: number, homeSpreadOdds: number, awaySpreadOdds: number, totalLine: number, overOdds: number, underOdds: number }>} odds
  * @property {{ home: number, away: number }} [openingOdds]
  * @property {{ home?: number }} [publicPct]

@@ -24,7 +24,10 @@ export function profitFor(/** @type {Outcome} */ outcome, /** @type {number} */ 
   }
 }
 
-/** Handicap result for margin + line (whole lines push; quarter lines split). */
+/**
+ * Handicap result for margin + line (whole lines push; quarter lines split).
+ * @returns {Outcome}
+ */
 function handicap(/** @type {number} */ margin, /** @type {number} */ line) {
   const quarter = Math.abs((line * 4) % 2) === 1;
   if (quarter) {
@@ -38,7 +41,7 @@ function handicap(/** @type {number} */ margin, /** @type {number} */ line) {
   return d > 0 ? 'won' : d < 0 ? 'lost' : 'push';
 }
 
-/** Over/under a line on a count. */
+/** Over/under a line on a count. @returns {Outcome} */
 const overUnder = (/** @type {number} */ x, /** @type {number} */ line, /** @type {boolean} */ over) =>
   x === line ? 'push' : (x > line) === over ? 'won' : 'lost';
 
