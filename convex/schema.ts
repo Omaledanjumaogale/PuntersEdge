@@ -1,7 +1,21 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
+  // Convex Auth: users, sessions, accounts, refresh tokens, verification codes.
+  ...authTables,
+  users: defineTable({
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+    image: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    favouriteSport: v.optional(v.string()),
+  }).index("email", ["email"]),
+
   football_matches: defineTable({
     fixtureId: v.string(),
     homeTeam: v.string(),
@@ -140,7 +154,7 @@ export default defineSchema({
     .index("by_league", ["league"]),
 
   user_betslips: defineTable({
-    userId: v.string(),
+    userId: v.id("users"),
     items: v.array(
       v.object({
         fixtureId: v.string(),
@@ -150,6 +164,7 @@ export default defineSchema({
         selection: v.string(),
         bookmaker: v.string(),
         odds: v.number(),
+        modelProb: v.optional(v.number()),
         edgePercent: v.number(),
       })
     ),

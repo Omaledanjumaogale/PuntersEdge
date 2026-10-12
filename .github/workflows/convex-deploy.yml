@@ -1,0 +1,64 @@
+name: Deploy Convex backend
+
+# Deploys convex/ (schema, auth, functions) to the production deployment.
+# Requires one repository secret: CONVEX_DEPLOY_KEY
+#   GitHub → Settings → Secrets and variables → Actions → New repository secret
+# Optional repository variable: SITE_URL (your app's public URL).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'convex/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/generate-auth-keys.mjs'
+      - '.github/workflows/convex-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: convex-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Engine tests
+        run: npm test
+
+      - name: Check the deploy key is configured
+        run: |
+          if [ -z "$CONVEX_DEPLOY_KEY" ]; then
+            echo "::error::Add the CONVEX_DEPLOY_KEY repository secret (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - name: Create auth signing keys (first deploy only)
+        run: |
+          if [ -z "$(npx convex env get JWKS 2>/dev/null)" ]; then
+            echo "No JWKS on the deployment yet: generating a new RS256 key pair."
+            node scripts/generate-auth-keys.mjs --apply
+          else
+            echo "Auth signing keys already set; leaving them untouched so sessions stay valid."
+          fi
+
+      - name: Set SITE_URL
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://quantedge-sports-pwa.pages.dev' }}
+        run: npx convex env set SITE_URL "$SITE_URL"
+
+      - name: Deploy functions and schema
+        run: npx convex deploy --typecheck enable
