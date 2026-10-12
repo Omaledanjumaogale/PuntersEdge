@@ -96,9 +96,10 @@ function margins(odds, keys) {
  * @param {string} ctx.league
  * @param {Array<{ market: string, selection: string, key: string, prob: number, marketProb: number }>} candidates
  * @param {Record<string, Record<string, number>>} odds
+ * @param {number} [kellyFraction]
  * @returns {ValueBet[]} every candidate priced at its best available odds, best first
  */
-function scanMarkets(ctx, candidates, odds) {
+function scanMarkets(ctx, candidates, odds, kellyFraction = 0.25) {
   /** @type {ValueBet[]} */
   const out = [];
   for (const c of candidates) {
@@ -106,7 +107,7 @@ function scanMarkets(ctx, candidates, odds) {
     if (best.odds <= 1) continue;
     const ev = calculateExpectedValue(c.prob, best.odds);
     if (ev.edgePercent > MAX_CREDIBLE_EDGE) continue;
-    const stake = calculateKellyStake(c.prob, best.odds);
+    const stake = calculateKellyStake(c.prob, best.odds, kellyFraction);
     out.push({
       id: `${ctx.fixtureId}:${c.key}`,
       fixtureId: ctx.fixtureId,
@@ -157,7 +158,7 @@ function kickoffFrom(now, offsetHours) {
 /**
  * Build a complete football prediction.
  * @param {FootballInput} input
- * @param {{ modelWeight?: number, now?: Date | number }} [options]
+ * @param {{ modelWeight?: number, kellyFraction?: number, now?: Date | number }} [options]
  */
 export function buildFootballPrediction(input, options = {}) {
   const w = options.modelWeight ?? DEFAULT_MODEL_WEIGHT;
@@ -205,10 +206,11 @@ export function buildFootballPrediction(input, options = {}) {
       { market: 'Match Result (1X2)', selection: `${input.awayTeam} Win`, key: 'away', prob: probabilities.awayWin, marketProb: marketProbs.awayWin },
       { market: 'Total Goals', selection: 'Over 2.5 Goals', key: 'over25', prob: probabilities.over25, marketProb: marketProbs.over25 },
       { market: 'Total Goals', selection: 'Under 2.5 Goals', key: 'under25', prob: probabilities.under25, marketProb: marketProbs.under25 },
-      { market: 'Both Teams To Score', selection: 'BTTS — Yes', key: 'bttsYes', prob: probabilities.bttsYes, marketProb: marketProbs.bttsYes },
-      { market: 'Both Teams To Score', selection: 'BTTS — No', key: 'bttsNo', prob: probabilities.bttsNo, marketProb: marketProbs.bttsNo }
+      { market: 'Both Teams To Score', selection: 'BTTS Yes', key: 'bttsYes', prob: probabilities.bttsYes, marketProb: marketProbs.bttsYes },
+      { market: 'Both Teams To Score', selection: 'BTTS No', key: 'bttsNo', prob: probabilities.bttsNo, marketProb: marketProbs.bttsNo }
     ],
-    input.odds
+    input.odds,
+    options.kellyFraction
   );
 
   const movement = input.openingOdds
@@ -269,7 +271,7 @@ export function buildFootballPrediction(input, options = {}) {
  * @param {string} away
  */
 function describeAbsences(absences, delta, home, away) {
-  if (absences.length === 0) return 'No significant absences — both sides at full strength.';
+  if (absences.length === 0) return 'No significant absences. Both sides at full strength.';
   const parts = [];
   if (delta.homeAttackChangePct || delta.homeDefenseChangePct) {
     parts.push(`${home} attack ${delta.homeAttackChangePct.toFixed(1)}%, defence weakened ${delta.homeDefenseChangePct.toFixed(1)}%`);
@@ -278,7 +280,7 @@ function describeAbsences(absences, delta, home, away) {
     parts.push(`${away} attack ${delta.awayAttackChangePct.toFixed(1)}%, defence weakened ${delta.awayDefenseChangePct.toFixed(1)}%`);
   }
   const names = absences.map((a) => `${a.name} (${a.position})`).join(', ');
-  return `Out: ${names}. Modelled impact — ${parts.join('; ')}.`;
+  return `Out: ${names}. Modelled impact: ${parts.join('; ')}.`;
 }
 
 /**
@@ -300,7 +302,7 @@ function describeAbsences(absences, delta, home, away) {
 /**
  * Build a complete basketball prediction.
  * @param {BasketballInput} input
- * @param {{ modelWeight?: number, now?: Date | number }} [options]
+ * @param {{ modelWeight?: number, kellyFraction?: number, now?: Date | number }} [options]
  */
 export function buildBasketballPrediction(input, options = {}) {
   const w = options.modelWeight ?? DEFAULT_MODEL_WEIGHT;
@@ -372,12 +374,13 @@ export function buildBasketballPrediction(input, options = {}) {
     [
       { market: 'Moneyline', selection: `${input.homeTeam} ML`, key: 'homeMl', prob: probabilities.homeWin, marketProb: marketProbs.homeWin },
       { market: 'Moneyline', selection: `${input.awayTeam} ML`, key: 'awayMl', prob: probabilities.awayWin, marketProb: marketProbs.awayWin },
-      { market: `Point Spread (${fmtLine(consensusSpread)})`, selection: `${input.homeTeam} ${fmtLine(consensusSpread)}`, key: 'homeSpread', prob: probabilities.spreadCoverHome, marketProb: marketProbs.spreadCoverHome },
-      { market: `Point Spread (${fmtLine(-consensusSpread)})`, selection: `${input.awayTeam} ${fmtLine(-consensusSpread)}`, key: 'awaySpread', prob: 1 - probabilities.spreadCoverHome, marketProb: 1 - marketProbs.spreadCoverHome },
+      { market: 'Point Spread', selection: `${input.homeTeam} ${fmtLine(consensusSpread)}`, key: 'homeSpread', prob: probabilities.spreadCoverHome, marketProb: marketProbs.spreadCoverHome },
+      { market: 'Point Spread', selection: `${input.awayTeam} ${fmtLine(-consensusSpread)}`, key: 'awaySpread', prob: 1 - probabilities.spreadCoverHome, marketProb: 1 - marketProbs.spreadCoverHome },
       { market: 'Total Points', selection: `Over ${consensusTotal}`, key: 'over', prob: probabilities.overTotal, marketProb: marketProbs.overTotal },
       { market: 'Total Points', selection: `Under ${consensusTotal}`, key: 'under', prob: probabilities.underTotal, marketProb: 1 - marketProbs.overTotal }
     ],
-    flat
+    flat,
+    options.kellyFraction
   );
 
   const movement = input.openingOdds
@@ -423,7 +426,7 @@ export function buildBasketballPrediction(input, options = {}) {
     absences,
     lineupAlert:
       absences.length === 0
-        ? 'Both rotations healthy — no rating adjustments applied.'
+        ? 'Both rotations healthy. No rating adjustments applied.'
         : `Out: ${absences.map((a) => `${a.name} (${a.teamName}, −${a.netRtgImpact} net rtg)`).join(', ')}.`
   };
 }

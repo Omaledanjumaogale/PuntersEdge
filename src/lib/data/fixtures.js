@@ -22,8 +22,8 @@ export const FOOTBALL_INPUTS = [
     },
     odds: {
       SportyBet: { home: 1.95, draw: 3.65, away: 3.9, over25: 1.74, under25: 2.1, bttsYes: 1.72, bttsNo: 2.08 },
-      '1xBet': { home: 2.04, draw: 3.75, away: 4.1, over25: 1.8, under25: 2.08, bttsYes: 1.76, bttsNo: 2.1 },
-      '22Bet': { home: 2.01, draw: 3.72, away: 4.08, over25: 1.79, under25: 2.09, bttsYes: 1.75, bttsNo: 2.09 }
+      '1xBet': { home: 2.04, draw: 3.55, away: 3.85, over25: 1.8, under25: 2.02, bttsYes: 1.76, bttsNo: 2.04 },
+      '22Bet': { home: 2.01, draw: 3.55, away: 3.9, over25: 1.79, under25: 2.09, bttsYes: 1.75, bttsNo: 2.09 }
     },
     openingOdds: { home: 2.18, away: 3.6 },
     publicPct: { home: 41 }
@@ -38,8 +38,8 @@ export const FOOTBALL_INPUTS = [
     absences: { home: [], away: [] },
     odds: {
       SportyBet: { home: 2.1, draw: 3.75, away: 3.25, over25: 1.58, under25: 2.38, bttsYes: 1.55, bttsNo: 2.4 },
-      '1xBet': { home: 2.18, draw: 3.85, away: 3.35, over25: 1.64, under25: 2.42, bttsYes: 1.6, bttsNo: 2.45 },
-      '22Bet': { home: 2.17, draw: 3.82, away: 3.34, over25: 1.63, under25: 2.4, bttsYes: 1.59, bttsNo: 2.43 }
+      '1xBet': { home: 2.18, draw: 3.7, away: 3.3, over25: 1.64, under25: 2.42, bttsYes: 1.6, bttsNo: 2.45 },
+      '22Bet': { home: 2.17, draw: 3.7, away: 3.3, over25: 1.63, under25: 2.4, bttsYes: 1.59, bttsNo: 2.43 }
     },
     openingOdds: { home: 2.2, away: 3.3 },
     publicPct: { home: 55 }
@@ -60,8 +60,8 @@ export const FOOTBALL_INPUTS = [
     },
     odds: {
       SportyBet: { home: 1.48, draw: 4.8, away: 6.1, over25: 1.4, under25: 2.9, bttsYes: 1.66, bttsNo: 2.15 },
-      '1xBet': { home: 1.55, draw: 5.0, away: 6.4, over25: 1.44, under25: 2.85, bttsYes: 1.7, bttsNo: 2.18 },
-      '22Bet': { home: 1.54, draw: 4.95, away: 6.35, over25: 1.43, under25: 2.88, bttsYes: 1.69, bttsNo: 2.17 }
+      '1xBet': { home: 1.55, draw: 4.6, away: 5.8, over25: 1.44, under25: 2.85, bttsYes: 1.7, bttsNo: 2.18 },
+      '22Bet': { home: 1.54, draw: 4.6, away: 5.9, over25: 1.43, under25: 2.88, bttsYes: 1.69, bttsNo: 2.17 }
     },
     openingOdds: { home: 1.52, away: 6.0 },
     publicPct: { home: 71 }
@@ -115,7 +115,7 @@ export const BASKETBALL_INPUTS = [
     absences: [{ name: 'B. Adebayo', team: 'away', netRtgImpact: 2.1 }],
     odds: {
       SportyBet: { homeMoneyline: 1.3, awayMoneyline: 3.6, spreadLine: -8.5, homeSpreadOdds: 1.88, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.89, underOdds: 1.89 },
-      '1xBet': { homeMoneyline: 1.33, awayMoneyline: 3.75, spreadLine: -8.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.93, underOdds: 1.91 },
+      '1xBet': { homeMoneyline: 1.33, awayMoneyline: 3.45, spreadLine: -8.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.9, totalLine: 219.5, overOdds: 1.93, underOdds: 1.91 },
       '22Bet': { homeMoneyline: 1.32, awayMoneyline: 3.7, spreadLine: -8.5, homeSpreadOdds: 1.93, awaySpreadOdds: 1.89, totalLine: 219.5, overOdds: 1.92, underOdds: 1.9 }
     },
     openingOdds: { home: 1.4, away: 3.1 },
@@ -134,7 +134,7 @@ export const BASKETBALL_INPUTS = [
     absences: [],
     odds: {
       SportyBet: { homeMoneyline: 1.92, awayMoneyline: 1.92, spreadLine: -1.5, homeSpreadOdds: 1.9, awaySpreadOdds: 1.9, totalLine: 229.5, overOdds: 1.86, underOdds: 1.94 },
-      '1xBet': { homeMoneyline: 1.97, awayMoneyline: 1.95, spreadLine: -1.5, homeSpreadOdds: 1.95, awaySpreadOdds: 1.92, totalLine: 229.5, overOdds: 1.92, underOdds: 1.95 },
+      '1xBet': { homeMoneyline: 1.95, awayMoneyline: 1.93, spreadLine: -1.5, homeSpreadOdds: 1.95, awaySpreadOdds: 1.92, totalLine: 229.5, overOdds: 1.92, underOdds: 1.95 },
       '22Bet': { homeMoneyline: 1.96, awayMoneyline: 1.94, spreadLine: -1.5, homeSpreadOdds: 1.94, awaySpreadOdds: 1.91, totalLine: 229.5, overOdds: 1.91, underOdds: 1.95 }
     },
     openingOdds: { home: 1.9, away: 1.95 },
@@ -154,8 +154,8 @@ export const BASKETBALL_INPUTS = [
     absences: [],
     odds: {
       SportyBet: { homeMoneyline: 1.68, awayMoneyline: 2.25, spreadLine: -2.5, homeSpreadOdds: 1.88, awaySpreadOdds: 1.88, totalLine: 158.5, overOdds: 1.9, underOdds: 1.9 },
-      '1xBet': { homeMoneyline: 1.74, awayMoneyline: 2.32, spreadLine: -2.5, homeSpreadOdds: 1.93, awaySpreadOdds: 1.91, totalLine: 158.5, overOdds: 1.93, underOdds: 1.93 },
-      '22Bet': { homeMoneyline: 1.73, awayMoneyline: 2.3, spreadLine: -2.5, homeSpreadOdds: 1.92, awaySpreadOdds: 1.9, totalLine: 158.5, overOdds: 1.92, underOdds: 1.93 }
+      '1xBet': { homeMoneyline: 1.72, awayMoneyline: 2.2, spreadLine: -2.5, homeSpreadOdds: 1.93, awaySpreadOdds: 1.91, totalLine: 158.5, overOdds: 1.93, underOdds: 1.93 },
+      '22Bet': { homeMoneyline: 1.71, awayMoneyline: 2.2, spreadLine: -2.5, homeSpreadOdds: 1.92, awaySpreadOdds: 1.9, totalLine: 158.5, overOdds: 1.92, underOdds: 1.93 }
     },
     openingOdds: { home: 1.75, away: 2.2 },
     publicPct: { home: 60 }
