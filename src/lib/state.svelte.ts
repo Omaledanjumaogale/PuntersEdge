@@ -1,19 +1,32 @@
 /**
  * Application state (Svelte 5 runes).
  *
- * Settings and the betslip persist to localStorage; predictions are derived
- * from the sample feed through the engine and recompute whenever a setting
- * that affects pricing (model weight, Kelly fraction) changes.
+ * Settings and the betslip persist to localStorage. Predictions are derived on
+ * the device: engine inputs come from the live feed when one has loaded (see
+ * feed.svelte.ts) and from the built-in sample feed otherwise, and every
+ * prediction recomputes when a pricing setting (model weight, Kelly) changes.
  */
 
-import { FOOTBALL_INPUTS, BASKETBALL_INPUTS } from '#lib/data/fixtures.js';
+import { FOOTBALL_INPUTS, BASKETBALL_INPUTS, NBA_INPUTS, HOCKEY_INPUTS, BASEBALL_INPUTS } from '#lib/data/fixtures.js';
 import { buildFootballPrediction, buildBasketballPrediction, type ValueBet } from '#lib/engine/prediction_pipeline.js';
+import { buildScoreSportPrediction } from '#lib/engine/score_sports.js';
 import { evaluateAccumulator } from '#lib/engine/bookmaker_engine.js';
+import { feed, type FeedGame } from '#lib/feed.svelte.ts';
+import { SPORT_ORDER, type SportKey } from '#lib/sports.ts';
 
 export type FootballPrediction = ReturnType<typeof buildFootballPrediction>;
 export type BasketballPrediction = ReturnType<typeof buildBasketballPrediction>;
-export type Prediction = FootballPrediction | BasketballPrediction;
-export type { ValueBet };
+export type ScorePrediction = ReturnType<typeof buildScoreSportPrediction>;
+export type Prediction = FootballPrediction | BasketballPrediction | ScorePrediction;
+export type { ValueBet, SportKey };
+
+const SAMPLE: Record<SportKey, any[]> = {
+	football: FOOTBALL_INPUTS,
+	basketball: BASKETBALL_INPUTS,
+	nba: NBA_INPUTS,
+	hockey: HOCKEY_INPUTS,
+	baseball: BASEBALL_INPUTS
+};
 
 export interface Settings {
 	bankroll: number;
@@ -26,7 +39,7 @@ export interface Settings {
 export interface SlipItem {
 	id: string;
 	fixtureId: string;
-	sport: 'football' | 'basketball';
+	sport: SportKey;
 	matchTitle: string;
 	market: string;
 	selection: string;
@@ -82,33 +95,72 @@ class AppState {
 	/** Snapshot of "now" so kickoff times are stable within a session. */
 	readonly now = Date.now();
 
-	football = $derived(
-		FOOTBALL_INPUTS.map((i) =>
-			buildFootballPrediction(i, { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now })
-		)
-	);
+	/** 'live' once a live feed has loaded; 'sample' otherwise. */
+	source = $derived(feed.mode);
 
-	basketball = $derived(
-		BASKETBALL_INPUTS.map((i) =>
-			buildBasketballPrediction(i, { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now })
-		)
-	);
+	/** Engine inputs per sport: the live feed when present, the sample feed otherwise. */
+	#inputs(sport: SportKey): any[] {
+		return feed.data ? (feed.data.inputs?.[sport] ?? []) : SAMPLE[sport];
+	}
+
+	#build(sport: SportKey, input: any): Prediction | null {
+		const opts = { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
+		try {
+			if (sport === 'football') return buildFootballPrediction(input, opts);
+			if (sport === 'basketball' || sport === 'nba') return buildBasketballPrediction(input, { ...opts, sport });
+			return buildScoreSportPrediction(input, sport, { ...opts, sport });
+		} catch (err) {
+			// One malformed game must never take the board down.
+			console.warn(`Skipped ${input?.fixtureId}:`, err);
+			return null;
+		}
+	}
+
+	football = $derived(this.#inputs('football').map((i) => this.#build('football', i)).filter(Boolean) as FootballPrediction[]);
+	basketball = $derived(this.#inputs('basketball').map((i) => this.#build('basketball', i)).filter(Boolean) as BasketballPrediction[]);
+	nba = $derived(this.#inputs('nba').map((i) => this.#build('nba', i)).filter(Boolean) as BasketballPrediction[]);
+	hockey = $derived(this.#inputs('hockey').map((i) => this.#build('hockey', i)).filter(Boolean) as ScorePrediction[]);
+	baseball = $derived(this.#inputs('baseball').map((i) => this.#build('baseball', i)).filter(Boolean) as ScorePrediction[]);
+
+	bySport(sport: SportKey): Prediction[] {
+		return this[sport];
+	}
 
 	all = $derived<Prediction[]>(
-		[...this.football, ...this.basketball].sort((a, b) => a.kickoffTime.localeCompare(b.kickoffTime))
+		SPORT_ORDER.flatMap((s) => this.bySport(s)).sort((a, b) => a.kickoffTime.localeCompare(b.kickoffTime))
 	);
 
 	/** Every positive-edge selection across the board, best first. */
 	valueBets = $derived<ValueBet[]>(
 		this.all
-			.flatMap((p) => p.valueBets)
+			.filter((p) => p.status.state === 'scheduled')
+			.flatMap((p) => p.valueBets as ValueBet[])
 			.filter((v) => v.edgePercent > 0 && v.grade !== 'PASS')
 			.sort((a, b) => b.edgePercent - a.edgePercent)
 	);
 
-	/** Featured football match for the 3D hero: the strongest football edge. */
-	featured = $derived<FootballPrediction>(
-		[...this.football].sort((a, b) => (b.bestValue?.edgePercent ?? -99) - (a.bestValue?.edgePercent ?? -99))[0]
+	/** Featured match for the 3D hero: the strongest edge among sports with a score grid. */
+	featured = $derived<FootballPrediction | ScorePrediction | undefined>(
+		([...this.football, ...this.hockey, ...this.baseball] as Array<FootballPrediction | ScorePrediction>)
+			.filter((p) => p.status.state === 'scheduled')
+			.sort((a, b) => (b.bestValue?.edgePercent ?? -99) - (a.bestValue?.edgePercent ?? -99))[0]
+	);
+
+	/** Schedule and results: every game the feed knows about (sample: the sample games). */
+	games = $derived<FeedGame[]>(
+		feed.data
+			? feed.data.games
+			: this.all.map((p) => ({
+					id: p.fixtureId,
+					sport: p.sport as SportKey,
+					league: p.league,
+					home: p.homeTeam,
+					away: p.awayTeam,
+					kickoff: p.kickoffTime,
+					status: p.status,
+					books: p.bookmakers.length,
+					priced: true
+				}))
 	);
 
 	slipEconomics = $derived(evaluateAccumulator(this.slip.map((s) => ({ odds: s.odds, modelProb: s.modelProb }))));
@@ -126,6 +178,10 @@ class AppState {
 		return this.all.find((p) => p.fixtureId === id);
 	}
 
+	gameById(id: string): FeedGame | undefined {
+		return this.games.find((g) => g.id === id);
+	}
+
 	inSlip(id: string) {
 		return this.slip.some((s) => s.id === id);
 	}
@@ -139,7 +195,7 @@ class AppState {
 		const item: SlipItem = {
 			id: v.id,
 			fixtureId: v.fixtureId,
-			sport: v.sport,
+			sport: v.sport as SportKey,
 			matchTitle: v.matchTitle,
 			market: v.market,
 			selection: v.selection,

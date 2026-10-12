@@ -5,12 +5,17 @@
 	import { signed, gradeEmoji, odds, pct } from '#lib/format.ts';
 	import Glossary from '#lib/components/Glossary.svelte';
 	import Logo from '#lib/components/Logo.svelte';
+	import DataBadge from '#lib/components/DataBadge.svelte';
+	import { feed } from '#lib/feed.svelte.ts';
+	import { SPORTS, SPORT_ORDER } from '#lib/sports.ts';
+	import { sportEmoji } from '#lib/format.ts';
 
 	const top = $derived(app.valueBets.slice(0, 3));
 	const best = $derived(app.valueBets[0]);
 	const marketsPriced = $derived(app.all.reduce((a, p) => a + p.markets.reduce((b, g) => b + g.selections.length, 0), 0));
-	const footballValue = $derived(app.valueBets.filter((v) => v.sport === 'football').length);
-	const basketballValue = $derived(app.valueBets.filter((v) => v.sport === 'basketball').length);
+	const valueBySport = $derived(Object.fromEntries(SPORT_ORDER.map((s) => [s, app.valueBets.filter((v) => v.sport === s).length])));
+	const liveCount = $derived(app.games.filter((g) => g.status.state === 'live').length);
+	const record = $derived(feed.data?.record.summary.all);
 
 	let stackOpen = $state(false);
 
@@ -25,20 +30,23 @@
 </script>
 
 <svelte:head>
-	<title>PuntersEdge — bet smarter on football and basketball</title>
+	<title>PuntersEdge — bet smarter on football, NBA, hockey and baseball</title>
 </svelte:head>
 
 <!-- Hero -->
 <section class="relative grid items-center gap-10 py-4 md:grid-cols-[1.1fr_1fr] md:py-10" aria-labelledby="home-title">
 	<div>
-		<p class="inline-flex items-center gap-2 rounded-full bg-raised px-3 py-1 text-sm font-semibold text-chalk ring-1 ring-line">
-			<span aria-hidden="true">⚽</span> Football <span aria-hidden="true">🏀</span> Basketball <span class="text-haze">value finder</span>
-		</p>
+		<div class="flex flex-wrap items-center gap-2">
+			<p class="inline-flex items-center gap-1.5 rounded-full bg-raised px-3 py-1 text-sm font-semibold text-chalk ring-1 ring-line">
+				<span aria-hidden="true">⚽⛹️🏀🏒⚾</span> <span class="text-haze">value finder</span>
+			</p>
+			<DataBadge />
+		</div>
 		<h1 id="home-title" class="mt-4 text-[clamp(2.6rem,8vw,4.75rem)] font-extrabold leading-[0.92] text-chalk">
 			Bet smarter,<br /><span class="brand-text">not harder.</span>
 		</h1>
 		<p class="mt-5 max-w-xl text-lg leading-relaxed text-chalk">
-			PuntersEdge prices every match, compares SportyBet, 1xBet and 22Bet, and shows you where the odds are wrong. Then it tells you why, and how much to stake.
+			PuntersEdge prices every game across five sports, compares SportyBet, 1xBet, 22Bet and more, and shows you where the odds are wrong. Then it tells you why, and how much to stake.
 		</p>
 		<div class="mt-6 flex flex-wrap gap-3">
 			<a href="/board" class="btn-primary text-base">🔥 See today's picks</a>
@@ -50,8 +58,8 @@
 		</div>
 		<dl class="mt-8 grid max-w-lg grid-cols-3 gap-3">
 			<a href="/board" class="surface block p-3 hover:ring-1 hover:ring-pop">
-				<dt class="text-xs text-haze">Matches</dt>
-				<dd class="font-display text-2xl font-bold text-chalk">{app.all.length}</dd>
+				<dt class="text-xs text-haze">{liveCount ? 'Live now' : 'Games'}</dt>
+				<dd class="font-display text-2xl font-bold {liveCount ? 'text-loss' : 'text-chalk'}">{liveCount || app.all.length}</dd>
 			</a>
 			<a href="/value-bets" class="surface block p-3 hover:ring-1 hover:ring-pop">
 				<dt class="text-xs text-haze">Value bets</dt>
@@ -68,11 +76,11 @@
 	<div class="relative mx-auto w-full max-w-sm transition-[height] duration-700 [perspective:1200px]" style="height: {stackOpen ? 27 : 21}rem">
 		{#each top as v, i (v.id)}
 			<a
-				href="/match/{v.fixtureId}"
+				href="/match?id={v.fixtureId}"
 				class="surface absolute inset-x-0 z-20 block p-4 shadow-[0_30px_60px_-30px_rgb(0_0_0/0.6)] transition-transform duration-700 ease-[var(--ease-spring)]"
 				style="top: {stackOpen ? i * 7.6 : 2.5 + i * 1.1}rem; transform: rotateX({stackOpen ? 0 : 18}deg) rotateZ({stackOpen ? 0 : (i - 1) * -5}deg) translateZ({(3 - i) * 20}px); z-index: {30 - i}"
 			>
-				<p class="truncate text-xs font-medium text-haze">{v.sport === 'football' ? '⚽' : '🏀'} {v.matchTitle}</p>
+				<p class="truncate text-xs font-medium text-haze">{sportEmoji[v.sport]} {v.matchTitle}</p>
 				<p class="mt-1 truncate font-display text-lg font-bold text-chalk">{gradeEmoji[v.grade]} {v.selection}</p>
 				<p class="mt-1 text-sm">
 					<span class="font-semibold text-book">{odds(v.bestOdds)}</span> <span class="text-haze">at {v.bookmaker}, needs {pct(1 / v.bestOdds)}</span>
@@ -90,33 +98,30 @@
 </section>
 
 <!-- Sports -->
-<section class="mt-8 grid gap-4 sm:grid-cols-2" aria-label="Sports">
-	<a href="/football" class="surface group relative block overflow-hidden p-6 hover:ring-1 hover:ring-model">
-		<svg class="pointer-events-none absolute -right-16 -top-8 h-48 w-72 opacity-20 transition-transform duration-500 group-hover:scale-105" viewBox="0 0 240 150" aria-hidden="true">
-			<rect x="4" y="4" width="232" height="142" rx="14" fill="none" style="stroke: var(--color-model); stroke-width: 2.5" />
-			<line x1="120" y1="4" x2="120" y2="146" style="stroke: var(--color-model); stroke-width: 2.5" />
-			<circle cx="120" cy="75" r="26" fill="none" style="stroke: var(--color-model); stroke-width: 2.5" />
-			<rect x="4" y="45" width="34" height="60" fill="none" style="stroke: var(--color-model); stroke-width: 2.5" />
-			<rect x="202" y="45" width="34" height="60" fill="none" style="stroke: var(--color-model); stroke-width: 2.5" />
-		</svg>
-		<p class="relative text-4xl" aria-hidden="true">⚽</p>
-		<h2 class="relative mt-3 text-2xl font-extrabold text-chalk">Football</h2>
-		<p class="relative mt-1 text-haze">{app.football.length} matches, {footballValue} value bets. Premier League to the NPFL.</p>
-		<span class="relative mt-4 inline-block font-semibold text-model">Open football</span>
-	</a>
-	<a href="/basketball" class="surface group relative block overflow-hidden p-6 hover:ring-1 hover:ring-book">
-		<svg class="pointer-events-none absolute -right-16 -top-8 h-48 w-72 opacity-20 transition-transform duration-500 group-hover:scale-105" viewBox="0 0 240 150" aria-hidden="true">
-			<rect x="4" y="4" width="232" height="142" rx="14" fill="none" style="stroke: var(--color-book); stroke-width: 2.5" />
-			<line x1="120" y1="4" x2="120" y2="146" style="stroke: var(--color-book); stroke-width: 2.5" />
-			<circle cx="120" cy="75" r="20" fill="none" style="stroke: var(--color-book); stroke-width: 2.5" />
-			<path d="M4 30 h40 a45 45 0 0 1 0 90 h-40" fill="none" style="stroke: var(--color-book); stroke-width: 2.5" />
-			<path d="M236 30 h-40 a45 45 0 0 0 0 90 h40" fill="none" style="stroke: var(--color-book); stroke-width: 2.5" />
-		</svg>
-		<p class="relative text-4xl" aria-hidden="true">🏀</p>
-		<h2 class="relative mt-3 text-2xl font-extrabold text-chalk">Basketball</h2>
-		<p class="relative mt-1 text-haze">{app.basketball.length} games, {basketballValue} value bets. NBA and EuroLeague.</p>
-		<span class="relative mt-4 inline-block font-semibold text-book">Open basketball</span>
-	</a>
+<section class="mt-8" aria-labelledby="sports-title">
+	<div class="flex items-baseline justify-between gap-3">
+		<h2 id="sports-title" class="text-3xl font-extrabold text-chalk">Five sports, five engines</h2>
+		<a href="/sports" class="text-sm font-semibold text-pop hover:underline">All sports</a>
+	</div>
+	<ul class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+		{#each SPORT_ORDER as key (key)}
+			{@const s = SPORTS[key]}
+			<li>
+				<a href={s.href} class="surface group relative flex h-full flex-col gap-1 overflow-hidden p-4 transition-colors hover:ring-1 hover:ring-pop">
+					<span class="pointer-events-none absolute -right-4 -top-4 text-7xl leading-none opacity-15 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" aria-hidden="true">{s.emoji}</span>
+					<span class="text-3xl leading-none" aria-hidden="true">{s.emoji}</span>
+					<span class="mt-2 text-lg font-bold text-chalk">{s.label}</span>
+					<span class="text-sm text-haze">{app.bySport(key).length} games{valueBySport[key] ? `, ${valueBySport[key]} value` : ''}</span>
+				</a>
+			</li>
+		{/each}
+	</ul>
+	{#if record && record.picks > 0}
+		<a href="/results" class="surface mt-3 flex flex-wrap items-center justify-between gap-2 p-4 hover:ring-1 hover:ring-pop">
+			<span class="font-semibold text-chalk">📈 Track record: {record.picks} graded picks settled</span>
+			<span class="font-display text-lg font-bold {record.profit >= 0 ? 'text-model' : 'text-loss'}">{signed(record.profit, 2)}u ({signed(record.roi)}%)</span>
+		</a>
+	{/if}
 </section>
 
 <!-- How it works: a real sequence -->

@@ -6,6 +6,7 @@
 import { app } from '#lib/state.svelte.ts';
 import { auth } from '#lib/auth.svelte.ts';
 import { api } from '../../convex/_generated/api.js';
+import type { SportKey } from '#lib/sports.ts';
 
 export function startSlipSync() {
 	if (typeof window === 'undefined' || auth.mode !== 'convex') return;
@@ -27,7 +28,7 @@ export function startSlipSync() {
 						app.slip = saved.items.map((i) => ({
 							id: `${i.fixtureId}:restored:${i.selection}`,
 							fixtureId: i.fixtureId,
-							sport: i.sport as 'football' | 'basketball',
+							sport: i.sport as SportKey,
 							matchTitle: i.matchTitle,
 							market: i.market,
 							selection: i.selection,

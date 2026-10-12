@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { SPORTS, SPORT_ORDER, type SportKey } from '#lib/sports.ts';
 	import { app } from '#lib/state.svelte.ts';
 	import PickTicket from '#lib/components/PickTicket.svelte';
 
 	let minEdge = $state(0);
-	let sport = $state<'all' | 'football' | 'basketball'>('all');
+	let sport = $state<'all' | SportKey>('all');
 	let sort = $state<'edge' | 'stake' | 'prob'>('edge');
 
 	const list = $derived(
@@ -30,7 +31,7 @@
 	<label class="flex flex-col gap-1">
 		<span class="text-haze">Sport</span>
 		<select bind:value={sport} class="rounded-xl bg-deep px-3 py-2 ring-1 ring-line">
-			<option value="all">All</option><option value="football">Football</option><option value="basketball">Basketball</option>
+			<option value="all">All</option>{#each SPORT_ORDER as s (s)}<option value={s}>{SPORTS[s].label}</option>{/each}
 		</select>
 	</label>
 	<label class="flex flex-col gap-1">

@@ -7,7 +7,7 @@
 	import Logo from './Logo.svelte';
 	import { Menu, ReceiptText } from 'lucide-svelte';
 
-	const desktopLinks = NAV.filter((n) => !['/', '/settings', '/glossary'].includes(n.href));
+	const desktopLinks = NAV.filter((n) => ['/board', '/sports', '/value-bets', '/results', '/bookmakers'].includes(n.href));
 </script>
 
 <header class="safe-top sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur-xl">
@@ -16,7 +16,7 @@
 
 		<nav class="ml-4 hidden items-center gap-1 text-sm xl:flex" aria-label="Main">
 			{#each desktopLinks as l (l.href)}
-				{@const active = isActive(page.url.pathname, l.href)}
+				{@const active = isActive(page.url.pathname, l.href, l.also)}
 				<a
 					href={l.href}
 					aria-current={active ? 'page' : undefined}

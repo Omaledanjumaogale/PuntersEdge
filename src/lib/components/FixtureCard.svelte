@@ -3,6 +3,7 @@
 	import { tilt } from '#lib/actions/tilt.ts';
 	import { kickoff, countdown, sportEmoji } from '#lib/format.ts';
 	import ProbBar from './ProbBar.svelte';
+	import StatusPill from './StatusPill.svelte';
 	import PickTicket from './PickTicket.svelte';
 	import PickInsight from './PickInsight.svelte';
 	import { slide } from 'svelte/transition';
@@ -10,8 +11,10 @@
 
 	let { p }: { p: Prediction } = $props();
 	let open = $state(false);
-	const pick = $derived(p.bestValue);
+	// Pre-match edges aren't bets once a game is under way.
+	const pick = $derived(p.status.state === 'scheduled' ? p.bestValue : undefined);
 	const insightId = $derived(`insight-${p.fixtureId}`);
+	const marketCount = $derived(p.markets.reduce((a, g) => a + g.selections.length, 0));
 </script>
 
 <article
@@ -22,23 +25,27 @@
 		<span class="inline-flex min-w-0 items-center gap-1.5 truncate rounded-full bg-raised px-2.5 py-1 font-medium text-chalk ring-1 ring-line">
 			<span aria-hidden="true">{sportEmoji[p.sport]}</span>{p.league}
 		</span>
-		<time datetime={p.kickoffTime} class="shrink-0 font-medium text-haze" title={countdown(p.kickoffTime, app.now)}>⏰ {kickoff(p.kickoffTime, app.now)}</time>
+		{#if p.status.state === 'scheduled'}
+			<time datetime={p.kickoffTime} class="shrink-0 font-medium text-haze" title={countdown(p.kickoffTime, app.now)}>⏰ {kickoff(p.kickoffTime, app.now)}</time>
+		{:else}
+			<StatusPill status={p.status} />
+		{/if}
 	</header>
 
-	<a href="/match/{p.fixtureId}" class="-m-1 block rounded-xl p-1" aria-label="Open {p.matchTitle}">
+	<a href="/match?id={p.fixtureId}" class="-m-1 block rounded-xl p-1" aria-label="Open {p.matchTitle}">
 		<div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
 			<h3 class="truncate text-lg font-bold leading-tight text-chalk sm:text-xl">{p.homeTeam}</h3>
 			<span class="rounded-full bg-ink px-3 py-1 font-display text-base font-bold text-chalk ring-1 ring-line">
-				{#if p.sport === 'football'}{p.topScorelines[0].home}–{p.topScorelines[0].away}{:else}{Math.round(p.projectedScore.home)}–{Math.round(p.projectedScore.away)}{/if}
+				{p.summary.scoreline}
 			</span>
 			<h3 class="truncate text-right text-lg font-bold leading-tight text-chalk sm:text-xl">{p.awayTeam}</h3>
 		</div>
 		<p class="mt-1 text-center text-xs text-haze">
-			{#if p.sport === 'football'}Most likely score (xG {p.expectedGoals.homeLambda.toFixed(2)}–{p.expectedGoals.awayMu.toFixed(2)}){:else}Projected over {p.paceMetrics.possessionsPer48} possessions{/if}
+			{p.summary.caption}
 		</p>
 	</a>
 
-	{#if p.sport === 'football'}
+	{#if p.family === 'football'}
 		<ProbBar
 			segments={[
 				{ label: 'home', value: p.probabilities.homeWin, tone: 'model' },
@@ -66,6 +73,15 @@
 		</ul>
 	{/if}
 
+	{#if !pick}
+		<div class="grid grid-cols-[1fr_auto] items-center gap-2 text-sm">
+			<p class="text-haze">{p.status.state === 'live' ? '🔴 In play. Pre-match analysis is on the match page.' : p.bookmakers.length === 0 ? '⏳ Waiting for bookmaker prices.' : '✋ No price beats fair value yet.'}</p>
+			{#if marketCount > 0}
+				<button onclick={() => (app.pickerFixture = p.fixtureId)} class="rounded-xl px-3 py-2 font-semibold text-chalk ring-1 ring-line hover:ring-pop" aria-label="All markets for {p.matchTitle}">🎯 {marketCount} markets</button>
+			{/if}
+		</div>
+	{/if}
+
 	{#if pick}
 		<PickTicket {pick} />
 		<div class="-mt-1 grid grid-cols-[1fr_auto] gap-2">
@@ -83,13 +99,13 @@
 				class="rounded-xl px-3 py-2 text-sm font-semibold text-chalk ring-1 ring-line hover:ring-pop"
 				aria-label="All markets for {p.matchTitle}"
 			>
-				🎯 {p.markets.reduce((a, g) => a + g.selections.length, 0)} markets
+				🎯 {marketCount} markets
 			</button>
 		</div>
 		{#if open}
 			<div id={insightId} transition:slide={{ duration: 260 }}>
 				<PickInsight {p} compact />
-				<a href="/match/{p.fixtureId}" class="mt-3 inline-block text-sm font-semibold text-pop underline-offset-4 hover:underline">Full breakdown and every market</a>
+				<a href="/match?id={p.fixtureId}" class="mt-3 inline-block text-sm font-semibold text-pop underline-offset-4 hover:underline">Full breakdown and every market</a>
 			</div>
 		{/if}
 	{/if}

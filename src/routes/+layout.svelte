@@ -8,6 +8,7 @@
 	import { auth } from '#lib/auth.svelte.ts';
 	import { theme } from '#lib/theme.svelte.ts';
 	import { startSlipSync } from '#lib/sync.svelte.ts';
+	import { feed } from '#lib/feed.svelte.ts';
 	import MenuDrawer from '#lib/components/MenuDrawer.svelte';
 	import MarketPicker from '#lib/components/MarketPicker.svelte';
 	import TopBar from '#lib/components/TopBar.svelte';
@@ -21,6 +22,7 @@
 	theme.init();
 	auth.init();
 	startSlipSync();
+	feed.start();
 
 	$effect(() => {
 		document.documentElement.dataset.motion = app.settings.motion ? 'on' : 'off';

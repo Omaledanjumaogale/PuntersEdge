@@ -51,4 +51,24 @@ export const gradeMeaning: Record<string, string> = {
 	PASS: 'No value at this price'
 };
 
-export const sportEmoji = { football: '⚽', basketball: '🏀' } as const;
+export const sportEmoji: Record<string, string> = { football: '⚽', basketball: '🏀', nba: '⛹️', hockey: '🏒', baseball: '⚾' };
+
+/** Short status label for a game: "LIVE 2–1 67'", "FT 3–2", "Postponed". */
+export function statusLabel(s: { state: string; home?: number; away?: number; detail?: string } | undefined) {
+	if (!s || s.state === 'scheduled') return '';
+	const score = Number.isFinite(s.home) && Number.isFinite(s.away) ? `${s.home}–${s.away}` : '';
+	if (s.state === 'live') return `LIVE ${score}${s.detail ? ` ${s.detail}` : ''}`.trim();
+	if (s.state === 'finished') return `FT ${score}`.trim();
+	return 'Postponed';
+}
+
+/** "12 min ago", "3 h ago". */
+export function ago(iso: string | number, now = Date.now()) {
+	const ms = now - (typeof iso === 'number' ? iso : Date.parse(iso));
+	if (!Number.isFinite(ms)) return '';
+	const m = Math.round(ms / 60_000);
+	if (m < 1) return 'just now';
+	if (m < 60) return `${m} min ago`;
+	const h = Math.round(m / 60);
+	return h < 48 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}

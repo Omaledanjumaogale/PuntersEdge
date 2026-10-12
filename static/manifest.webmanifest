@@ -1,8 +1,8 @@
 {
 	"id": "/?source=pwa",
-	"name": "PuntersEdge — Football & Basketball Value Bets",
+	"name": "PuntersEdge — Sports Value Bets",
 	"short_name": "PuntersEdge",
-	"description": "Fair prices, value bets and stake sizes for football and basketball, checked against SportyBet, 1xBet and 22Bet.",
+	"description": "Live fixtures, fair prices, value bets and stake sizes for football, NBA, basketball, ice hockey and baseball, checked against SportyBet, 1xBet, 22Bet and more.",
 	"lang": "en-NG",
 	"dir": "ltr",
 	"start_url": "/?source=pwa",
@@ -86,8 +86,10 @@
 			]
 		},
 		{
-			"name": "Football",
-			"url": "/football?source=shortcut",
+			"name": "Sports",
+			"short_name": "Sports",
+			"description": "Football, NBA, basketball, hockey and baseball",
+			"url": "/sports?source=shortcut",
 			"icons": [
 				{
 					"src": "/icons/icon-192.png",
@@ -96,18 +98,10 @@
 			]
 		},
 		{
-			"name": "Basketball",
-			"url": "/basketball?source=shortcut",
-			"icons": [
-				{
-					"src": "/icons/icon-192.png",
-					"sizes": "192x192"
-				}
-			]
-		},
-		{
-			"name": "Glossary",
-			"url": "/glossary?source=shortcut",
+			"name": "Results",
+			"short_name": "Results",
+			"description": "Scores and our track record",
+			"url": "/results?source=shortcut",
 			"icons": [
 				{
 					"src": "/icons/icon-192.png",
@@ -122,7 +116,7 @@
 			"sizes": "780x1688",
 			"type": "image/png",
 			"form_factor": "narrow",
-			"label": "Home: bet smarter on football and basketball"
+			"label": "Home: bet smarter across five sports"
 		},
 		{
 			"src": "/screenshots/match-mobile.png",

@@ -1,6 +1,7 @@
 <script lang="ts">
 	/** Sheet with every market for one fixture; opens after adding a pick. */
 	import { app } from '#lib/state.svelte.ts';
+	import { sportEmoji } from '#lib/format.ts';
 	import MarketList from './MarketList.svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -49,7 +50,7 @@
 		<div class="mx-auto mt-2 h-1 w-10 rounded-full bg-line md:hidden"></div>
 		<header class="flex items-start gap-3 px-5 pb-3 pt-3">
 			<div class="min-w-0 flex-1">
-				<p class="text-sm font-medium text-haze">{p.sport === 'football' ? '⚽' : '🏀'} {p.league}</p>
+				<p class="text-sm font-medium text-haze">{sportEmoji[p.sport]} {p.league}</p>
 				<h2 id="picker-title" class="truncate text-xl font-bold text-chalk">{p.matchTitle}</h2>
 			</div>
 			<button onclick={close} class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-raised text-chalk ring-1 ring-line hover:ring-pop" aria-label="Close markets"><X class="h-5 w-5" /></button>
@@ -67,7 +68,7 @@
 		</div>
 
 		<div class="flex-1 overflow-y-auto px-5 pb-4">
-			<MarketList groups={p.markets} {valueOnly} />
+			<MarketList groups={p.markets.filter((g) => g.selections.length > 0)} {valueOnly} />
 			<p class="mt-4 text-xs text-haze">
 				Prices marked "derived" are built from each bookmaker's own headline prices and margin, the way books set their other markets.
 				Confirm the price at the bookmaker before you bet.

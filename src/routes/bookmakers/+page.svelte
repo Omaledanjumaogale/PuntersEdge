@@ -22,12 +22,15 @@
 	const maxMargin = $derived(Math.max(...books.map((b) => b.margin)));
 
 	const arbs = $derived(
-		app.football.map((p) => {
-			const cmp = compareBookmakerOdds(
-				Object.entries(p.odds).map(([bookmaker, o]) => ({ bookmaker, odds: { home: o.home, draw: o.draw, away: o.away } }))
-			);
-			return { p, ...cmp.bestMarketConsensus };
-		})
+		app.football
+			.filter((p) => p.status.state === 'scheduled')
+			.map((p) => ({ p, books: Object.entries(p.odds).filter(([, o]) => o.home > 1 && o.draw > 1 && o.away > 1) }))
+			.filter((x) => x.books.length >= 2)
+			.slice(0, 20)
+			.map(({ p, books }) => {
+				const cmp = compareBookmakerOdds(books.map(([bookmaker, o]) => ({ bookmaker, odds: { home: o.home, draw: o.draw, away: o.away } })));
+				return { p, ...cmp.bestMarketConsensus };
+			})
 	);
 
 	let perLeg = $state(5);
@@ -70,7 +73,7 @@
 			<tbody>
 				{#each arbs as a (a.p.fixtureId)}
 					<tr class="border-t border-line">
-						<td class="p-3"><a href="/match/{a.p.fixtureId}" class="hover:text-model">{a.p.matchTitle}</a></td>
+						<td class="p-3"><a href="/match?id={a.p.fixtureId}" class="hover:text-model">{a.p.matchTitle}</a></td>
 						<td class="p-3"><span class="text-book">{odds(a.bestHome.odds)}</span> <span class="text-xs text-haze">{a.bestHome.bookmaker}</span></td>
 						<td class="p-3"><span class="text-book">{odds(a.bestDraw.odds)}</span> <span class="text-xs text-haze">{a.bestDraw.bookmaker}</span></td>
 						<td class="p-3"><span class="text-book">{odds(a.bestAway.odds)}</span> <span class="text-xs text-haze">{a.bestAway.bookmaker}</span></td>

@@ -35,13 +35,23 @@
 					: `Model rates it ${Math.abs(gapPts).toFixed(1)} pts ${gapPts > 0 ? 'higher' : 'lower'} than the market.`,
 			tone: gapPts > 0.5 ? 'good' : gapPts < -0.5 ? 'bad' : 'neutral'
 		});
-		if (p.sport === 'football') {
+		if (p.family === 'hockey' || p.family === 'baseball') {
+			const diff = p.projectedScore.total - p.marketLines.total;
+			out.push({
+				emoji: p.family === 'hockey' ? '🏒' : '⚾',
+				text: `Expected ${p.projectedScore.home.toFixed(1)}–${p.projectedScore.away.toFixed(1)} ${p.summary.unit}; ${Math.abs(diff) < 0.15 ? 'right on the total' : `${Math.abs(diff).toFixed(1)} ${diff > 0 ? 'over' : 'under'} the ${p.marketLines.total} line`}.`,
+				tone: 'neutral'
+			});
+			if (p.ratingsSource && p.ratingsSource !== 'sample') {
+				out.push({ emoji: p.ratingsSource === 'market' ? '🏦' : '📋', text: p.ratingsSource === 'market' ? 'No league table yet: model fitted to the market, edge comes from price shopping.' : `Team strength from ${p.ratingsSource}.`, tone: 'neutral' });
+			}
+		} else if (p.family === 'football') {
 			out.push({
 				emoji: '⚽',
 				text: `Expected goals ${p.expectedGoals.homeLambda.toFixed(2)} vs ${p.expectedGoals.awayMu.toFixed(2)}; likeliest score ${p.topScorelines[0].home}–${p.topScorelines[0].away}.`,
 				tone: 'neutral'
 			});
-		} else {
+		} else if (p.family === 'basketball') {
 			const diff = p.projectedScore.total - p.marketLines.total;
 			out.push({
 				emoji: '🏀',
@@ -49,7 +59,9 @@
 				tone: 'neutral'
 			});
 		}
-		if (p.absences.length > 0) {
+		if (p.family === 'hockey' || p.family === 'baseball') {
+			// No injury feed for these sports.
+		} else if (p.absences.length > 0) {
 			const names = p.absences.slice(0, 2).map((a) => a.name).join(', ');
 			out.push({ emoji: '🚑', text: `${p.absences.length} out (${names}${p.absences.length > 2 ? '…' : ''}), priced in.`, tone: 'neutral' });
 		} else {

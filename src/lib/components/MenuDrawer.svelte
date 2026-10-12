@@ -87,10 +87,25 @@
 		</section>
 
 		<!-- Navigation -->
-		<nav aria-label="Main">
-			<ul class="grid grid-cols-2 gap-2">
-				{#each NAV as item (item.href)}
+		<nav aria-label="Main" class="grid gap-3">
+			<ul class="grid grid-cols-5 gap-1.5" aria-label="Sports">
+				{#each NAV.filter((n) => n.group === 'sport') as item (item.href)}
 					{@const active = isActive(page.url.pathname, item.href)}
+					<li>
+						<a
+							href={item.href}
+							aria-current={active ? 'page' : undefined}
+							class="flex flex-col items-center gap-1 rounded-2xl px-1 py-2.5 text-center ring-1 transition-colors {active ? 'tint-pop ring-pop' : 'bg-ink ring-line hover:ring-pop'}"
+						>
+							<span class="text-2xl leading-none" aria-hidden="true">{item.emoji}</span>
+							<span class="text-[11px] font-semibold leading-tight text-chalk">{item.label}</span>
+						</a>
+					</li>
+				{/each}
+			</ul>
+			<ul class="grid grid-cols-2 gap-2">
+				{#each NAV.filter((n) => n.group !== 'sport') as item (item.href)}
+					{@const active = isActive(page.url.pathname, item.href, item.also)}
 					<li>
 						<a
 							href={item.href}
