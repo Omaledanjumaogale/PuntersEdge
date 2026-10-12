@@ -1,119 +1,74 @@
-# QuantEdge | Autonomous Sports Prediction Engine & PWA
+# QuantEdge
 
-[![PWA Ready](https://img.shields.io/badge/PWA-Installable-success.svg)](#progressive-web-app)
-[![Node.js](https://img.shields.io/badge/Node.js-22.x-brightgreen.svg)](#getting-started)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#license)
+Fair prices, value bets and stake sizes for football and basketball — an installable, offline-capable PWA that prices every fixture on-device and checks the result against SportyBet, 1xBet and 22Bet.
 
-**QuantEdge** is an enterprise-grade quantitative sports analytics platform and Progressive Web Application (PWA) designed specifically for **basketball fixtures** and **football scheduled matches**. 
+![QuantEdge on mobile](static/screenshots/board-mobile.png)
 
-It reverse-engineers and synthesizes real-time market telemetry from **Matchplay.com**, **RedScores.com**, **SportyBet**, **1xBet**, **22Bet**, and **24Live**, fusing mathematical scoring models with an autonomous **In-App AI LLM Multi-Agent reasoning hub**.
+## What it does
 
----
+- **Prices every market from first principles.** Football uses a Dixon–Coles model (with absences priced in); basketball uses a tempo-free pace × efficiency projection priced analytically for any line.
+- **Removes the bookmaker's margin** with Shin's method and blends the model with the de-vigged market consensus (default 60/40, adjustable).
+- **Scans every market at every book** for prices above fair value, then sizes stakes with fractional Kelly on your bankroll.
+- **Explains itself.** Four deterministic agents (market, squad, quant, risk) reason over the numbers and either recommend a bet or say *pass* — the app never invents an edge.
+- **Shows the distribution.** The board's hero is a live 3D surface of the featured match's scoreline probabilities; basketball matches get a Pace lab that re-prices the game as you move sliders.
 
-## ⚡ Core Capabilities
+## Stack
 
-### 🏀 1. Basketball Tempo-Free Modeling (`sr:sport:2`)
-* **Possession & Pace Factor**: Projects possessions per 48 minutes based on mutual tempo:
-  $$\text{Pace}_{\text{expected}} = \frac{\text{Pace}_{\text{home}} \times \text{Pace}_{\text{away}}}{\text{Pace}_{\text{league}}}$$
-* **Adjusted Efficiency Ratings**: Normalizes Offensive and Defensive Ratings adjusted for opponent defense and home-court advantage (+2.8 pts).
-* **Monte Carlo Simulation (25,000 iterations)**: Full probability distribution of point totals (Over/Under lines), point spreads, and team total points.
+| Layer | Choice |
+| --- | --- |
+| App | SvelteKit 3, Svelte 5 runes, TypeScript |
+| Styling | Tailwind CSS 4 tokens, self-hosted Bricolage Grotesque + Instrument Sans |
+| 3D | Three.js (lazy-loaded) |
+| Engine | Dependency-free ES modules in `src/lib/engine` (runs in browser and Node) |
+| Hosting | Cloudflare Pages (`@sveltejs/adapter-cloudflare`), every route prerendered |
+| Optional backend | Convex (`convex/`), enabled by `VITE_CONVEX_URL` |
 
-### ⚽ 2. Football Scheduled Match Modeling (`sr:sport:1`)
-* **Dixon-Coles Bivariate Poisson Core**: Solves expected goal parameters $(\lambda_{\text{home}}, \mu_{\text{away}})$ and produces exact $10 \times 10$ score probability matrices with low-score correlation adjustments ($\tau$ parameter for $0-0, 1-0, 0-1, 1-1$).
-* **Derivative Market Probabilities**: Computes exact percentage probabilities for:
-  * 1X2 (Home Win / Draw / Away Win)
-  * Double Chance (1X, 12, X2)
-  * Draw No Bet (DNB 1, DNB 2)
-  * Over / Under Goals (1.5, 2.5, 3.5, 4.5)
-  * Both Teams to Score (BTTS Yes / No)
-* **RedScores Lineup Shock Matrix**: Quantifies player absences (injuries, suspensions) with minutes-weighted ratings, adjusting team attack and defense baselines before kickoff.
+## Getting started
 
-### 📊 3. Multi-Bookmaker Discrepancy & Odds Movement
-* **Cross-Bookmaker Audits**: Real-time price comparison across **SportyBet**, **1xBet**, and **22Bet**.
-* **Vig & Overround Normalization**: Strips bookmaker margins using Multiplicative and Power vig-removal models to reveal true fair probabilities.
-* **Reverse Line Movement (RLM) & Steam Detector**: Identifies when smart institutional syndicate capital moves odds contrary to public retail volume.
-* **SportyBet Accumulator (`oddsKeys`) Retention Audit**: Protects punters from compounding multi-leg edges.
-
-### 🤖 4. In-App AI LLM Multi-Agent Reasoning Hub
-Coordinates 4 specialized sub-agents to deliver conversational, high-conviction insights:
-1. **Market Intelligence Agent**: Tracks line drift, bookmaker discrepancies, and steam moves.
-2. **Squad & Tactical Agent**: Ingests confirmed lineups, minutes-weighted player absences, and fatigue.
-3. **Quantitative Modeling Agent**: Executes Poisson, Dixon-Coles, and Monte Carlo models.
-4. **Master Strategist Agent**: Synthesizes all inputs, identifies $+EV$ value bets, assigns Confidence Ratings ($A+$ to $C$), calculates Fractional Kelly stakes, and generates plain-English rationale.
-
----
-
-## 📱 Progressive Web App (PWA) Features
-
-* **Full Mobile & Desktop Install**: Compliant with W3C Web App Manifest standards.
-* **Network-First Service Worker**: Reliable offline caching with stale-while-revalidate fallback.
-* **High-Contrast Theme**: Optimized dark and light themes with enterprise accessibility standards.
-
----
-
-## 📁 Repository Structure
-
-```text
-├── docs/
-│   └── ARCHITECTURE.md          # Full architectural & mathematical blueprint
-├── public/
-│   ├── manifest.json            # PWA manifest
-│   ├── sw.js                    # Enterprise service worker
-│   ├── register-sw.js           # Service worker registration & install banner
-│   └── icons/                   # High-res PWA application icons
-├── src/
-│   ├── vig_removal.js           # Bookmaker margin & vig removal
-│   ├── football_model.js        # Dixon-Coles & Poisson scoring engine
-│   ├── basketball_model.js      # Tempo-free pace & Monte Carlo engine
-│   ├── lineup_impact.js         # RedScores absence impact recalibration
-│   ├── bookmaker_engine.js      # Multi-bookmaker audit & market options derivation
-│   ├── data_fetcher.js          # Unified match & telemetry ingestion client
-│   ├── decision_screener.js     # +EV screener & Fractional Kelly staking
-│   ├── ai_agent_orchestrator.js # In-app AI LLM Multi-Agent Hub
-│   └── index.js                 # Master orchestration pipeline
-├── test/
-│   └── engine.test.js           # Complete test suite (9 passing tests)
-├── index.html                   # PWA entry page
-├── package.json                 # Project configuration
-└── README.md                    # Project documentation
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-* Node.js v22.x or later
-* npm v11.x or later
-
-### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/Omaledanjumaogale/QuantEdge-Sports-PWA.git
-cd QuantEdge-Sports-PWA
-
-# Install dependencies (if applicable)
 npm install
+npm run dev        # http://localhost:5173
+npm test           # engine test suite (node:test)
+npm run check      # svelte-check / TypeScript
+npm run pipeline   # run the engine over the sample feed in the terminal
+npm run build      # production build → .svelte-kit/cloudflare
+npm run preview    # serve the production build with Wrangler on :4173
 ```
 
-### Running the Quantitative Pipeline
-```bash
-node src/index.js
+Deploy by pointing Cloudflare Pages at this repo with build command `npm run build` and output directory `.svelte-kit/cloudflare`.
+
+## Progressive Web App
+
+- `static/manifest.webmanifest` — id, shortcuts, maskable icons at true sizes, narrow/wide screenshots for the rich install sheet.
+- `src/service-worker/` — precaches the build, static files and every prerendered page (one per fixture); cache-first assets, network-first pages with offline fallback; updates wait for the user to tap **Update**.
+- `src/lib/pwa.svelte.ts` — install prompt (Android/desktop), iOS add-to-home-screen guidance, update and offline state.
+
+## Project layout
+
+```
+src/
+  lib/
+    engine/          maths: football, basketball, vig removal, decisions, pipeline, agents
+    data/fixtures.js sample feed — raw ratings, absences and prices only
+    state.svelte.ts  app state; predictions derived from the engine
+    components/      ScoreSurface3D, FixtureCard, PickTicket, SlipSheet, PaceLab, …
+  routes/            board, football, basketball, value-bets, bookmakers, settings, match/[id]
+  service-worker/    offline support
+convex/              optional live backend
+scripts/pipeline.js  CLI over the sample feed
+test/                engine tests
 ```
 
-### Running Automated Unit Tests
-```bash
-npm test
-```
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how a prediction is built.
 
----
+## Data
 
-## 📖 In-Depth Documentation
+`src/lib/data/fixtures.js` is a **sample feed**: realistic ratings and prices with kickoffs relative to "now". It contains no derived numbers — every probability, fair price, edge and stake is computed at runtime. Replace it with a live feed (e.g. via Convex) for real use.
 
-For full architectural diagrams, microservice boundaries, API contracts, and mathematical formulas, read:
-👉 **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+## Responsible use
 
----
+QuantEdge doesn't place bets. Positive expected value is a long-run property; individual bets lose often. Bet only what you can afford to lose.
 
-## ⚖️ License
-MIT License. Copyright (c) 2026 QuantEdge Engineering.
+## License
+
+MIT
