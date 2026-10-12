@@ -33,8 +33,22 @@ export function countdown(iso: string, now = Date.now()) {
 
 export const gradeTone: Record<string, string> = {
 	'A+': 'bg-model text-ink',
-	A: 'bg-model/80 text-ink',
-	B: 'bg-model/25 text-model',
-	C: 'bg-line text-chalk',
-	PASS: 'bg-transparent text-haze ring-1 ring-line'
+	A: 'bg-model text-ink',
+	B: 'bg-model/15 text-model ring-1 ring-model/50',
+	C: 'bg-raised text-chalk ring-1 ring-line',
+	PASS: 'bg-raised text-haze ring-1 ring-line'
 };
+
+/** Emoji that pairs with each value grade. */
+export const gradeEmoji: Record<string, string> = { 'A+': '🔥', A: '⚡', B: '👍', C: '🤏', PASS: '✋' };
+
+/** Plain-language meaning of each grade, for tooltips and screen readers. */
+export const gradeMeaning: Record<string, string> = {
+	'A+': 'Strong value',
+	A: 'Good value',
+	B: 'Some value',
+	C: 'Thin value',
+	PASS: 'No value at this price'
+};
+
+export const sportEmoji = { football: '⚽', basketball: '🏀' } as const;

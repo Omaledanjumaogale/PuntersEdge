@@ -42,10 +42,10 @@
 
 <section aria-labelledby="lab-title" class="surface p-5">
 	<div class="flex items-baseline justify-between gap-3">
-		<h2 id="lab-title" class="text-2xl font-semibold">Pace lab</h2>
+		<h2 id="lab-title" class="text-2xl font-bold text-chalk">🧪 Pace lab</h2>
 		<button onclick={reset} class="text-sm text-haze hover:text-chalk">Reset</button>
 	</div>
-	<p class="mt-1 text-sm text-haze">Change the inputs and watch the game re-price. {sim.simulation.simulations.toLocaleString()} seeded simulations per change.</p>
+	<p class="mt-1 text-sm text-haze">Change the inputs and watch the game re-price. Figures here are the pure model, before blending with the market. {sim.simulation.simulations.toLocaleString()} seeded simulations per change.</p>
 
 	<div class="mt-5 grid gap-5 lg:grid-cols-[1fr_1.4fr]">
 		<div class="space-y-4 text-sm">
@@ -68,7 +68,7 @@
 		<div>
 			<dl class="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
 				<div><dt class="text-haze">Score</dt><dd class="font-display text-xl font-semibold">{Math.round(sim.projectedScore.home)}–{Math.round(sim.projectedScore.away)}</dd></div>
-				<div><dt class="text-haze">{p.homeTeam.split(' ').at(-1)} win</dt><dd class="font-display text-xl font-semibold text-model">{pct(sim.winProbabilities.home, 1)}</dd></div>
+				<div><dt class="text-haze">{p.homeTeam.split(' ').at(-1)} win (model)</dt><dd class="font-display text-xl font-semibold text-model">{pct(sim.winProbabilities.home, 1)}</dd></div>
 				<div><dt class="text-haze">Covers {p.marketLines.spread > 0 ? '+' : ''}{p.marketLines.spread}</dt><dd class="font-display text-xl font-semibold">{pct(cover, 1)}</dd></div>
 				<div><dt class="text-haze">Over {p.marketLines.total}</dt><dd class="font-display text-xl font-semibold">{pct(over, 1)}</dd></div>
 			</dl>

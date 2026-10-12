@@ -1,34 +1,27 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { app } from '#lib/state.svelte.ts';
-	import { LayoutGrid, Goal, Volleyball, BadgePercent, ReceiptText } from 'lucide-svelte';
+	import { NAV, isActive } from '#lib/nav.ts';
 
-	const tabs = [
-		{ href: '/', label: 'Board', icon: LayoutGrid },
-		{ href: '/football', label: 'Football', icon: Goal },
-		{ href: '/basketball', label: 'Basketball', icon: Volleyball },
-		{ href: '/value-bets', label: 'Value', icon: BadgePercent }
-	];
-	const isActive = (href: string) => (href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href));
+	const tabs = NAV.filter((n) => ['/', '/football', '/basketball', '/value-bets'].includes(n.href)).map((n) =>
+		n.href === '/value-bets' ? { ...n, label: 'Value' } : n
+	);
 </script>
 
-<nav class="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-ink/90 backdrop-blur-xl md:hidden" aria-label="Main">
+<nav class="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/92 backdrop-blur-xl md:hidden" aria-label="Main">
 	<div class="mx-auto grid max-w-md grid-cols-5 px-2 pt-1.5">
-		{#each tabs as t}
-			<a
-				href={t.href}
-				aria-current={isActive(t.href) ? 'page' : undefined}
-				class="flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] transition-colors {isActive(t.href) ? 'text-model' : 'text-haze'}"
-			>
-				<t.icon class="h-5 w-5" strokeWidth={isActive(t.href) ? 2.4 : 1.8} />
+		{#each tabs as t (t.href)}
+			{@const active = isActive(page.url.pathname, t.href)}
+			<a href={t.href} aria-current={active ? 'page' : undefined} class="group flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold {active ? 'text-chalk' : 'text-haze'}">
+				<span class="grid h-8 w-12 place-items-center rounded-full text-xl transition-all {active ? 'bg-pop/20 ring-1 ring-pop/60' : 'grayscale-[40%]'}" aria-hidden="true">{t.emoji}</span>
 				{t.label}
 			</a>
 		{/each}
-		<button onclick={() => (app.slipOpen = true)} class="relative flex flex-col items-center gap-0.5 py-1.5 text-[11px] text-chalk">
-			<ReceiptText class="h-5 w-5" />
+		<button onclick={() => (app.slipOpen = true)} class="relative flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-haze">
+			<span class="grid h-8 w-12 place-items-center rounded-full text-xl" aria-hidden="true">🧾</span>
 			Slip
 			{#if app.slip.length}
-				<span class="absolute right-3 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-model px-1 text-[10px] font-bold text-ink">{app.slip.length}</span>
+				<span class="absolute right-2 top-0 grid h-5 min-w-5 place-items-center rounded-full bg-model px-1 text-[11px] font-bold text-ink" style="animation: pop-in 300ms var(--ease-spring)">{app.slip.length}</span>
 			{/if}
 		</button>
 	</div>

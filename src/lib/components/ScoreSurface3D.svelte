@@ -46,6 +46,14 @@
 				return;
 			}
 
+			const token = (name: string, fallback: string) =>
+				getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+			const C = {
+				line: token('--color-line', '#343d7a'),
+				model: token('--color-model', '#3de8c9'),
+				deep: token('--color-deep', '#141a3d'),
+				haze: token('--color-haze', '#b7bde3')
+			};
 			const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !app.settings.motion;
 			const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
 			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -60,7 +68,7 @@
 			const key = new THREE.DirectionalLight(0xffffff, 1.6);
 			key.position.set(4, 9, 6);
 			scene.add(key);
-			const rim = new THREE.PointLight(0x36e0c2, 18, 20);
+			const rim = new THREE.PointLight(new THREE.Color(C.model), 18, 20);
 			rim.position.set(-4, 3, -4);
 			scene.add(rim);
 
@@ -75,17 +83,17 @@
 			// Pitch floor with chalk grid.
 			const floor = new THREE.Mesh(
 				new THREE.PlaneGeometry(n * spacing + 1.2, n * spacing + 1.2),
-				new THREE.MeshStandardMaterial({ color: 0x151a3a, roughness: 0.95 })
+				new THREE.MeshStandardMaterial({ color: new THREE.Color(C.deep), roughness: 0.95 })
 			);
 			floor.rotation.x = -Math.PI / 2;
 			floor.position.y = -0.01;
 			group.add(floor);
-			const grid = new THREE.GridHelper(n * spacing, n, 0x2a3163, 0x2a3163);
+			const grid = new THREE.GridHelper(n * spacing, n, new THREE.Color(C.line), new THREE.Color(C.line));
 			grid.position.y = 0.001;
 			group.add(grid);
 
-			const low = new THREE.Color(0x2a3163);
-			const high = new THREE.Color(0x36e0c2);
+			const low = new THREE.Color(C.line);
+			const high = new THREE.Color(C.model);
 			const geom = new THREE.BoxGeometry(0.78, 1, 0.78);
 			geom.translate(0, 0.5, 0);
 
@@ -132,10 +140,10 @@
 			};
 			for (let i = 0; i < n; i++) {
 				// Numerals sit on the two edges facing the camera so towers never hide them.
-				const away = label(String(i), '#8d93b8');
+				const away = label(String(i), C.haze);
 				away.position.set(i * spacing - offset, 0.05, offset + 1.0);
 				group.add(away);
-				const home = label(String(i), '#8d93b8');
+				const home = label(String(i), C.haze);
 				home.position.set(offset + 1.0, 0.05, i * spacing - offset);
 				group.add(home);
 			}
@@ -281,11 +289,11 @@
 		<div class="absolute inset-0 grid place-items-center text-sm text-haze">Building the score surface…</div>
 	{/if}
 
-	<div class="pointer-events-none absolute left-3 top-3 text-xs text-haze">
+	<div class="pointer-events-none absolute left-3 top-3 rounded-full bg-deep/80 px-2.5 py-1 text-xs font-medium text-haze backdrop-blur">
 		Rows: <span class="text-chalk">{homeTeam}</span> goals. Columns: <span class="text-chalk">{awayTeam}</span> goals.
 	</div>
 	{#if hovered}
-		<div class="pointer-events-none absolute right-3 top-3 rounded-full bg-ink/80 px-3 py-1 text-sm ring-1 ring-line backdrop-blur">
+		<div class="pointer-events-none absolute right-3 top-10 rounded-full bg-deep/90 px-3 py-1 text-sm text-chalk ring-1 ring-line backdrop-blur sm:top-3">
 			<span class="font-display font-semibold">{hovered.home}–{hovered.away}</span>
 			<span class="ml-1.5 text-model">{(hovered.prob * 100).toFixed(1)}%</span>
 		</div>

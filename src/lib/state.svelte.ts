@@ -20,6 +20,7 @@ export interface Settings {
 	kellyFraction: number;
 	modelWeight: number;
 	motion: boolean;
+	theme: 'system' | 'light' | 'dark';
 }
 
 export interface SlipItem {
@@ -35,7 +36,7 @@ export interface SlipItem {
 	edgePercent: number;
 }
 
-const DEFAULT_SETTINGS: Settings = { bankroll: 50000, kellyFraction: 0.25, modelWeight: 0.6, motion: true };
+const DEFAULT_SETTINGS: Settings = { bankroll: 50000, kellyFraction: 0.25, modelWeight: 0.6, motion: true, theme: 'system' };
 const SETTINGS_KEY = 'qe:settings:v2';
 const SLIP_KEY = 'qe:slip:v2';
 const browser = typeof window !== 'undefined';
@@ -73,6 +74,7 @@ class AppState {
 	settings = $state<Settings>(load(SETTINGS_KEY, DEFAULT_SETTINGS));
 	slip = $state<SlipItem[]>(loadArray<SlipItem>(SLIP_KEY));
 	slipOpen = $state(false);
+	menuOpen = $state(false);
 	/** Snapshot of "now" so kickoff times are stable within a session. */
 	readonly now = Date.now();
 

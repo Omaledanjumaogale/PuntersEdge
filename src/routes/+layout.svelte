@@ -5,6 +5,10 @@
 	import { onNavigate } from '$app/navigation';
 	import { app } from '#lib/state.svelte.ts';
 	import { pwa } from '#lib/pwa.svelte.ts';
+	import { auth } from '#lib/auth.svelte.ts';
+	import { theme } from '#lib/theme.svelte.ts';
+	import { startSlipSync } from '#lib/sync.svelte.ts';
+	import MenuDrawer from '#lib/components/MenuDrawer.svelte';
 	import TopBar from '#lib/components/TopBar.svelte';
 	import BottomNav from '#lib/components/BottomNav.svelte';
 	import SlipSheet from '#lib/components/SlipSheet.svelte';
@@ -13,6 +17,9 @@
 	let { children } = $props();
 
 	pwa.init();
+	theme.init();
+	auth.init();
+	startSlipSync();
 
 	$effect(() => {
 		document.documentElement.dataset.motion = app.settings.motion ? 'on' : 'off';
@@ -38,4 +45,5 @@
 </main>
 <BottomNav />
 <SlipSheet />
+<MenuDrawer />
 <PwaBanners />

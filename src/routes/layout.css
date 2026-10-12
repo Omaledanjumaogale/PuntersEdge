@@ -2,28 +2,49 @@
 
 /*
  * QuantEdge design tokens.
- * Colour carries meaning: teal = the model's fair price, amber = a
- * bookmaker's price, coral = negative expectation. Nothing else is accented.
+ * Colour carries meaning: teal = the model's fair price, amber = a bookmaker's
+ * price, coral = negative expectation, violet = the brand and primary actions.
+ * Tokens are semantic: `ink` is the page, `chalk` is text. The light theme
+ * redefines the same tokens, so every utility switches with it.
+ * All text pairs meet WCAG AA (4.5:1) in both themes.
  */
 @theme {
-	--color-ink: #0c1027;
-	--color-deep: #151a3a;
-	--color-raised: #1c2250;
-	--color-line: #2a3163;
-	--color-chalk: #eef0fa;
-	--color-haze: #8d93b8;
-	--color-model: #36e0c2;
-	--color-book: #ffb547;
-	--color-loss: #ff6f61;
+	--color-ink: #0b0f26;
+	--color-deep: #141a3d;
+	--color-raised: #1d2452;
+	--color-line: #343d7a;
+	--color-chalk: #f4f5ff;
+	--color-haze: #b7bde3;
+	--color-model: #3de8c9;
+	--color-book: #ffbe5c;
+	--color-loss: #ff8a7e;
+	--color-pop: #b39dff;
+	--color-glow: #232c74;
 
 	--font-display: 'Bricolage Grotesque Variable', 'Instrument Sans Variable', system-ui, sans-serif;
 	--font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-	--radius-sheet: 1.5rem;
-	--radius-card: 1.125rem;
-	--radius-chip: 999px;
+	--radius-sheet: 1.75rem;
+	--radius-card: 1.25rem;
 
 	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Light theme: same meanings, daylight values. */
+:root[data-theme='light'] {
+	--color-ink: #f4f5ff;
+	--color-deep: #ffffff;
+	--color-raised: #eceefc;
+	--color-line: #c9cef0;
+	--color-chalk: #0e1233;
+	--color-haze: #474d78;
+	--color-model: #00745f;
+	--color-book: #9a4f00;
+	--color-loss: #bb2a1d;
+	--color-pop: #6233d6;
+	--color-glow: #dcdfff;
+	color-scheme: light;
 }
 
 @layer base {
@@ -36,13 +57,14 @@
 	body {
 		font-family: var(--font-sans);
 		background:
-			radial-gradient(120% 60% at 50% -10%, #1d2563 0%, transparent 60%),
+			radial-gradient(110% 55% at 50% -12%, var(--color-glow) 0%, transparent 62%),
 			var(--color-ink);
 		background-attachment: fixed;
 		color: var(--color-chalk);
 		font-feature-settings: 'tnum' 1, 'cv11' 1;
 		min-height: 100dvh;
 		overscroll-behavior-y: none;
+		transition: background-color 300ms ease, color 300ms ease;
 	}
 
 	h1,
@@ -59,35 +81,116 @@
 	}
 
 	:focus-visible {
-		outline: 2px solid var(--color-model);
+		outline: 2.5px solid var(--color-pop);
 		outline-offset: 3px;
-		border-radius: 6px;
+		border-radius: 8px;
 	}
 
 	button {
 		cursor: pointer;
 	}
+
+	::selection {
+		background: var(--color-pop);
+		color: var(--color-ink);
+	}
 }
 
 @layer components {
-	/* Perforated coupon stub — the betting-shop ticket the pick is printed on. */
+	/* Perforated coupon stub: the betting-shop ticket a pick is printed on. */
 	.ticket {
 		--notch: 9px;
 		position: relative;
 		background: var(--color-raised);
-		border-radius: 0.875rem;
+		border-radius: 1rem;
 		mask:
 			radial-gradient(circle var(--notch) at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat,
 			radial-gradient(circle var(--notch) at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
 	}
 	.ticket-rule {
-		border-left: 2px dashed color-mix(in oklab, var(--color-line) 80%, transparent);
+		border-left: 2px dashed var(--color-line);
 	}
 
 	.surface {
-		background: color-mix(in oklab, var(--color-deep) 88%, transparent);
+		background: var(--color-deep);
 		border: 1px solid var(--color-line);
 		border-radius: var(--radius-card);
+	}
+
+	/* Brand gradient: violet → teal. Used for the wordmark and primary actions only. */
+	.brand-text {
+		background: linear-gradient(100deg, var(--color-pop), var(--color-model));
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.btn-primary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		border-radius: 999px;
+		padding: 0.75rem 1.25rem;
+		font-weight: 650;
+		color: var(--color-ink);
+		background: linear-gradient(100deg, var(--color-pop), var(--color-model));
+		box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--color-pop) 70%, transparent);
+		transition: transform 200ms var(--ease-spring), filter 200ms;
+	}
+	.btn-primary:hover {
+		filter: brightness(1.06);
+	}
+	.btn-primary:active {
+		transform: scale(0.97);
+	}
+	.btn-primary:disabled {
+		opacity: 0.6;
+		cursor: progress;
+	}
+	.btn-ghost {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		border-radius: 999px;
+		padding: 0.7rem 1.15rem;
+		font-weight: 600;
+		color: var(--color-chalk);
+		background: var(--color-raised);
+		border: 1px solid var(--color-line);
+		transition: border-color 200ms, transform 200ms var(--ease-spring);
+	}
+	.btn-ghost:hover {
+		border-color: var(--color-pop);
+	}
+	.btn-ghost:active {
+		transform: scale(0.97);
+	}
+
+	.field {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 0.9rem;
+		background: var(--color-ink);
+		border: 1.5px solid var(--color-line);
+		padding-inline: 0.85rem;
+		transition: border-color 150ms;
+	}
+	.field:focus-within {
+		border-color: var(--color-pop);
+	}
+	.field input {
+		width: 100%;
+		background: transparent;
+		padding-block: 0.8rem;
+		font-size: 1rem;
+		color: var(--color-chalk);
+		outline: none;
+	}
+	.field input::placeholder {
+		color: var(--color-haze);
+		opacity: 0.85;
 	}
 
 	.tilt {
@@ -111,6 +214,17 @@
 	}
 }
 
+@keyframes pop-in {
+	from {
+		transform: scale(0.6);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
@@ -127,7 +241,6 @@
 	transition-duration: 0.01ms !important;
 }
 
-/* View transitions between routes (supported browsers only). */
 ::view-transition-old(root),
 ::view-transition-new(root) {
 	animation-duration: 220ms;

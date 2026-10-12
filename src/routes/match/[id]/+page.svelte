@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { app } from '#lib/state.svelte.ts';
+	import { theme } from '#lib/theme.svelte.ts';
 	import { kickoff, countdown, pct, odds } from '#lib/format.ts';
 	import ScoreSurface3D from '#lib/components/ScoreSurface3D.svelte';
 	import MarketTable from '#lib/components/MarketTable.svelte';
 	import AgentPanel from '#lib/components/AgentPanel.svelte';
 	import PaceLab from '#lib/components/PaceLab.svelte';
 	import ProbBar from '#lib/components/ProbBar.svelte';
+	import PickInsight from '#lib/components/PickInsight.svelte';
+	import PickTicket from '#lib/components/PickTicket.svelte';
 	import { ChevronLeft } from 'lucide-svelte';
 
 	let { data } = $props();
@@ -21,22 +24,32 @@
 </a>
 
 <header class="mt-3">
-	<p class="text-sm text-haze">{p.league}, {kickoff(p.kickoffTime, app.now)} ({countdown(p.kickoffTime, app.now)})</p>
+	<p class="text-sm font-medium text-haze">{p.sport === 'football' ? '⚽' : '🏀'} {p.league}, ⏰ {kickoff(p.kickoffTime, app.now)} ({countdown(p.kickoffTime, app.now)})</p>
 	<h1 class="mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
 		{p.homeTeam} <span class="text-haze">vs</span>
 		{p.awayTeam}
 	</h1>
 </header>
 
+{#if p.bestValue}
+	<section class="surface mt-6 grid gap-5 p-5 lg:grid-cols-[1fr_1.2fr]" aria-labelledby="why-title">
+		<div class="grid content-start gap-3">
+			<h2 id="why-title" class="text-2xl font-bold text-chalk">📊 Why this pick</h2>
+			<PickTicket pick={p.bestValue} />
+		</div>
+		<PickInsight {p} />
+	</section>
+{/if}
+
 {#if p.sport === 'football'}
 	<section class="mt-6 grid gap-5 lg:grid-cols-[1.5fr_1fr]" aria-label="Score distribution">
 		<div class="surface overflow-hidden">
-			{#key p.fixtureId}
+			{#key `${p.fixtureId}:${theme.resolved}`}
 				<ScoreSurface3D matrix={p.matrix} homeTeam={p.homeTeam} awayTeam={p.awayTeam} height={innerWidth < 768 ? 320 : 400} autoRotate={false} />
 			{/key}
 		</div>
 		<div class="surface p-5">
-			<h2 class="text-lg font-semibold">Most likely scores</h2>
+			<h2 class="text-lg font-bold text-chalk">🎯 Most likely scores</h2>
 			<ol class="mt-3 space-y-2">
 				{#each p.topScorelines.slice(0, 6) as s, i (`${s.home}-${s.away}`)}
 					<li class="grid grid-cols-[3rem_1fr_3.5rem] items-center gap-3 text-sm">
@@ -77,7 +90,7 @@
 {/if}
 
 <section class="mt-10" aria-labelledby="markets-title">
-	<h2 id="markets-title" class="text-2xl font-semibold">Markets</h2>
+	<h2 id="markets-title" class="text-2xl font-bold text-chalk">🎯 Markets</h2>
 	<p class="mt-1 text-sm text-haze">
 		Model is the engine's blended estimate ({Math.round(p.modelWeight * 100)}% model, rest market). Fair is the price that estimate implies. Best price is the highest across {p.bookmakers.join(', ')}.
 	</p>
@@ -86,7 +99,7 @@
 
 {#if p.sport === 'football'}
 	<section class="mt-10" aria-labelledby="derived-title">
-		<h2 id="derived-title" class="text-2xl font-semibold">More fair prices</h2>
+		<h2 id="derived-title" class="text-2xl font-bold text-chalk">➕ More fair prices</h2>
 		<div class="mt-4 grid gap-4 md:grid-cols-3">
 			<div class="surface p-4">
 				<h3 class="text-base font-semibold">Double chance</h3>

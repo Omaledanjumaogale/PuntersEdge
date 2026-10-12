@@ -8,7 +8,7 @@
 <svelte:head><title>Basketball — QuantEdge</title></svelte:head>
 
 <header class="max-w-2xl">
-	<h1 class="text-4xl font-bold">Basketball</h1>
+	<h1 class="text-4xl font-extrabold text-chalk">🏀 Basketball</h1>
 	<p class="mt-2 text-haze">
 		{app.basketball.length} games projected from pace and per-possession efficiency, priced for every line the books hang. {edges} show value.
 	</p>

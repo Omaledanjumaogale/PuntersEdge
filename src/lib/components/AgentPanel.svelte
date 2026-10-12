@@ -9,21 +9,23 @@
 	const analysis = $derived(hub.analyze(p));
 	const rec = $derived(analysis.recommendation);
 	const stanceTone = { bullish: 'bg-model', bearish: 'bg-loss', neutral: 'bg-haze' } as const;
+	const stanceLabel = { bullish: 'Supports a bet', bearish: 'Argues caution', neutral: 'Neutral' } as const;
+	const agentEmoji: Record<string, string> = { 'Market Intelligence': '📈', 'Squad & Context': '🚑', 'Quantitative Model': '🧮', 'Risk Manager': '🛡️' };
 </script>
 
 <section aria-labelledby="agents-title">
-	<h2 id="agents-title" class="text-2xl font-semibold">Reasoning</h2>
+	<h2 id="agents-title" class="text-2xl font-bold text-chalk">🧠 Reasoning</h2>
 	<p class="mt-1 text-sm text-haze">Four checks run over the numbers above. Each sentence is generated from computed values.</p>
 
 	<div class="mt-4 grid gap-3 sm:grid-cols-2">
 		{#each analysis.agents as a (a.agent)}
 			<article class="surface p-4">
 				<div class="flex items-center gap-2">
-					<span class="h-2 w-2 rounded-full {stanceTone[a.stance]}" aria-hidden="true"></span>
-					<h3 class="text-base font-semibold">{a.agent}</h3>
-					<span class="ml-auto text-xs text-haze">{Math.round(a.confidence * 100)}% sure</span>
+					<span class="text-xl" aria-hidden="true">{agentEmoji[a.agent] ?? '🤖'}</span>
+					<h3 class="text-base font-bold text-chalk">{a.agent}</h3>
+					<span class="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-haze"><span class="h-2 w-2 rounded-full {stanceTone[a.stance]}" aria-hidden="true"></span>{stanceLabel[a.stance]}</span>
 				</div>
-				<p class="mt-1 text-sm text-chalk/90">{a.headline}</p>
+				<p class="mt-1 font-medium text-chalk">{a.headline}</p>
 				<ul class="mt-2 space-y-1 text-sm text-haze">
 					{#each a.findings as f}<li>{f}</li>{/each}
 				</ul>
@@ -32,7 +34,7 @@
 	</div>
 
 	<div class="mt-4 rounded-[var(--radius-card)] p-5 ring-1 {rec.action === 'BET' ? 'bg-model/[0.07] ring-model/40' : 'bg-deep ring-line'}">
-		<p class="text-sm text-haze">Verdict</p>
+		<p class="text-sm font-semibold text-haze">{rec.action === 'BET' ? '✅ Verdict' : '✋ Verdict'}</p>
 		{#if rec.action === 'BET'}
 			<p class="mt-1 font-display text-2xl font-semibold">
 				{rec.selection} at <span class="text-book">{odds(rec.odds)}</span>
@@ -43,6 +45,6 @@
 		{:else}
 			<p class="mt-1 font-display text-2xl font-semibold">Pass</p>
 		{/if}
-		<p class="mt-3 max-w-prose text-[15px] leading-relaxed">{rec.rationale}</p>
+		<p class="mt-3 max-w-prose text-[15px] leading-relaxed text-chalk">{rec.rationale}</p>
 	</div>
 </section>

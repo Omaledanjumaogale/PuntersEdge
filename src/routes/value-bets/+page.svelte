@@ -19,7 +19,7 @@
 <svelte:head><title>Value bets — QuantEdge</title></svelte:head>
 
 <header class="max-w-2xl">
-	<h1 class="text-4xl font-bold">Value bets</h1>
+	<h1 class="text-4xl font-extrabold text-chalk">🔥 Value bets</h1>
 	<p class="mt-2 text-haze">
 		Every selection where the best available price beats the fair price. Stakes are {Math.round(app.settings.kellyFraction * 100)}% Kelly on a
 		bankroll you set in Settings.

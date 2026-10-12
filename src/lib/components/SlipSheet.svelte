@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { app } from '#lib/state.svelte.ts';
+	import { auth } from '#lib/auth.svelte.ts';
 	import { odds, pct, ngn, signed } from '#lib/format.ts';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -51,7 +52,7 @@
 	>
 		<div class="mx-auto mt-2 h-1 w-10 rounded-full bg-line md:hidden"></div>
 		<header class="flex items-center gap-2 px-5 pb-3 pt-3">
-			<h2 id="slip-title" class="text-xl font-semibold">Betslip</h2>
+			<h2 id="slip-title" class="text-xl font-bold text-chalk">🧾 Betslip</h2>
 			<span class="text-sm text-haze">{items.length} selection{items.length === 1 ? '' : 's'}</span>
 			<div class="ml-auto flex gap-1">
 				{#if items.length}
@@ -66,17 +67,29 @@
 				<div class="ticket flex items-center gap-3 px-4 py-3" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-xs text-haze">{i.matchTitle}</p>
-						<p class="truncate font-semibold">{i.selection}</p>
+						<p class="truncate font-semibold text-chalk">{i.selection}</p>
 						<p class="text-xs text-haze">{i.bookmaker}, model {pct(i.modelProb, 1)}</p>
 					</div>
 					<span class="font-display text-lg font-semibold text-book">{odds(i.odds)}</span>
 					<button onclick={() => app.remove(i.id)} class="rounded-full p-1.5 text-haze hover:text-loss" aria-label="Remove {i.selection}"><X class="h-4 w-4" /></button>
 				</div>
 			{:else}
-				<div class="py-12 text-center">
-					<p class="font-semibold">Your slip is empty</p>
-					<p class="mt-1 text-sm text-haze">Add a pick with the + on any ticket.</p>
-					<a href="/value-bets" onclick={close} class="mt-4 inline-block rounded-full bg-raised px-4 py-2 text-sm ring-1 ring-line hover:ring-model">Browse value bets</a>
+				<div class="py-8 text-center">
+					<svg viewBox="0 0 160 110" class="mx-auto h-28 w-auto" aria-hidden="true">
+						<g transform="rotate(-8 80 55)">
+							<rect x="30" y="18" width="100" height="74" rx="12" style="fill: var(--color-raised); stroke: var(--color-line); stroke-width: 2" />
+							<circle cx="30" cy="55" r="8" style="fill: var(--color-deep)" />
+							<circle cx="130" cy="55" r="8" style="fill: var(--color-deep)" />
+							<line x1="96" y1="26" x2="96" y2="84" style="stroke: var(--color-line); stroke-width: 2; stroke-dasharray: 4 4" />
+							<rect x="42" y="34" width="44" height="8" rx="4" style="fill: var(--color-pop); opacity: 0.8" />
+							<rect x="42" y="50" width="30" height="6" rx="3" style="fill: var(--color-haze); opacity: 0.6" />
+							<rect x="42" y="64" width="38" height="6" rx="3" style="fill: var(--color-book); opacity: 0.8" />
+							<text x="113" y="62" text-anchor="middle" font-size="22" style="fill: var(--color-model)">+</text>
+						</g>
+					</svg>
+					<p class="mt-2 text-lg font-bold text-chalk">Your slip is empty</p>
+					<p class="mt-1 text-sm text-haze">Tap + on any ticket to add a pick.</p>
+					<a href="/value-bets" onclick={close} class="btn-primary mt-4 text-sm">🔥 Browse value bets</a>
 				</div>
 			{/each}
 		</div>
@@ -118,7 +131,9 @@
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">
 					{#if copied}<Check class="h-4 w-4" /> Copied{:else}<Copy class="h-4 w-4" /> Copy slip for your bookmaker{/if}
 				</button>
-				<p class="text-center text-xs text-haze">QuantEdge doesn't place bets. Bet within your means.</p>
+				<p class="text-center text-xs text-haze">
+					{#if auth.signedIn && auth.mode === 'convex'}☁️ Synced to your account. {:else if !auth.signedIn}<a href="/login" onclick={close} class="font-semibold text-pop underline">Log in</a> to sync this slip. {/if}QuantEdge doesn't place bets. 18+, bet within your means.
+				</p>
 			</footer>
 		{/if}
 	</div>

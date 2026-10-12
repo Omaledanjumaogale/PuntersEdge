@@ -1,62 +1,64 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { app } from '#lib/state.svelte.ts';
-	import { pwa } from '#lib/pwa.svelte.ts';
-	import { Settings2, ReceiptText, Download } from 'lucide-svelte';
+	import { auth } from '#lib/auth.svelte.ts';
+	import { theme } from '#lib/theme.svelte.ts';
+	import { NAV, isActive } from '#lib/nav.ts';
+	import Logo from './Logo.svelte';
+	import { Menu, ReceiptText } from 'lucide-svelte';
 
-	const links = [
-		{ href: '/', label: 'Board' },
-		{ href: '/football', label: 'Football' },
-		{ href: '/basketball', label: 'Basketball' },
-		{ href: '/value-bets', label: 'Value bets' },
-		{ href: '/bookmakers', label: 'Bookmakers' }
-	];
-	const isActive = (href: string) => (href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href));
+	const desktopLinks = NAV.filter((n) => n.href !== '/settings');
 </script>
 
-<header class="safe-top sticky top-0 z-40 border-b border-line/70 bg-ink/80 backdrop-blur-xl">
-	<div class="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
-		<a href="/" class="flex items-center gap-2" aria-label="QuantEdge home">
-			<img src="/icons/icon.svg" alt="" class="h-8 w-8 rounded-lg" width="32" height="32" />
-			<span class="font-display text-lg font-bold tracking-tight">QuantEdge</span>
-		</a>
+<header class="safe-top sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur-xl">
+	<div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+		<a href="/" aria-label="QuantEdge home" class="rounded-xl"><Logo size={34} /></a>
 
-		<nav class="ml-4 hidden items-center gap-1 text-sm md:flex" aria-label="Main">
-			{#each links as l}
+		<nav class="ml-4 hidden items-center gap-1 text-sm lg:flex" aria-label="Main">
+			{#each desktopLinks as l (l.href)}
+				{@const active = isActive(page.url.pathname, l.href)}
 				<a
 					href={l.href}
-					aria-current={isActive(l.href) ? 'page' : undefined}
-					class="rounded-full px-3 py-1.5 transition-colors {isActive(l.href) ? 'bg-raised text-chalk' : 'text-haze hover:text-chalk'}"
+					aria-current={active ? 'page' : undefined}
+					class="rounded-full px-3 py-1.5 font-medium transition-colors {active ? 'bg-raised text-chalk ring-1 ring-line' : 'text-haze hover:text-chalk'}"
 				>
-					{l.label}
+					<span aria-hidden="true">{l.emoji}</span> {l.label}
 				</a>
 			{/each}
 		</nav>
 
 		<div class="ml-auto flex items-center gap-2">
-			{#if pwa.canInstall}
-				<button
-					onclick={() => pwa.install()}
-					class="hidden items-center gap-1.5 rounded-full bg-model/15 px-3 py-1.5 text-sm text-model hover:bg-model/25 sm:inline-flex"
-				>
-					<Download class="h-4 w-4" /> Install app
-				</button>
-			{/if}
-			<a
-				href="/settings"
-				aria-label="Settings"
-				aria-current={isActive('/settings') ? 'page' : undefined}
-				class="grid h-9 w-9 place-items-center rounded-full text-haze hover:bg-raised hover:text-chalk"
-			>
-				<Settings2 class="h-[18px] w-[18px]" />
-			</a>
 			<button
-				onclick={() => (app.slipOpen = true)}
-				class="hidden items-center gap-2 rounded-full bg-chalk px-3.5 py-1.5 text-sm font-semibold text-ink hover:bg-white md:inline-flex"
+				onclick={() => theme.toggle()}
+				class="grid h-10 w-10 place-items-center rounded-full bg-raised text-lg ring-1 ring-line transition-transform hover:ring-pop active:scale-90"
+				aria-label="Switch to {theme.resolved === 'dark' ? 'light' : 'dark'} mode"
+				title="Switch to {theme.resolved === 'dark' ? 'light' : 'dark'} mode"
 			>
-				<ReceiptText class="h-4 w-4" />
-				Slip
-				{#if app.slip.length}<span class="rounded-full bg-ink px-1.5 text-xs text-chalk">{app.slip.length}</span>{/if}
+				<span aria-hidden="true">{theme.resolved === 'dark' ? '☀️' : '🌙'}</span>
+			</button>
+
+			{#if auth.signedIn}
+				<a href="/account" class="hidden h-10 items-center gap-2 rounded-full bg-raised pl-1 pr-3 ring-1 ring-line hover:ring-pop sm:inline-flex" aria-label="Your account">
+					<span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-pop to-model font-display font-bold text-ink">{auth.initial}</span>
+					<span class="max-w-[8rem] truncate text-sm font-medium text-chalk">{auth.displayName}</span>
+				</a>
+			{:else if auth.status === 'signedOut'}
+				<a href="/login" class="hidden h-10 items-center rounded-full px-4 text-sm font-semibold text-chalk ring-1 ring-line hover:ring-pop sm:inline-flex">Log in</a>
+			{/if}
+
+			<button onclick={() => (app.slipOpen = true)} class="hidden h-10 items-center gap-2 rounded-full bg-chalk px-4 text-sm font-semibold text-ink md:inline-flex">
+				<ReceiptText class="h-4 w-4" /> Slip
+				{#if app.slip.length}<span class="grid h-5 min-w-5 place-items-center rounded-full bg-ink px-1 text-xs text-chalk">{app.slip.length}</span>{/if}
+			</button>
+
+			<button
+				onclick={() => (app.menuOpen = true)}
+				class="grid h-10 w-10 place-items-center rounded-full bg-raised text-chalk ring-1 ring-line hover:ring-pop"
+				aria-label="Open menu"
+				aria-expanded={app.menuOpen}
+				aria-haspopup="dialog"
+			>
+				<Menu class="h-5 w-5" />
 			</button>
 		</div>
 	</div>

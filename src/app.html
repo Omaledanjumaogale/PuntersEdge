@@ -4,8 +4,18 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="description" content="Fair prices, value bets and stake sizes for football and basketball — Dixon–Coles and tempo-free models checked against SportyBet, 1xBet and 22Bet." />
-		<meta name="theme-color" content="#0c1027" />
-		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#0b0f26" />
+		<meta name="color-scheme" content="dark light" />
+		<script>
+			// Apply the saved theme before first paint (no flash of the wrong theme).
+			(function () {
+				var t = 'system';
+				try { t = (JSON.parse(localStorage.getItem('qe:settings:v2') || '{}').theme) || 'system'; } catch (e) {}
+				var dark = t === 'dark' || (t === 'system' && !matchMedia('(prefers-color-scheme: light)').matches);
+				document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+				document.querySelector('meta[name=theme-color]').content = dark ? '#0b0f26' : '#f4f5ff';
+			})();
+		</script>
 		<meta name="mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-title" content="QuantEdge" />

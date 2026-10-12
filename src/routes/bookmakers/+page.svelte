@@ -37,7 +37,7 @@
 <svelte:head><title>Bookmakers — QuantEdge</title></svelte:head>
 
 <header class="max-w-2xl">
-	<h1 class="text-4xl font-bold">Bookmakers</h1>
+	<h1 class="text-4xl font-extrabold text-chalk">🏦 Bookmakers</h1>
 	<p class="mt-2 text-haze">How much each book keeps, where the best prices sit, and what margin does to accumulators.</p>
 </header>
 
