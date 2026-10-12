@@ -33,6 +33,7 @@ npm run check      # svelte-check / TypeScript
 npm run pipeline   # run the engine over the sample feed in the terminal
 npm run build      # production build → .svelte-kit/cloudflare
 npm run preview    # serve the production build with Wrangler on :4173
+npm run build:single  # one self-contained HTML demo → dist-preview/index.html
 ```
 
 Deploy by pointing Cloudflare Pages at this repo with build command `npm run build` and output directory `.svelte-kit/cloudflare`.

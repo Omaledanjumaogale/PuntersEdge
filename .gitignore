@@ -36,3 +36,6 @@ Thumbs.db
 
 # Wrangler local state
 .wrangler/
+
+# Single-file preview output
+dist-preview/

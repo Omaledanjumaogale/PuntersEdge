@@ -13,7 +13,8 @@
     "test": "node --test test/*.test.js",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
-    "pipeline": "node scripts/pipeline.js"
+    "pipeline": "node scripts/pipeline.js",
+    "build:single": "vite build && node scripts/build-single-file.mjs"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.86",
