@@ -183,6 +183,38 @@ export function solveGoalParametersFromMarket(expectedTotal, expectedSpread) {
 }
 
 /**
+ * Lean kernel for fitting: home win, away win and over 2.5 only, normalised
+ * over a 0–8 grid. Same maths as generateScoreMatrix without building every
+ * market, so a fit costs a few milliseconds instead of hundreds.
+ * @param {number} lambda
+ * @param {number} mu
+ * @param {number} rho
+ */
+export function headlineProbabilities(lambda, mu, rho = -0.05) {
+  const r = clampRho(rho, lambda, mu);
+  const N = 8;
+  const hp = new Float64Array(N + 1);
+  const ap = new Float64Array(N + 1);
+  hp[0] = Math.exp(-lambda);
+  ap[0] = Math.exp(-mu);
+  for (let k = 1; k <= N; k++) {
+    hp[k] = (hp[k - 1] * lambda) / k;
+    ap[k] = (ap[k - 1] * mu) / k;
+  }
+  let mass = 0, home = 0, away = 0, over = 0;
+  for (let x = 0; x <= N; x++) {
+    for (let y = 0; y <= N; y++) {
+      const p = hp[x] * ap[y] * dixonColesTau(x, y, lambda, mu, r);
+      mass += p;
+      if (x > y) home += p;
+      else if (y > x) away += p;
+      if (x + y > 2.5) over += p;
+    }
+  }
+  return { home: home / mass, away: away / mass, over2_5: over / mass };
+}
+
+/**
  * Fit λ / μ so the model reproduces de-vigged market probabilities
  * (home win and over 2.5). Coarse grid then local refinement — robust,
  * dependency-free and fast enough to run per fixture in the browser.
@@ -193,12 +225,8 @@ export function solveGoalParametersFromMarket(expectedTotal, expectedSpread) {
 export function fitGoalParametersFromProbabilities(target, rho = -0.05) {
   /** @param {number} l @param {number} m */
   const loss = (l, m) => {
-    const p = generateScoreMatrix(l, m, rho, 8).probabilities;
-    return (
-      (p.oneXTwo.home - target.home) ** 2 +
-      (p.oneXTwo.away - target.away) ** 2 +
-      (p.overUnder[2.5].over - target.over2_5) ** 2
-    );
+    const p = headlineProbabilities(l, m, rho);
+    return (p.home - target.home) ** 2 + (p.away - target.away) ** 2 + (p.over2_5 - target.over2_5) ** 2;
   };
 
   let best = { l: 1.4, m: 1.1, e: Infinity };

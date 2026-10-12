@@ -16,6 +16,7 @@ import { fairProbabilities } from './vig_removal.js';
 import { calculateExpectedValue, calculateKellyStake, gradeSelection, analyzeOddsMovement } from './decision_screener.js';
 import { projectBasketballGame, LEAGUE_PROFILES, probabilityOver, probabilityHomeCovers } from './basketball_model.js';
 import { round, fairOdds } from './math.js';
+import { buildFootballMarkets, buildBasketballMarkets } from './market_book.js';
 
 /** Default weight of the model vs. de-vigged market consensus. */
 export const DEFAULT_MODEL_WEIGHT = 0.6;
@@ -255,6 +256,7 @@ export function buildFootballPrediction(input, options = {}) {
     margins: margins(input.odds, ['home', 'draw', 'away']),
     valueBets,
     bestValue: valueBets[0],
+    markets: buildFootballMarkets(input, mp, model.rho, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 }),
     movement,
     marketSteamAlert: Boolean(movement?.smartMoneyIndication),
     absences,
@@ -421,6 +423,7 @@ export function buildBasketballPrediction(input, options = {}) {
     margins: margins(flat, ['homeMl', 'awayMl']),
     valueBets,
     bestValue: valueBets[0],
+    markets: buildBasketballMarkets(input, proj, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 }),
     movement,
     marketSteamAlert: Boolean(movement?.smartMoneyIndication),
     absences,

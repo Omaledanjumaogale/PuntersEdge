@@ -192,3 +192,49 @@ test('agents: legacy feed entity path still works', async () => {
   assert.ok(report.comprehensiveMarketProbabilities.doubleChance['1X']);
   assert.ok(['BET', 'PASS'].includes(report.primaryRecommendation.action));
 });
+
+// ── market book ─────────────────────────────────────────────────────────
+test('market book: football ladders are consistent with headline markets', () => {
+  for (const input of FOOTBALL_INPUTS) {
+    const p = buildFootballPrediction(input, { modelWeight: 1 });
+    const find = (key) => p.markets.flatMap((g) => g.selections).find((s) => s.id === `${input.fixtureId}:${key}`);
+    assert.ok(p.markets.length >= 7, 'groups');
+    // Handicap -0.5 is the same bet as the home win.
+    assert.ok(close(find('ahh-0.5').modelProb, find('home').modelProb, 1e-9));
+    // Double chance 1X = 1 - away.
+    assert.ok(close(find('dc1x').modelProb, 1 - find('away').modelProb, 1e-9));
+    // DNB carries the draw as push probability.
+    assert.ok(close(find('dnbh').pushProb, p.modelProbabilities.draw, 1e-9));
+    for (const s of p.markets.flatMap((g) => g.selections)) {
+      assert.ok(s.bestOdds > 1 && Number.isFinite(s.bestOdds), s.selection);
+      assert.ok(close(s.edgePercent, Math.round((1 - s.pushProb) * (s.modelProb * s.bestOdds - 1) * 10000) / 100, 1e-9), s.selection);
+      if (s.edgePercent <= 0) assert.equal(s.grade, 'PASS');
+    }
+  }
+});
+
+test('market book: quoted prices are used as quoted', () => {
+  const input = FOOTBALL_INPUTS[0];
+  const p = buildFootballPrediction(input);
+  const home = p.markets[0].selections[0];
+  assert.equal(home.pricing, 'quoted');
+  assert.equal(home.bestOdds, Math.max(...Object.values(input.odds).map((o) => o.home)));
+});
+
+test('market book: basketball ladders are monotonic and complementary', () => {
+  for (const input of BASKETBALL_INPUTS) {
+    const p = buildBasketballPrediction(input);
+    const spread = p.markets.find((g) => g.key === 'spread').selections;
+    const homeSide = spread.filter((_, i) => i % 2 === 0).map((s) => s.modelProb);
+    for (let i = 1; i < homeSide.length; i++) assert.ok(homeSide[i] > homeSide[i - 1], 'easier lines are likelier');
+    for (let i = 0; i < spread.length; i += 2) assert.ok(close(spread[i].modelProb + spread[i + 1].modelProb, 1, 1e-9));
+    const totals = p.markets.find((g) => g.key === 'total').selections;
+    const overs = totals.filter((_, i) => i % 2 === 0).map((s) => s.modelProb);
+    for (let i = 1; i < overs.length; i++) assert.ok(overs[i] < overs[i - 1], 'higher totals are less likely');
+  }
+});
+
+test('math: probit inverts the normal CDF', async () => {
+  const { probit } = await import('../src/lib/engine/math.js');
+  for (const p of [0.001, 0.05, 0.3, 0.5, 0.77, 0.999]) assert.ok(close(normalCdf(probit(p)), p, 1e-6), `p=${p}`); // erf approximation is good to ~1.5e-7
+});
