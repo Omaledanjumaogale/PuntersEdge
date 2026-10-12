@@ -7,14 +7,14 @@
 	import Logo from './Logo.svelte';
 	import { Menu, ReceiptText } from 'lucide-svelte';
 
-	const desktopLinks = NAV.filter((n) => n.href !== '/settings');
+	const desktopLinks = NAV.filter((n) => !['/', '/settings', '/glossary'].includes(n.href));
 </script>
 
 <header class="safe-top sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur-xl">
 	<div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
-		<a href="/" aria-label="QuantEdge home" class="rounded-xl"><Logo size={34} /></a>
+		<a href="/" aria-label="PuntersEdge home" class="rounded-xl"><Logo size={34} /></a>
 
-		<nav class="ml-4 hidden items-center gap-1 text-sm lg:flex" aria-label="Main">
+		<nav class="ml-4 hidden items-center gap-1 text-sm xl:flex" aria-label="Main">
 			{#each desktopLinks as l (l.href)}
 				{@const active = isActive(page.url.pathname, l.href)}
 				<a

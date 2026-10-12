@@ -15,7 +15,7 @@
 	const picks = $derived(app.valueBets.slice(0, 3));
 </script>
 
-<svelte:head><title>QuantEdge — fair prices and value bets</title></svelte:head>
+<svelte:head><title>Board — PuntersEdge</title></svelte:head>
 <svelte:window bind:innerWidth />
 
 <!-- Hero: the engine's output for the strongest football edge, in 3D -->
@@ -47,26 +47,6 @@
 			{/key}
 		</div>
 	</div>
-</section>
-
-<!-- How it works: a real three-step flow -->
-<section class="mt-8" aria-labelledby="how-title">
-	<h2 id="how-title" class="sr-only">How QuantEdge works</h2>
-	<ol class="grid gap-3 sm:grid-cols-3">
-		{#each [
-			{ emoji: '🔍', title: 'Spot the value', text: 'We price every match and flag odds that beat fair value.' },
-			{ emoji: '📊', title: 'Check the why', text: 'Tap “Why this pick?” to see the numbers behind each tip.' },
-			{ emoji: '🧾', title: 'Build your slip', text: 'Add picks, see your stake and expected profit, copy it out.' }
-		] as step, i (step.title)}
-			<li class="surface flex items-start gap-3 p-4">
-				<span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-raised text-2xl ring-1 ring-line" aria-hidden="true">{step.emoji}</span>
-				<div>
-					<p class="font-bold text-chalk"><span class="text-pop">{i + 1}.</span> {step.title}</p>
-					<p class="mt-0.5 text-sm text-haze">{step.text}</p>
-				</div>
-			</li>
-		{/each}
-	</ol>
 </section>
 
 <!-- Strongest edges on the board -->

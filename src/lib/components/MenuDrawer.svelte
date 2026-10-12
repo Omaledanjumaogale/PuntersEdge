@@ -95,7 +95,7 @@
 						<a
 							href={item.href}
 							aria-current={active ? 'page' : undefined}
-							class="flex h-full flex-col gap-1 rounded-2xl p-3 ring-1 transition-colors {active ? 'bg-pop/15 ring-pop' : 'bg-ink ring-line hover:ring-pop'}"
+							class="flex h-full flex-col gap-1 rounded-2xl p-3 ring-1 transition-colors {active ? 'tint-pop ring-pop' : 'bg-ink ring-line hover:ring-pop'}"
 						>
 							<span class="text-2xl leading-none" aria-hidden="true">{item.emoji}</span>
 							<span class="font-semibold text-chalk">{item.label}</span>

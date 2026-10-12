@@ -1,44 +1,119 @@
 {
 	"id": "/?source=pwa",
-	"name": "QuantEdge — Football & Basketball Value Bets",
-	"short_name": "QuantEdge",
+	"name": "PuntersEdge — Football & Basketball Value Bets",
+	"short_name": "PuntersEdge",
 	"description": "Fair prices, value bets and stake sizes for football and basketball, checked against SportyBet, 1xBet and 22Bet.",
 	"lang": "en-NG",
 	"dir": "ltr",
 	"start_url": "/?source=pwa",
 	"scope": "/",
 	"display": "standalone",
-	"display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+	"display_override": [
+		"window-controls-overlay",
+		"standalone",
+		"minimal-ui"
+	],
 	"orientation": "any",
 	"background_color": "#0b0f26",
 	"theme_color": "#7c4dff",
-	"categories": ["sports", "finance", "utilities"],
+	"categories": [
+		"sports",
+		"finance",
+		"utilities"
+	],
 	"prefer_related_applications": false,
-	"launch_handler": { "client_mode": ["navigate-existing", "auto"] },
+	"launch_handler": {
+		"client_mode": [
+			"navigate-existing",
+			"auto"
+		]
+	},
 	"icons": [
-		{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-		{ "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-		{ "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-		{ "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-		{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+		{
+			"src": "/icons/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-maskable-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/icons/icon-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/icons/icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any"
+		}
 	],
 	"shortcuts": [
+		{
+			"name": "Board",
+			"short_name": "Board",
+			"description": "Today's top picks",
+			"url": "/board?source=shortcut",
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192"
+				}
+			]
+		},
 		{
 			"name": "Value bets",
 			"short_name": "Value",
 			"description": "Every price above fair value, best first",
 			"url": "/value-bets?source=shortcut",
-			"icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192"
+				}
+			]
 		},
 		{
 			"name": "Football",
 			"url": "/football?source=shortcut",
-			"icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192"
+				}
+			]
 		},
 		{
 			"name": "Basketball",
 			"url": "/basketball?source=shortcut",
-			"icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192"
+				}
+			]
+		},
+		{
+			"name": "Glossary",
+			"url": "/glossary?source=shortcut",
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192"
+				}
+			]
 		}
 	],
 	"screenshots": [
@@ -47,21 +122,21 @@
 			"sizes": "780x1688",
 			"type": "image/png",
 			"form_factor": "narrow",
-			"label": "Board with the 3D score distribution and strongest edges"
+			"label": "Home: bet smarter on football and basketball"
 		},
 		{
 			"src": "/screenshots/match-mobile.png",
 			"sizes": "780x1688",
 			"type": "image/png",
 			"form_factor": "narrow",
-			"label": "Match detail with fair prices for every market"
+			"label": "Board with the 3D score distribution and top pick"
 		},
 		{
 			"src": "/screenshots/board-desktop.png",
 			"sizes": "2560x1440",
 			"type": "image/png",
 			"form_factor": "wide",
-			"label": "QuantEdge board on desktop"
+			"label": "PuntersEdge board on desktop"
 		}
 	]
 }
