@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#accentGrad)" stroke-width="16" stroke-dasharray="10 10" />
+  <!-- Football icon path -->
+  <path d="M190 256 L230 180 L310 180 L350 256 L290 320 L210 320 Z" fill="none" stroke="#10b981" stroke-width="14" stroke-linejoin="round"/>
+  <!-- Basketball seams -->
+  <path d="M150 256 Q256 256 362 256" stroke="#f59e0b" stroke-width="12" fill="none"/>
+  <path d="M256 120 Q256 256 256 392" stroke="#f59e0b" stroke-width="12" fill="none"/>
+  <!-- Upward Trendline / Odds Edge -->
+  <polyline points="160,340 220,280 270,300 350,170" fill="none" stroke="#38bdf8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="340,160 365,160 365,185" fill="#38bdf8" />
+</svg>
