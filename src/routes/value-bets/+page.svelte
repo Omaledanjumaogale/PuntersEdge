@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "$lib/convex";
-  import { betslipItems, betslipOpen } from "$lib/stores";
+  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "#lib/convex.ts";
+  import { betslipItems, betslipOpen } from "#lib/stores.ts";
   import { Flame, TrendingUp, Sparkles, Plus, Check } from "lucide-svelte";
 
   // Combine top value bets

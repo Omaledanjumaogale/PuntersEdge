@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { FALLBACK_BASKETBALL } from "$lib/convex";
-  import BasketballCard from "$lib/components/BasketballCard.svelte";
+  import { FALLBACK_BASKETBALL } from "#lib/convex.ts";
+  import BasketballCard from "#lib/components/BasketballCard.svelte";
   import { Activity, Sliders, Sparkles } from "lucide-svelte";
 </script>
 

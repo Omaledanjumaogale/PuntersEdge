@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activeSport, betslipItems, betslipOpen, isDarkMode } from "$lib/stores";
+  import { activeSport, betslipItems, betslipOpen, isDarkMode } from "#lib/stores.ts";
   import { 
     Activity, 
     Flame, 

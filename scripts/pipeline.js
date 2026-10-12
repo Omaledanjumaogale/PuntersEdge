@@ -3,9 +3,9 @@
  * Master Orchestrator: Multi-Bookmaker Ingestion, Quantitative Modeling & AI Agents
  */
 
-import { UnifiedSportsFetcher } from './data_fetcher.js';
-import { compareBookmakerOdds, calculateAccumulatorEconomics } from './bookmaker_engine.js';
-import { QuantEdgeAIAgentHub } from './ai_agent_orchestrator.js';
+import { UnifiedSportsFetcher } from '../src/lib/engine/data_fetcher.js';
+import { compareBookmakerOdds, calculateAccumulatorEconomics } from '../src/lib/engine/bookmaker_engine.js';
+import { QuantEdgeAIAgentHub } from '../src/lib/engine/ai_agent_orchestrator.js';
 
 async function runEnterprisePipeline() {
   console.log('========================================================================');

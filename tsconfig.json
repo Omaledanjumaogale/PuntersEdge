@@ -3,9 +3,16 @@
 	"compilerOptions": {
 		"strict": true,
 		"types": [
-			"$app/types",
-			"./worker-configuration.d.ts"
+			"$app/types"
 		]
 	},
-	"include": ["src", "vite.config.ts"]
+	"include": [
+		"src",
+		"test",
+		"scripts",
+		"vite.config.ts"
+	],
+	"exclude": [
+		"src/service-worker.ts"
+	]
 }

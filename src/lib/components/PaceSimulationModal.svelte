@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { activePaceSimulation } from "$lib/stores";
+  import { activePaceSimulation } from "#lib/stores.ts";
   import { X, Sliders, Activity, BarChart2 } from "lucide-svelte";
 
   let data = $derived($activePaceSimulation);

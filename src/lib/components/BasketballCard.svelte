@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { BasketballFixture } from "$lib/convex";
-  import { betslipItems, betslipOpen, activeAiFixture, activePaceSimulation } from "$lib/stores";
+  import type { BasketballFixture } from "#lib/convex.ts";
+  import { betslipItems, betslipOpen, activeAiFixture, activePaceSimulation } from "#lib/stores.ts";
   import { 
     Activity, 
     Sparkles, 

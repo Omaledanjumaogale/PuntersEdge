@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { FootballMatch } from "$lib/convex";
-  import { betslipItems, betslipOpen, activeAiFixture, activeScoreMatrix } from "$lib/stores";
+  import type { FootballMatch } from "#lib/convex.ts";
+  import { betslipItems, betslipOpen, activeAiFixture, activeScoreMatrix } from "#lib/stores.ts";
   import { 
     TrendingUp, 
     Sparkles, 

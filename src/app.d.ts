@@ -1,18 +1,15 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
 declare global {
 	namespace App {
 		interface Platform {
-			env: Env;
-			ctx: ExecutionContext;
+			env: Record<string, unknown>;
+			ctx: { waitUntil(promise: Promise<unknown>): void; passThroughOnException(): void };
 			caches: CacheStorage;
-			cf?: IncomingRequestCfProperties
 		}
+	}
 
-		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
-		// interface PageState {}
+	interface ImportMetaEnv {
+		readonly VITE_CONVEX_URL?: string;
 	}
 }
 

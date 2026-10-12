@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { betslipItems, betslipOpen, userStake } from "$lib/stores";
+  import { betslipItems, betslipOpen, userStake } from "#lib/stores.ts";
   import { 
     X, 
     Trash2, 

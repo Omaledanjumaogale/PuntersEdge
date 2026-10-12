@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "$lib/convex";
-  import FootballCard from "$lib/components/FootballCard.svelte";
-  import BasketballCard from "$lib/components/BasketballCard.svelte";
+  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "#lib/convex.ts";
+  import FootballCard from "#lib/components/FootballCard.svelte";
+  import BasketballCard from "#lib/components/BasketballCard.svelte";
   import { 
     Activity, 
     Flame, 

@@ -1,11 +1,11 @@
 <script lang="ts">
   import './layout.css';
-  import Navbar from '$lib/components/Navbar.svelte';
-  import BetslipDrawer from '$lib/components/BetslipDrawer.svelte';
-  import AiReasoningDrawer from '$lib/components/AiReasoningDrawer.svelte';
-  import ScoreMatrixModal from '$lib/components/ScoreMatrixModal.svelte';
-  import PaceSimulationModal from '$lib/components/PaceSimulationModal.svelte';
-  import { betslipItems, betslipOpen, isDarkMode } from '$lib/stores';
+  import Navbar from '#lib/components/Navbar.svelte';
+  import BetslipDrawer from '#lib/components/BetslipDrawer.svelte';
+  import AiReasoningDrawer from '#lib/components/AiReasoningDrawer.svelte';
+  import ScoreMatrixModal from '#lib/components/ScoreMatrixModal.svelte';
+  import PaceSimulationModal from '#lib/components/PaceSimulationModal.svelte';
+  import { betslipItems, betslipOpen, isDarkMode } from '#lib/stores.ts';
   import { 
     LayoutDashboard, 
     Flame, 

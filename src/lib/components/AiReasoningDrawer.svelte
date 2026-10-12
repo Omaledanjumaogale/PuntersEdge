@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { activeAiFixture } from "$lib/stores";
+  import { activeAiFixture } from "#lib/stores.ts";
   import { X, Sparkles, ShieldCheck, TrendingUp, Users, DollarSign } from "lucide-svelte";
-  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "$lib/convex";
+  import { FALLBACK_FOOTBALL, FALLBACK_BASKETBALL } from "#lib/convex.ts";
 
   let fixture = $derived($activeAiFixture);
 

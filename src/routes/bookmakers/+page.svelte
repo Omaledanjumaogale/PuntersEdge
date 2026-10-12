@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ShieldAlert, TrendingDown, Layers, CheckCircle2, AlertTriangle } from "lucide-svelte";
-  import { compareBookmakerOdds } from "$lib/engine/bookmaker_engine.js";
+  import { compareBookmakerOdds } from "#lib/engine/bookmaker_engine.js";
 
   // Real bookmaker sample odds for comparison
   const sampleBooks = [

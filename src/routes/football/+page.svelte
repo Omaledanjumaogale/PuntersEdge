@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { FALLBACK_FOOTBALL } from "$lib/convex";
-  import FootballCard from "$lib/components/FootballCard.svelte";
+  import { FALLBACK_FOOTBALL } from "#lib/convex.ts";
+  import FootballCard from "#lib/components/FootballCard.svelte";
   import { ShieldCheck, BarChart3, TrendingUp, Sparkles } from "lucide-svelte";
 </script>
 

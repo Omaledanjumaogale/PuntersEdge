@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { removeVigMultiplicative, removeVigPower, calculateOverround } from '../src/vig_removal.js';
-import { generateScoreMatrix, solveGoalParametersFromMarket } from '../src/football_model.js';
-import { projectBasketballGame } from '../src/basketball_model.js';
-import { adjustParametersForLineups } from '../src/lineup_impact.js';
-import { calculateExpectedValue, calculateKellyStake, analyzeOddsMovement } from '../src/decision_screener.js';
-import { deriveDoubleChance, deriveDrawNoBet, compareBookmakerOdds, calculateAccumulatorEconomics } from '../src/bookmaker_engine.js';
-import { UnifiedSportsFetcher } from '../src/data_fetcher.js';
-import { QuantEdgeAIAgentHub } from '../src/ai_agent_orchestrator.js';
+import { removeVigMultiplicative, removeVigPower, calculateOverround } from '../src/lib/engine/vig_removal.js';
+import { generateScoreMatrix, solveGoalParametersFromMarket } from '../src/lib/engine/football_model.js';
+import { projectBasketballGame } from '../src/lib/engine/basketball_model.js';
+import { adjustParametersForLineups } from '../src/lib/engine/lineup_impact.js';
+import { calculateExpectedValue, calculateKellyStake, analyzeOddsMovement } from '../src/lib/engine/decision_screener.js';
+import { deriveDoubleChance, deriveDrawNoBet, compareBookmakerOdds, calculateAccumulatorEconomics } from '../src/lib/engine/bookmaker_engine.js';
+import { UnifiedSportsFetcher } from '../src/lib/engine/data_fetcher.js';
+import { QuantEdgeAIAgentHub } from '../src/lib/engine/ai_agent_orchestrator.js';
 
 test('Vig Removal - calculates overround and fair probabilities properly', () => {
   const odds = { home: 2.00, draw: 3.40, away: 3.80 };

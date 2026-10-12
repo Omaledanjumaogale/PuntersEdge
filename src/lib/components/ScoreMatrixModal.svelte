@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { activeScoreMatrix } from "$lib/stores";
+  import { activeScoreMatrix } from "#lib/stores.ts";
   import { X, Grid3x3, CheckCircle2 } from "lucide-svelte";
-  import { generateScoreMatrix } from "$lib/engine/football_model.js";
+  import { generateScoreMatrix } from "#lib/engine/football_model.js";
 
   let data = $derived($activeScoreMatrix);
   let matrix = $derived(
