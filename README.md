@@ -10,6 +10,7 @@ Fair prices, value bets and stake sizes for football and basketball — an insta
 - **Removes the bookmaker's margin** with Shin's method and blends the model with the de-vigged market consensus (default 60/40, adjustable).
 - **Scans every market at every book** for prices above fair value, then sizes stakes with fractional Kelly on your bankroll.
 - **Explains itself.** Four deterministic agents (market, squad, quant, risk) reason over the numbers and either recommend a bet or say *pass* — the app never invents an edge.
+- **Explains every pick.** Each fixture has a "Why this pick?" panel: what the price needs to win vs the model vs the market, and the drivers behind it.
 - **Shows the distribution.** The board's hero is a live 3D surface of the featured match's scoreline probabilities; basketball matches get a Pace lab that re-prices the game as you move sliders.
 
 ## Stack
@@ -21,7 +22,7 @@ Fair prices, value bets and stake sizes for football and basketball — an insta
 | 3D | Three.js (lazy-loaded) |
 | Engine | Dependency-free ES modules in `src/lib/engine` (runs in browser and Node) |
 | Hosting | Cloudflare Pages (`@sveltejs/adapter-cloudflare`), every route prerendered |
-| Optional backend | Convex (`convex/`), enabled by `VITE_CONVEX_URL` |
+| Backend | Convex (`convex/`): auth, betslip sync, fixtures |
 
 ## Getting started
 
@@ -36,7 +37,25 @@ npm run preview    # serve the production build with Wrangler on :4173
 npm run build:single  # one self-contained HTML demo → dist-preview/index.html
 ```
 
-Deploy by pointing Cloudflare Pages at this repo with build command `npm run build` and output directory `.svelte-kit/cloudflare`.
+## Deployment
+
+**Frontend (Cloudflare Pages):** build command `npm run build`, output directory `.svelte-kit/cloudflare`. The public Convex URL is read from `.env.production`.
+
+**Backend (Convex):** `.github/workflows/convex-deploy.yml` deploys `convex/` on every push that touches it. One-time setup:
+
+1. GitHub → **Settings → Secrets and variables → Actions → New repository secret**: name `CONVEX_DEPLOY_KEY`, value = your production deploy key from the Convex dashboard.
+2. Optional: add a repository **variable** `SITE_URL` with your app's public URL (defaults to `https://quantedge-sports-pwa.pages.dev`).
+3. Run the workflow once from the **Actions** tab (or push a change to `convex/`).
+
+On its first run the workflow generates the RS256 key pair Convex Auth signs sessions with (`JWT_PRIVATE_KEY`, `JWKS`) and never overwrites it afterwards. To do the same by hand: `node scripts/generate-auth-keys.mjs --apply` with `CONVEX_DEPLOY_KEY` set.
+
+Never commit deploy keys. Only `PUBLIC_CONVEX_URL` belongs in the repo; it ships to browsers anyway.
+
+## Accounts
+
+Email + password sign-up, login and logout use [Convex Auth](https://labs.convex.dev/auth) (`convex/auth.ts`). The Svelte client (`src/lib/auth.svelte.ts`) speaks the same protocol as the official React client: short-lived JWTs, rotating refresh tokens serialised across tabs, server-side revocation on logout. Signed-in users' betslips sync to Convex (`convex/betslip.ts`, scoped to the session user).
+
+Without a Convex URL (e.g. the single-file preview) accounts run in a clearly labelled on-device demo mode with PBKDF2-hashed passwords.
 
 ## Progressive Web App
 
@@ -53,9 +72,10 @@ src/
     data/fixtures.js sample feed — raw ratings, absences and prices only
     state.svelte.ts  app state; predictions derived from the engine
     components/      ScoreSurface3D, FixtureCard, PickTicket, SlipSheet, PaceLab, …
-  routes/            board, football, basketball, value-bets, bookmakers, settings, match/[id]
+  routes/            board, football, basketball, value-bets, bookmakers, settings, match/[id],
+                     login, signup, account
   service-worker/    offline support
-convex/              optional live backend
+convex/              schema, Convex Auth, users, betslip sync
 scripts/pipeline.js  CLI over the sample feed
 test/                engine tests
 ```
