@@ -1,8 +1,11 @@
 name: Deploy Convex backend
 
-# Deploys convex/ (schema, auth, functions) to the production deployment.
+# Deploys convex/ (schema, auth, functions, live-data ingest) to production.
 # Requires one repository secret: CONVEX_DEPLOY_KEY
 #   GitHub → Settings → Secrets and variables → Actions → New repository secret
+# Optional secrets, copied into Convex environment variables when present:
+#   API_SPORTS_KEY, THE_ODDS_API_KEY, ODDSPAPI_KEY
+# (or set them directly in the Convex dashboard → Settings → Environment variables).
 # Optional repository variable: SITE_URL (your app's public URL).
 
 on:
@@ -10,6 +13,8 @@ on:
     branches: [main]
     paths:
       - 'convex/**'
+      - 'src/lib/engine/**'
+      - 'src/lib/feeds/**'
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/generate-auth-keys.mjs'
@@ -59,6 +64,21 @@ jobs:
         env:
           SITE_URL: ${{ vars.SITE_URL || 'https://quantedge-sports-pwa.pages.dev' }}
         run: npx convex env set SITE_URL "$SITE_URL"
+
+      - name: Copy data-provider keys into Convex (when set as secrets)
+        env:
+          API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+        run: |
+          for name in API_SPORTS_KEY THE_ODDS_API_KEY ODDSPAPI_KEY; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              npx convex env set "$name" "$value" > /dev/null && echo "Set $name"
+            else
+              echo "$name not provided as a secret; leaving the Convex value as it is."
+            fi
+          done
 
       - name: Deploy functions and schema
         run: npx convex deploy --typecheck enable

@@ -176,6 +176,15 @@ export default defineSchema({
     status: v.string(),
   }).index("by_user", ["userId"]),
 
+  // Live-data ingest. Two tiny documents only: "ingest" (quota ledgers,
+  // job timestamps, lock, file ids) and "feed" (what clients read). All bulky
+  // data lives gzipped in file storage, so database storage and I/O stay
+  // close to zero on the free plan.
+  feed_state: defineTable({
+    key: v.string(),
+    data: v.any(),
+  }).index("by_key", ["key"]),
+
   ai_match_insights: defineTable({
     fixtureId: v.string(),
     sport: v.string(),

@@ -11,8 +11,11 @@
 import type * as ai_reasoning from "../ai_reasoning.js";
 import type * as auth from "../auth.js";
 import type * as betslip from "../betslip.js";
+import type * as crons from "../crons.js";
+import type * as feed from "../feed.js";
 import type * as fixtures from "../fixtures.js";
 import type * as http from "../http.js";
+import type * as ingest from "../ingest.js";
 import type * as users from "../users.js";
 
 import type {
@@ -25,8 +28,11 @@ declare const fullApi: ApiFromModules<{
   ai_reasoning: typeof ai_reasoning;
   auth: typeof auth;
   betslip: typeof betslip;
+  crons: typeof crons;
+  feed: typeof feed;
   fixtures: typeof fixtures;
   http: typeof http;
+  ingest: typeof ingest;
   users: typeof users;
 }>;
 
