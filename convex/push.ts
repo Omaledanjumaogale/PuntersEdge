@@ -54,3 +54,23 @@ export const claimAlert=internalMutation({args:{id:v.id('push_subscriptions'),ev
  const old=device.lastAlerts?.[args.event];if(old?.batchId===args.batchId||old&&old.at>args.now-15*60000)return false;
  await ctx.db.patch(device._id,{lastAlerts:{...(device.lastAlerts??{}),[args.event]:{batchId:args.batchId,at:args.now}}});return true;
 }});
+
+/** Browser permission alone is not a registered, account-owned backend connection. */
+export const deviceStatus=query({args:{endpoint:v.string()},handler:async(ctx,{endpoint})=>{
+ const userId=await requireUser(ctx);
+ const device=await ctx.db.query('push_subscriptions').withIndex('by_endpoint',q=>q.eq('endpoint',endpoint)).unique();
+ return device?.userId===userId?{registered:true,lastDelivery:device.lastDelivery??null}:{registered:false,lastDelivery:null};
+}});
+export const prepareTest=internalMutation({args:{endpoint:v.string()},handler:async(ctx,{endpoint})=>{
+ const userId=await requireSubscription(ctx);
+ const device=await ctx.db.query('push_subscriptions').withIndex('by_endpoint',q=>q.eq('endpoint',endpoint)).unique();
+ if(!device||device.userId!==userId)throw new Error('Connect this device to your account before sending a test.');
+ const user=await ctx.db.get(userId);
+ if(!(user?.notificationPreferences??DEFAULT_NOTIFICATION_PREFERENCES).activities)throw new Error('Enable and save membership activity notifications before sending a test.');
+ if(device.lastTestAt&&device.lastTestAt>Date.now()-5*60000)throw new Error('Please wait five minutes before sending another test to this device.');
+ await ctx.db.patch(device._id,{lastTestAt:Date.now()});
+ return device;
+}});
+export const recordDelivery=internalMutation({args:{id:v.id('push_subscriptions'),outcome:v.union(v.literal('accepted'),v.literal('failed')),statusCode:v.optional(v.number())},handler:async(ctx,args)=>{
+ if(await ctx.db.get(args.id))await ctx.db.patch(args.id,{lastDelivery:{at:Date.now(),outcome:args.outcome,...(args.statusCode===undefined?{}:{statusCode:args.statusCode})}});
+}});

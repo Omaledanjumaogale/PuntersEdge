@@ -24,6 +24,7 @@ class PwaState {
 	offline = $state(false);
 	pushEnabled = $state(false);
 	pushBusy = $state(false);
+	lastPushDelivery=$state<{at:number;outcome:'accepted'|'failed';statusCode?:number}|null>(null);
 	notificationPermission = $state<NotificationPermission | 'unsupported'>('unsupported');
 	#started = false;
 	#deferred: BeforeInstallPromptEvent | null = null;
@@ -70,7 +71,7 @@ class PwaState {
 		if (!('serviceWorker' in navigator) || import.meta.env.DEV) return;
 		try {
 			const reg = await navigator.serviceWorker.register('/service-worker.js');
-			if ('pushManager' in reg) this.pushEnabled = Boolean(await reg.pushManager.getSubscription());
+			await this.reconcileNotifications();
 
 			const track = (worker: ServiceWorker | null) => {
 				if (!worker) return;
@@ -106,7 +107,20 @@ class PwaState {
 		}
 	}
 
+	async reconcileNotifications(){
+		const client=auth.client,owner=auth.viewer?.id;
+		this.pushEnabled=false;this.lastPushDelivery=null;
+		if(!client||!auth.viewer?.activeSubscription||typeof navigator==='undefined'||!('serviceWorker' in navigator))return;
+		try{const subscription=await (await navigator.serviceWorker.getRegistration())?.pushManager?.getSubscription();if(!subscription)return;const status=await client.query(anyApi.push.deviceStatus,{endpoint:subscription.endpoint});if(auth.client!==client||auth.viewer?.id!==owner)return;this.pushEnabled=status.registered;this.lastPushDelivery=status.lastDelivery;}catch{/* Unverified browser subscriptions must not display as connected. */}
+	}
+
+	async testNotifications(){
+		if(this.pushBusy||!auth.client)return;this.pushBusy=true;
+		try{const subscription=await (await navigator.serviceWorker.getRegistration())?.pushManager?.getSubscription();if(!subscription)throw new Error('Enable notifications on this device first.');await auth.client.action(anyApi.notifications.testDevice,{endpoint:subscription.endpoint});await this.reconcileNotifications();toast.success('Push service accepted the test. Check your device notifications, including with the app closed.');}catch(error){toast.error(error instanceof Error?error.message:'The notification test failed.');await this.reconcileNotifications();}finally{this.pushBusy=false;}
+	}
+
 	async enableNotifications() {
+		if(this.pushBusy)return;
 		if (!auth.client) { toast.error('Sign in with an active subscription to enable push notifications.'); return; }
 		if (!('Notification' in window) || !('PushManager' in window) || !window.isSecureContext || !('serviceWorker' in navigator)) {
 			toast.error('Push notifications need HTTPS and a supported browser. On iPhone, install the app first.'); return;
@@ -134,6 +148,7 @@ class PwaState {
 	}
 
 	async disableNotifications() {
+		if(this.pushBusy)return;
 		this.pushBusy = true;
 		try {
 			const subscription = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription();

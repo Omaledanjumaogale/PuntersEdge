@@ -196,7 +196,7 @@ export default defineSchema({
     data: v.any(),
   }).index("by_key", ["key"]),
 
-  push_subscriptions: defineTable({userId:v.id("users"),endpoint:v.string(),p256dh:v.string(),auth:v.string(),createdAt:v.number(),lastAlerts:v.optional(v.any())}).index("by_endpoint",["endpoint"]).index("by_user",["userId"]),
+  push_subscriptions: defineTable({userId:v.id("users"),endpoint:v.string(),p256dh:v.string(),auth:v.string(),createdAt:v.number(),lastAlerts:v.optional(v.any()),lastTestAt:v.optional(v.number()),lastDelivery:v.optional(v.object({at:v.number(),outcome:v.union(v.literal("accepted"),v.literal("failed")),statusCode:v.optional(v.number())}))}).index("by_endpoint",["endpoint"]).index("by_user",["userId"]),
   admin_audit: defineTable({ actorId: v.id("users"), targetId: v.id("users"), operation: v.string(), createdAt: v.number() }),
   payments: defineTable({
     userId: v.id("users"), provider: v.union(v.literal("flutterwave"), v.literal("korapay")),

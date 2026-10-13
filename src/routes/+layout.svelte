@@ -37,6 +37,8 @@
 		return () => { clearInterval(clock); feed.stop(); stopSync(); stopSettings(); auth.destroy(); };
 	});
 
+	$effect(()=>{auth.client;auth.viewer?.id;auth.viewer?.activeSubscription;void pwa.reconcileNotifications();});
+
 	$effect(() => {
 		document.documentElement.dataset.motion = app.settings.motion ? 'on' : 'off';
 	});

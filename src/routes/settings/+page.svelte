@@ -140,6 +140,8 @@
 			{:else if pwa.notificationPermission==='unsupported'}<p class="mt-2 text-sm text-haze">Use an HTTPS browser with Web Push support. On iPhone, open the installed app.</p>
 			{:else if pwa.notificationPermission==='denied'}<p class="mt-2 text-sm text-haze">Allow notifications in your browser or device settings, then reload. We won’t repeatedly request permission.</p>{/if}
 			<button class="btn-ghost mt-3 text-sm" disabled={pwa.pushBusy||pwa.offline} onclick={()=>pwa.pushEnabled?pwa.disableNotifications():pwa.enableNotifications()}>{pwa.pushBusy?'Connecting…':pwa.pushEnabled?'Disconnect this device':'Enable notifications on this device'}</button>
+			{#if pwa.pushEnabled}<button class="btn-primary mt-3 ml-2 text-sm" disabled={pwa.pushBusy||pwa.offline||!preferences.activities} onclick={()=>pwa.testNotifications()}>Send background test</button><p class="mt-2 text-xs text-haze">Save membership activity alerts first. A test uses the real push service and is limited to one every five minutes per device.</p>{/if}
+			{#if pwa.lastPushDelivery}<p class="mt-2 text-xs text-haze">Last push service response: {pwa.lastPushDelivery.outcome==='accepted'?'accepted for delivery':'failed'}{pwa.lastPushDelivery.statusCode?` (${pwa.lastPushDelivery.statusCode})`:''} · {new Date(pwa.lastPushDelivery.at).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})} WAT. Service acceptance does not confirm display on the phone.</p>{/if}
 		</div>
 	</section>
 

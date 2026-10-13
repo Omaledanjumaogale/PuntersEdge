@@ -1,3 +1,4 @@
+import webpush from 'web-push';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import betterAuth from '@convex-dev/better-auth/test';
@@ -6,7 +7,7 @@ import schema from '../../convex/schema';
 const modules = import.meta.glob('../../convex/**/*.ts');
 const create = () => { const t = convexTest(schema, modules); betterAuth.register(t); return t; };
 beforeEach(()=>{vi.stubEnv('BETTER_AUTH_SECRET',crypto.randomUUID()+crypto.randomUUID());vi.stubEnv('SITE_URL','https://puntersedge.example.test');vi.stubEnv('CONVEX_SITE_URL','https://backend.example.test');});
-afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 async function member(t: ReturnType<typeof create>, email = 'member@example.test') {
  const component = componentsGeneric().betterAuth;
@@ -185,4 +186,44 @@ it('notification preferences are account-owned and every send rechecks preferenc
  expect(await t.mutation(anyApi.push.claimAlert,{id:ids.second,event:'activities',targetUserId:b.localId,batchId:'expired-account-notice',now:Date.now()})).toBe(true);
  await b.signed.mutation(anyApi.push.savePreferences,{preferences:{...preferences,activities:false}});
  expect(await t.mutation(anyApi.push.claimAlert,{id:ids.second,event:'activities',targetUserId:b.localId,batchId:'disabled-notice',now:Date.now()+900001})).toBe(false);
+});
+
+function pushKeys(){const keys=webpush.generateVAPIDKeys();vi.stubEnv('PUBLIC_VAPID_KEY',keys.publicKey);vi.stubEnv('VAPID_PRIVATE_KEY',keys.privateKey);vi.stubEnv('VAPID_SUBJECT','mailto:alerts@example.test');return keys;}
+it('device status verifies backend ownership; a real-send test is subscribed, owner-scoped and throttled',async()=>{
+ const t=create(),a=await member(t,'test-push-a@example.test'),b=await member(t,'test-push-b@example.test');
+ const keys=pushKeys(),device={endpoint:'https://fcm.googleapis.com/fcm/send/device-test',p256dh:keys.publicKey,auth:Buffer.alloc(16).toString('base64url')};
+ const send=vi.spyOn(webpush,'sendNotification').mockResolvedValue({statusCode:201,headers:{},body:''});
+ await expect(a.signed.action(anyApi.notifications.testDevice,{endpoint:device.endpoint})).rejects.toThrow('active all-access');
+ await t.run(ctx=>ctx.db.insert('subscriptions',{userId:a.localId,expiresAt:Date.now()+3600000,updatedAt:Date.now()}));
+ await t.run(ctx=>ctx.db.insert('subscriptions',{userId:b.localId,expiresAt:Date.now()+3600000,updatedAt:Date.now()}));
+ expect(await a.signed.query(anyApi.push.deviceStatus,{endpoint:device.endpoint})).toEqual({registered:false,lastDelivery:null});
+ await a.signed.mutation(anyApi.push.register,device);
+ expect(await a.signed.query(anyApi.push.deviceStatus,{endpoint:device.endpoint})).toEqual({registered:true,lastDelivery:null});
+ expect(await b.signed.query(anyApi.push.deviceStatus,{endpoint:device.endpoint})).toEqual({registered:false,lastDelivery:null});
+ await expect(b.signed.action(anyApi.notifications.testDevice,{endpoint:device.endpoint})).rejects.toThrow('Connect this device');
+ expect(send).toHaveBeenCalledTimes(0);
+ expect(await a.signed.action(anyApi.notifications.testDevice,{endpoint:device.endpoint})).toEqual({accepted:true,statusCode:201});
+ expect(send).toHaveBeenCalledTimes(1);expect(JSON.parse(send.mock.calls[0][1] as string).title).toBe('PuntersEdge notification test');
+ expect(await a.signed.query(anyApi.push.deviceStatus,{endpoint:device.endpoint})).toMatchObject({registered:true,lastDelivery:{outcome:'accepted',statusCode:201}});
+ await expect(a.signed.action(anyApi.notifications.testDevice,{endpoint:device.endpoint})).rejects.toThrow('five minutes');expect(send).toHaveBeenCalledTimes(1);
+});
+it('delivery test respects saved preferences and removes an expired push endpoint',async()=>{
+ const t=create(),a=await member(t,'expired-device@example.test'),keys=pushKeys();
+ await t.run(ctx=>ctx.db.insert('subscriptions',{userId:a.localId,expiresAt:Date.now()+3600000,updatedAt:Date.now()}));
+ const device={endpoint:'https://web.push.apple.com/test-expired',p256dh:keys.publicKey,auth:Buffer.alloc(16).toString('base64url')};await a.signed.mutation(anyApi.push.register,device);
+ const preferences={newMatches:true,liveStarts:true,scoreUpdates:false,finishedGames:true,activities:false};await a.signed.mutation(anyApi.push.savePreferences,{preferences});
+ const send=vi.spyOn(webpush,'sendNotification').mockRejectedValue({statusCode:410});
+ await expect(a.signed.action(anyApi.notifications.testDevice,{endpoint:device.endpoint})).rejects.toThrow('Enable and save');expect(send).toHaveBeenCalledTimes(0);
+ await a.signed.mutation(anyApi.push.savePreferences,{preferences:{...preferences,activities:true}});
+ await expect(a.signed.action(anyApi.notifications.testDevice,{endpoint:device.endpoint})).rejects.toThrow('connection expired');expect(send).toHaveBeenCalledTimes(1);
+ expect(await a.signed.query(anyApi.push.deviceStatus,{endpoint:device.endpoint})).toEqual({registered:false,lastDelivery:null});
+});
+it('targeted background test reaches only owner devices and records push service acceptance without claiming phone display',async()=>{
+ const t=create(),a=await member(t,'background-a@example.test'),b=await member(t,'background-b@example.test'),keys=pushKeys();vi.stubEnv('SUPER_ADMIN_USER_ID',a.localId);
+ await t.run(async ctx=>{await ctx.db.insert('subscriptions',{userId:b.localId,expiresAt:Date.now()+3600000,updatedAt:Date.now()});for(const id of [a.localId,b.localId])await ctx.db.insert('push_subscriptions',{userId:id,endpoint:`https://fcm.googleapis.com/fcm/send/${id}`,p256dh:keys.publicKey,auth:Buffer.alloc(16).toString('base64url'),createdAt:Date.now()});});
+ const send=vi.spyOn(webpush,'sendNotification').mockResolvedValue({statusCode:201,headers:{},body:''});
+ const args={event:'activities',activity:'testDelivery',count:1,targetUserId:a.localId,batchId:'background-test'};
+ expect(await t.action(anyApi.notifications.deliver,args)).toEqual({sent:1,failed:0});expect(send).toHaveBeenCalledTimes(1);expect(JSON.parse(send.mock.calls[0][1] as string)).toMatchObject({title:'PuntersEdge notification test',url:'/settings'});
+ expect(await t.action(anyApi.notifications.deliver,args)).toEqual({sent:0,failed:0});expect(send).toHaveBeenCalledTimes(1);
+ const devices=await t.run(ctx=>ctx.db.query('push_subscriptions').collect());expect(devices.find(d=>d.userId===a.localId)?.lastDelivery).toMatchObject({outcome:'accepted',statusCode:201});expect(devices.find(d=>d.userId===b.localId)?.lastDelivery).toBeUndefined();
 });
