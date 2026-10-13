@@ -11,6 +11,8 @@ declare global {
 	interface ImportMetaEnv {
 		readonly VITE_CONVEX_URL?: string;
 		readonly PUBLIC_CONVEX_URL?: string;
+		readonly PUBLIC_CONVEX_SITE_URL?: string;
+		readonly PUBLIC_SITE_URL?: string;
 	}
 }
 

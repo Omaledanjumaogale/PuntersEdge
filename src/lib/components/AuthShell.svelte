@@ -23,7 +23,7 @@
 
 		{#if auth.mode === 'demo'}
 			<p class="mt-4 rounded-xl tint-book px-3 py-2 text-sm text-chalk ring-1 ring-book/50" role="note">
-				🧪 Preview mode: accounts are saved on this device only. The live app uses your Convex backend.
+				Account services are unavailable until the backend is configured.
 			</p>
 		{/if}
 

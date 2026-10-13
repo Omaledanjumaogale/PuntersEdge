@@ -9,7 +9,7 @@
  * coming up; lookups run monthly.
  */
 
-import { SPORTS, SPORT_KEYS } from './catalog.js';
+import { SPORTS, SPORT_KEYS, sportForOddsApiKey } from './catalog.js';
 import { oddsApiOddsUrl } from './theoddsapi.js';
 import { TOURNAMENTS_PER_CALL } from './oddspapi.js';
 import { allowance, current, daysInMonth } from './budget.js';
@@ -38,9 +38,14 @@ export const dateOffset = (/** @type {number} */ now, /** @type {number} */ n) =
  * @typedef {import('./budget.js').Job} Job
  * @typedef {import('./store.js').Store} Store
  * @typedef {Object} Lookups OddsPapi id → name lookups (refreshed monthly)
+ * @property {Record<string, number>} [seasonDenials] season access failures cached until next UTC day
  * @property {string} [month]
+ * @property {Record<string,number>} [dateDenials]
+ * @property {Array<{key:string,title:string}>} [oddsApiSports] supported active competitions from the free catalog
+ * @property {number} [oddsApiSportsAt]
  * @property {Partial<Record<import('./catalog.js').SportKey, number>>} [sportIds]
  * @property {Record<string, any>} [markets]
+ * @property {Record<string,number>} [providerBackoffs]
  * @property {Array<{ slug: string, name: string }>} [bookmakers]
  * @property {Record<string, Array<{ id: number, name: string, category: string, upcoming: number }>>} [tournaments] by sport
  * @property {Record<string, number>} [tournamentsAt]
@@ -70,16 +75,18 @@ export function listJobs(store, lookups, now, keys, ledgers = {}) {
       const ledger = `api-sports:${sport}`;
       const mine = games.filter((g) => g.sport === sport && g.ext.as);
       const today = mine.filter((g) => new Date(g.kickoff).toISOString().slice(0, 10) === dateOffset(now, 0));
-      const live = mine.some((g) => g.status.state === 'live' || (g.status.state === 'scheduled' && g.kickoff < now && now - g.kickoff < 4 * H));
+      const live = today.some((g) => g.status.state === 'live' || (g.status.state === 'scheduled' && g.kickoff < now && now - g.kickoff < 4 * H));
+      const yesterday = mine.filter(g=>new Date(g.kickoff).toISOString().slice(0,10) === dateOffset(now,-1));
+      const previousLive = yesterday.some(g=>g.status.state==='live'||(g.status.state==='scheduled'&&g.kickoff<now&&now-g.kickoff<4*H));
       const pendingToday = today.some((g) => g.status.state === 'scheduled');
       const todayEvery = live ? 30 * MIN : pendingToday ? 60 * MIN : 3 * H;
 
-      jobs.push({ id: `as:${sport}:day:0`, ledger, cost: 1, priority: 1, every: todayEvery - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 0) } });
-      jobs.push({ id: `as:${sport}:day:1`, ledger, cost: 1, priority: 2, every: 6 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 1) } });
-      jobs.push({ id: `as:${sport}:day:-1`, ledger, cost: 1, priority: 3, every: 12 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, -1) } });
-      jobs.push({ id: `as:${sport}:day:2`, ledger, cost: 1, priority: 4, every: 12 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 2) } });
+      jobs.push({ id: `as:${sport}:all-leagues-v2:day:0:${dateOffset(now,0)}`, ledger, cost: 1, priority: 1, every: todayEvery - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 0) } });
+      jobs.push({ id: `as:${sport}:all-leagues-v2:day:1:${dateOffset(now,1)}`, ledger, cost: 1, priority: 2, every: 6 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 1) } });
+      jobs.push({ id: `as:${sport}:all-leagues-v2:day:-1:${dateOffset(now,-1)}`, ledger, cost: 1, priority: previousLive ? 1 : 3, every: (previousLive ? 30 * MIN : 12 * H) - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, -1) } });
+      jobs.push({ id: `as:${sport}:all-leagues-v2:day:2:${dateOffset(now,2)}`, ledger, cost: 1, priority: 4, every: 12 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 2) } });
       // Keep enough for the rest of today's schedule refreshes before spending on extras.
-      protect[ledger] = Math.ceil(hoursLeft * (live ? 2 : 1)) + Math.ceil(hoursLeft / 6) + 2;
+      protect[ledger] = Math.ceil(hoursLeft * (live ? 2 : 1)) + Math.ceil(hoursLeft / 6) + 2 + (previousLive ? Math.ceil(Math.min(hoursLeft,4)*2) : 0);
 
       // League tables for competitions with games in the next three days.
       const upcoming = mine.filter((g) => g.kickoff > now - 3 * H && g.kickoff < now + 3 * DAY && g.leagueId !== undefined);
@@ -117,14 +124,17 @@ export function listJobs(store, lookups, now, keys, ledgers = {}) {
 
   if (keys.oddsApi) {
     const ledger = 'the-odds-api';
-    const active = SPORT_KEYS.flatMap((sport) => SPORTS[sport].theOddsApi).filter((key) => {
+    jobs.push({ id: 'toa:sports', ledger, cost: 0, priority: 0, every: 7 * DAY, params: { kind: 'toa-sports' } });
+    /** @type {string[]} */
+    const available = lookups.oddsApiSports ? lookups.oddsApiSports.filter(s=>!/championship_winner|world_series_winner/.test(s.key)).map(s => s.key) : SPORT_KEYS.flatMap(sport => SPORTS[sport].theOddsApi);
+    const active = available.filter((key) => {
       const ev = store.oddsApiEvents[key];
       return ev && ev.count > 0 && !(ev.next && ev.next > now + 36 * H);
     });
     const sweepCost = active.reduce((a, key) => a + oddsApiOddsUrl(key).cost, 0);
     const toaEvery = pacedEvery(ledgers[ledger], ledger, sweepCost, now);
     for (const sport of SPORT_KEYS) {
-      for (const key of SPORTS[sport].theOddsApi) {
+      for (const key of available.filter(key => sportForOddsApiKey(key) === sport)) {
         // Free: which keys have games soon.
         jobs.push({ id: `toa:events:${key}`, ledger, cost: 0, priority: 0, every: 12 * H - 2 * MIN, params: { kind: 'toa-events', key } });
         const ev = store.oddsApiEvents[key];
@@ -132,7 +142,7 @@ export function listJobs(store, lookups, now, keys, ledgers = {}) {
         const { cost } = oddsApiOddsUrl(key);
         const tier = SPORTS[sport].competitions[0]?.tier ?? 2;
         // Busy, top-tier competitions first; then whatever has gone longest without a refresh.
-        jobs.push({ id: `toa:odds:${key}`, ledger, cost, priority: 10 + tier * 2 - Math.min(3, ev.count / 4), every: toaEvery, params: { kind: 'toa-odds', key } });
+        jobs.push({ id: `toa:odds:${key}`, ledger, cost, group: sport, priority: 10 + tier * 2 - Math.min(3, ev.count / 4), every: toaEvery, params: { kind: 'toa-odds', key } });
       }
     }
   }
@@ -163,15 +173,19 @@ export function listJobs(store, lookups, now, keys, ledgers = {}) {
     }
     // Odds: followed tournaments with fixtures, a few per call.
     if (lookups.markets && lookups.bookmakers && lookups.tournaments) {
-      const ids = new Set();
-      for (const sport of SPORT_KEYS) {
-        for (const t of lookups.tournaments[sport] ?? []) if (t.upcoming > 0) ids.add(t.id);
-      }
-      const list = [...ids].sort((a, b) => a - b);
-      const opEvery = pacedEvery(ledgers[ledger], ledger, Math.ceil(list.length / TOURNAMENTS_PER_CALL), now);
-      for (let i = 0; i < list.length; i += TOURNAMENTS_PER_CALL) {
-        const chunk = list.slice(i, i + TOURNAMENTS_PER_CALL);
-        jobs.push({ id: `op:odds:${chunk.join(',')}`, ledger, cost: 1, priority: 10 + i / TOURNAMENTS_PER_CALL, every: opEvery, params: { kind: 'op-odds', tournamentIds: chunk } });
+      /** @type {Set<number>} */
+      const seen = new Set();
+      const tournaments = lookups.tournaments;
+      const groups = SPORT_KEYS.map(sport => ({ sport, ids: (tournaments[sport] ?? []).filter(t => t.upcoming > 0 && !seen.has(t.id) && seen.add(t.id)).map(t => t.id).sort((a,b) => a-b) }));
+      const sweepCost = groups.reduce((sum, group) => sum + Math.ceil(group.ids.length / TOURNAMENTS_PER_CALL), 0);
+      const opEvery = pacedEvery(ledgers[ledger], ledger, sweepCost, now);
+      for (const { sport, ids } of groups) {
+        for (let i = 0; i < ids.length; i += TOURNAMENTS_PER_CALL) {
+          const chunk = ids.slice(i, i + TOURNAMENTS_PER_CALL);
+          // Equal priority plus oldest-refresh ordering rotates minor competitions,
+          // while the sport group keeps every dashboard in the daily rotation.
+          jobs.push({ id: `op:odds:1xbet-v2:${chunk.join(',')}`, ledger, cost: 1, group: sport, priority: 10, every: opEvery, params: { kind: 'op-odds', tournamentIds: chunk } });
+        }
       }
     }
   }

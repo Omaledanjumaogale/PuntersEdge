@@ -1,4 +1,6 @@
 <script lang="ts">
+	import FAQSection from '#lib/components/FAQSection.svelte';
+	import TLDRBlock from '#lib/components/TLDRBlock.svelte';
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { pwa } from '#lib/pwa.svelte.ts';
@@ -33,6 +35,7 @@
 	<title>PuntersEdge — bet smarter on football, NBA, hockey and baseball</title>
 </svelte:head>
 
+<TLDRBlock answer="PuntersEdge compares sports model probabilities with bookmaker prices across football, NBA, basketball, ice hockey and baseball. Check the provider data badge and its refresh timestamp. Predictions are estimates, and no outcome or return is guaranteed." />
 <!-- Hero -->
 <section class="relative grid items-center gap-10 py-4 md:grid-cols-[1.1fr_1fr] md:py-10" aria-labelledby="home-title">
 	<div>
@@ -195,3 +198,10 @@
 		</div>
 	</div>
 </section>
+
+<FAQSection items={[
+ { question: 'Are sports predictions guaranteed?', answer: 'No. Model probabilities describe uncertain outcomes. An estimated edge does not guarantee a winning bet.' },
+ { question: 'How do I know whether the data is live?', answer: 'Check the provider data badge and its refresh timestamp. Provider limits and outages may delay updates.' },
+ { question: 'Which sports does PuntersEdge cover?', answer: 'PuntersEdge supports football, NBA, basketball, ice hockey and baseball, with sport-specific scoring models.' }
+]} />
+<section aria-labelledby="analysis-sources" class="mt-8 text-sm text-haze"><h2 id="analysis-sources" class="font-bold text-chalk">Where does the sports data come from?</h2><p class="mt-2">Available live feeds use <cite><a class="underline" href="https://api-sports.io/">API-Sports</a></cite>, <cite><a class="underline" href="https://oddspapi.io/">OddsPapi</a></cite> and <cite><a class="underline" href="https://the-odds-api.com/">The Odds API</a></cite>. Coverage depends on provider plans and quotas. <a class="underline" href="/results">Review freshness and usage</a>.</p><p class="mt-2"><a href="https://ewinproject.org" class="underline">Explore the E-WIN Project Ecosystem</a>.</p></section>

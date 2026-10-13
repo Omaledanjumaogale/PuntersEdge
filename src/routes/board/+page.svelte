@@ -26,7 +26,7 @@
 <svelte:head><title>Board — PuntersEdge</title></svelte:head>
 <svelte:window bind:innerWidth />
 
-<!-- Hero: the engine's output for the strongest edge with a score grid, in 3D -->
+<!-- Hero: the engine's output for the highest decision score with a score grid, in 3D -->
 {#if f && top}
 <section class="relative -mx-4 overflow-hidden sm:mx-0 sm:rounded-[var(--radius-sheet)] sm:border sm:border-line" aria-labelledby="hero-title">
 	<div class="grid md:grid-cols-[1.1fr_1fr] md:items-center">

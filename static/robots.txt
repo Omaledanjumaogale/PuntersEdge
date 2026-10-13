@@ -1,3 +1,135 @@
-# allow crawling everything by default
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: Anthropic-AI
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: YouBot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /settings
+Disallow: /auth
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /board
+Disallow: /value-bets
+
+# This application serves its own sitemap at /sitemap.xml.
+# The parent ecosystem publishes its separate sitemap here:
+Sitemap: https://ewinproject.org/sitemap.xml

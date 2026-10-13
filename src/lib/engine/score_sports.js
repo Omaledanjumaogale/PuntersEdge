@@ -13,7 +13,7 @@
 
 import { poissonPmf, round, fairOdds } from './math.js';
 import { fairProbabilities } from './vig_removal.js';
-import { calculateKellyStake, gradeSelection } from './decision_screener.js';
+import { calculateKellyStake, gradeSelection, rankSelections } from './decision_screener.js';
 
 /**
  * @typedef {Object} ScoreSportConfig
@@ -405,6 +405,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
   }
   groups.push({ key: 'team', title: cfg.labels.team, emoji: family === 'hockey' ? '🥅' : '🧢', blurb: 'One team only.', selections: price(team) });
 
+  for (const group of groups) group.selections = rankSelections(group.selections).map(selection => ({ ...selection, kellyStakePercent: selection.eligible ? selection.kellyStakePercent : 0 }));
   const all = groups.flatMap((g) => g.selections);
   const valueBets = all.filter((s) => s.pricing === 'quoted').sort((a, b) => b.edgePercent - a.edgePercent);
 
@@ -452,7 +453,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
     bookmakers: books.map((b) => b.book),
     margins: Object.fromEntries(books.map((b) => [b.book, round(b.mML * 100, 2)])),
     valueBets,
-    bestValue: valueBets[0],
+    bestValue: rankSelections(all.filter(s => s.pricing === 'quoted'))[0],
     markets: groups,
     movement: null,
     marketSteamAlert: false,

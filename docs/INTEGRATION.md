@@ -1,0 +1,123 @@
+# PuntersEdge integration and deployment
+
+The production frontend origin is **https://puntersedge.ewinproject.org**. The E-WIN mother organization and verified Resend sender domain are **ewinproject.org**. Use **PuntersEdge <puntersedge@ewinproject.org>** as the sender; the app subdomain is not a separate mail domain.
+
+## Current implementation
+
+All five dashboards share quota-controlled live fixtures and sport-specific engines. Realtime Convex metadata subscriptions replace ten-minute polling. Backend feed queries release file URLs only to active members or the bound administrator; public dashboards remain empty until an entitled provider feed is available. The device performs quantitative calculations; LLM explanations use server-sourced fixtures and cannot replace model probabilities or invent bookmaker prices. Signup, email verification, password recovery and cookie sessions use the official Convex Better Auth component and Resend. Betslips and analysis settings synchronize by immutable authenticated user ID; switching accounts clears the previous user's local slip.
+
+Flutterwave v4 dynamic bank-transfer accounts, its optional v3 hosted checkout, and Korapay hosted checkout charge **NGN 10,000**. A valid signed webhook triggers a provider verification request and checks reference, provider, currency and exact amount before granting one calendar month. Duplicate callbacks cannot extend membership twice. These integrations support **manual monthly renewal**, not recurring automatic debit. Subscription expiration schedules an update that invalidates realtime entitlement queries. The admin console supports subscription grants/revocation, audited operations, quota health and a cooldown-protected scheduled ingestion refresh.
+
+The frontend now renders public content and JSON-LD on the server. Canonicals point to the production domain; robots, llms indexes, sitemap, RSS and the E-WIN banner link the application to its mother organization. PWA manifests, mobile navigation, offline public pages, unified toasts, tooltips and permission-based foreground device alerts are wired. Background Web Push registers subscribed devices, sends encrypted generic settled-result alerts through their browser push services, and handles service-worker clicks. Activation requires a matching VAPID key pair configured directly in Convex and a supported production browser; actual external delivery remains unverified.
+
+## Prerequisites and secure variables
+
+Rotate credentials that were pasted into chat before enabling production; never commit private values. No supplied passwords, deploy keys, payment secrets or provider tokens are stored in repository files. Cloud environment proxy secret bindings are not a replacement for setting backend signing secrets directly in Convex. Do not use proxy placeholders as `BETTER_AUTH_SECRET` or webhook signing keys.
+
+| Destination | Required values |
+| --- | --- |
+| Cloudflare Pages production and preview, at build time and runtime | `PUBLIC_SITE_URL`, `PUBLIC_CONVEX_URL`, `PUBLIC_CONVEX_SITE_URL` (see `.env.example`) |
+| Convex | `SITE_URL=https://puntersedge.ewinproject.org`, random `BETTER_AUTH_SECRET` of at least 32 characters, `RESEND_FROM_EMAIL=PuntersEdge <puntersedge@ewinproject.org>`, `PUNTERSEDGE_RESEND_API_KEY`, `CONVEX_HTTP_ACTIONS_URL=https://reliable-duck-539.eu-west-1.convex.site` |
+| Convex provider ingest | `API_SPORTS_KEY` (or `API_FOOTBALL_KEY`), `THE_ODDS_API_KEY`, `ODDSPAPI_KEY` |
+| Convex AI | `AGNES_AI_KEY` plus provider-supported `AGNES_AI_MODEL`, or `AIHUBMIX_API_KEY` and optional `AIHUBMIX_BASE_URL=https://api.inferera.com` |
+| Convex payments | Flutterwave v4 `FLW_CLIENT_ID`, `FLW_SECRET_KEY`, `FLW_API_VERSION=v4`, `FLW_SECRET_HASH`, `FLW_ENABLED=true`; optional Korapay `KORAPAY_SECRET_KEY`, `KORAPAY_ENABLED=true` |
+| Convex admin | `SUPER_ADMIN_USER_ID`, set only after verified registration; see `AUTHENTICATION.md` |
+| GitHub Actions secrets | Above private values plus `CONVEX_DEPLOY_KEY` and `CLOUDFLARE_API_TOKEN` |
+| GitHub Actions variables | `SITE_URL`, `RESEND_FROM_EMAIL`, `CLOUDFLARE_ACCOUNT_ID`; optional `SUPER_ADMIN_USER_ID`, `AGNES_AI_MODEL`, `AIHUBMIX_BASE_URL` |
+
+The supplied 250-request key maps to **ODDSPAPI_KEY**; the 500-credit key maps to **THE_ODDS_API_KEY**. Their similarly named labels in chat must not be swapped. AIHubMix queries its model catalog and accepts explicit `:free` model IDs or the verified catalog ID `xiaomi-mimo-v2.6-pro-free`. If that endpoint does not expose such a model, it refuses completion requests. This is a deliberate fail-closed configuration; the requested MiMo model is not assumed free without provider confirmation. There is no automatic paid fallback. Backend AI attempts are limited to 10 per member per UTC day, with one bounded cached result per member.
+
+The supplied Flutterwave credentials passed the deployed v4 OAuth and read-only bank-directory checks. V4 bank-transfer checkout is enabled; no real virtual account or payment was created during validation. The implementation rejects mismatched customer/reference/amount/currency and preserves the exact subscription price. Korapay is disabled because its supplied key returned HTTP 401. Encryption keys and the Korapay public key are unnecessary for these checkout flows; raw card details never pass through this app.
+
+## Hosted configuration
+
+`scripts/configure-hosted.mjs` reads injected environment variables, preserves existing Pages variables, registers the app domain, adds its CNAME, finds or creates the **mother Resend domain**, requests DNS verification only when it is not already verified, and populates GitHub Actions secrets/variables without printing their values. It refuses conflicting DNS records rather than overwriting them. It requires Cloudflare Pages and zone DNS edit access, Resend domain management access, and GitHub Actions secret/variable write access. The helper has been syntax checked. Pages settings and the existing custom domain were confirmed directly, and the parent Resend domain was already verified. GitHub Actions secret/variable updates remain blocked by the connected integration’s read-only repository permissions.
+
+Set a fresh `BETTER_AUTH_SECRET` securely in GitHub/Convex. `scripts/configure-convex-env.mjs` checks required settings and copies injected values into the selected Convex deployment before deploying functions. It suppresses provider output that might include credentials. The deployment workflows install the locked dependencies, run checks/tests, and deploy the Convex component/functions or Cloudflare Pages output. Use the **production** GitHub environment if repository environment approvals are configured.
+
+Register these webhook destinations in the providers' dashboards:
+
+- Flutterwave: `https://reliable-duck-539.eu-west-1.convex.site/payments/flutterwave`, using the matching webhook secret hash/signature configuration.
+
+Run **Deploy Convex backend**, then **Deploy Cloudflare Pages** after backend secrets and mail verification are ready. Trigger an ingest tick via the protected admin refresh button or the existing `ingest:tick` CLI command. This goes through the same locks, cadence and budget controls; it never bypasses quotas.
+
+## Web Push activation
+
+Configure `PUBLIC_VAPID_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT=mailto:puntersedge@ewinproject.org` directly in Convex. From the checkout with an authorized deploy key, `node scripts/generate-push-keys.mjs --apply` creates and stores a pair only when no existing pair is configured; it never prints the private key. Do not rotate one half of a pair independently. Private signing keys must be raw Convex secrets, not proxy placeholders.
+
+After deployment, a signed-in member can choose **Enable background alerts** in the mobile menu. Permission is requested through a user gesture. Registration allows only supported HTTPS browser-push destinations and limits each account to five devices. Expired memberships are excluded from delivery, and gone endpoints are pruned. New settled results trigger generic alerts; provider or model outputs are not embedded in lock-screen notifications.
+
+## Data limits and storage
+
+API-Sports is capped at 90 requests per sport API daily, reserving 10 of the 100-request allowance. OddsPapi is capped at 240/250 monthly requests. The Odds API is capped at 488/500 monthly credits. Monthly budgets are distributed across remaining days; provider-reported usage takes precedence when stricter. Every network request, including follow-up pages and failed attempts, is durably reserved. Parallel provider lanes serialize ledger persistence to prevent lost reservations.
+
+Feeds refresh every 30 minutes when jobs are due and quota permits. Realtime synchronization means clients receive backend changes immediately; it does **not** imply second-by-second upstream scores under these free quotas. Provider free plans, supported seasons, external usage of shared keys and outages can still prevent fresh data. Non-football OddsPapi market names require real-provider validation.
+
+Live ingest retains two compact state documents and compressed Convex storage files. Games older than three days are pruned; the user-facing settled pick list is bounded at 300. Versioned pre-match inputs and all market probabilities/grades are stored in compressed per-fixture archives, with compact cumulative sport, grade, market, probability-band and model-version counters. Live/finished review inputs are available for 12 hours after the final result is first received; archived research data remains administrator-only after that period. Daily performance uses the final-result receipt date in Africa/Lagos and retains 365 days, while cumulative counters persist. This expanded history consumes storage and database I/O. Auth, sessions, memberships, payment receipts and admin audit records necessarily consume database storage and I/O. Zero database usage and guaranteed free-tier operation cannot be promised. R2 archival/Workers AI and scraping are not activated: they need verified service configuration and would not eliminate Convex auth/entitlement I/O. The application does not scrape bookmaker sites or bypass their access policies.
+
+## Validation
+
+```bash
+# From /workspace/PuntersEdge, use Node 24.
+export XDG_CONFIG_HOME=/workspace/.puntersedge-config
+mkdir -p "$XDG_CONFIG_HOME"
+npm ci --legacy-peer-deps
+npm test
+npm run test:backend
+npm run check:backend
+npm run check
+npm run build
+npm run preview -- --ip 127.0.0.1
+```
+
+Stop your own development server before installation/build/checks regenerate SvelteKit outputs; restart it afterward. Backend tests use Convex's test implementation and the actual Better Auth component, covering anonymous/role/entitlement checks, signed and rejected callbacks, provider verification, renewal/idempotency and AI limits. Engine/provider tests include a simulated month and durable concurrent reservation checks. These tests do not prove real provider credentials, production payment settlement, DNS verification or hosted delivery.
+
+Before production launch, verify real signup/email delivery, password recovery, admin-role binding, paid and expired member access, five-sport provider responses, signed payment callbacks with test transactions, and AI catalog/model availability. Do not use live customer payments as smoke tests. Existing Convex Auth accounts require an ownership-verified migration; no email-only linking is performed.
+
+Current hosted state: Convex functions/schema/components and Cloudflare Pages have been deployed directly from this workspace. All five API-Sports fixture endpoints returned real games; its free plan rejects current-season tables/odds, which are backed off until the next UTC day. The Odds API returned real prices. OddsPapi’s live error exposed its single-bookmaker requirement; the runner now uses one bookmaker per request and rotates daily. A corrected request returned HTTP 200 with 83 fixtures; its diagnostic cost was reserved in the monthly ledger. Monthly jobs allocate coverage across sports before extra competitions. AIHubMix’s catalog and a free-model completion succeeded; Agnes’s catalog and a grounded completion succeeded. Resend confirmed delivery of the owner verification email. The owner account is now verified, and an authenticated production role check confirmed administrator access.
+
+GitHub push and Actions configuration are blocked by read-only integration permissions, so these workspace changes are not yet pushed to main. Reconnect GitHub with repository and Actions write access to publish source/workflows. Korapay checkout and its webhook have been removed. Register the Flutterwave webhook and verify settlement using a controlled provider test transaction. Actual background Web Push delivery remains untested on a subscribed production device.
+
+Installation/start instructions, network domains and credential requirement names are saved in the cloud environment draft. Review and save the draft in environment settings, then publish the environment to make future tasks reusable; saving the draft does not publish it. The existing Flutterwave secret requirement targets its v3 host and must be extended in environment settings to `idp.flutterwave.com` and `f4bexperience.flutterwave.com` if using proxy-bound secrets for v4. Actual Convex settings already contain the v4 credentials.
+
+## Published prediction performance
+
+The new performance ledger starts with actual versioned projections published before kickoff. It does not invent retrospective predictions for already-finished games and quarantines the old unversioned public pick list. Every projected fixture keeps publication time, baseline inputs, model version, all priced/derived market probabilities, bookmaker prices, grades and the selected verdict. Frozen reviews use model weight 60% and quarter Kelly rather than personal user settings. Admins can export full fixture archives as JSON from the settled-forecast table.
+
+Strike rate and Brier calibration use binary won/lost outcomes; pushes and half outcomes are reported separately. Flat-stake ROI uses directly quoted prices only. Markets within a fixture are correlated, so all-market counts are not independent trials. Final-verdict stats are separate. Approximate win-rate intervals do not establish future performance. Corrections to archived results replace contributions rather than counting a fixture twice. The first final score in a saved user slip is retained; later provider corrections require reconciliation.
+
+Verdict ranking now favors outright model win likelihood, bounded positive EV and the probability cushion above break-even across all quoted markets. Low probability, excessive model-market disagreement, derived prices and nonpositive EV retain PASS. This policy is an uncalibrated heuristic until enough prospective data exists. Models infer fair prices from available scores, standings and odds; bookmaker private algorithms are not known, and profitable outcomes cannot be guaranteed.
+
+Schedule parsers now retain named major and minor leagues returned by existing date-wide provider requests. Monthly odds competition discovery/rotation remains budget-limited; complete worldwide odds coverage is not available under 250/500 monthly calls. A live all-league refresh returned 2,389 fixtures and 31 provider-sourced prospective projections. The account free plan also rejects schedule dates beyond tomorrow; rejected dates are backed off through the current UTC day. Unpriced fixtures remain explicitly unavailable when neither suitable ratings nor usable odds exist; they never receive fabricated probabilities. Tennis is not activated: compatible tennis final-score coverage and ratings/model support remain unverified for these account plans.
+
+Saved slip history, edits to unfinished legs, immutable completed selections, retained scores, PDF and WhatsApp exports are documented in [BETSLIPS.md](BETSLIPS.md). Provider quota/health interfaces and payloads are restricted to the admin console.
+
+## Fixture authenticity and deployment protection
+
+Production dashboards no longer fall back to generated sample fixtures when disconnected, signed out or unpaid. Provider fetches cannot be redirected using FEED_BASE_OVERRIDE. A direct official API-Sports lookup for fixture 1550146 matched the published Torino–Udinese fixture; this verifies provider provenance, not independent real-world accuracy. Cloudflare automatic production deployments from GitHub are paused because the connected GitHub integration is read-only and main still contains the older architecture. Manual production deployment is enabled. Re-enable automatic production deployment only after the updated source has been published.
+
+## AI neuron prevention and fixture navigation
+
+PuntersEdge defaults to Agnes AI (`agnes-3.0-flash`). AIHubMix remains an explicitly selected, verified free-model option; no automatic provider fallback is used. Convex atomically reserves a maximum of 100 attempts per provider per UTC day across all users, in addition to the existing 10 attempts per member. Concurrent duplicate requests are rejected for 30 seconds, and cached results do not spend another attempt. Failed reserved attempts are counted conservatively.
+
+The account's separate `ewin-email-service` used Workers AI for injection checking, multi-step drafting and draft verification. With the owner's authorization, all active AI call sites were replaced with Agnes, the Workers AI binding was removed, and existing mail, R2, Durable Object and authentication bindings were preserved. A single Durable Object atomically enforces 100 attempted completions per UTC day across mailboxes, counting all checks and agent steps. Inputs are limited to 48,000 characters and output to 1,200 tokens per call, with 25-second timeouts and no retries/fallback. The existing SDK retains tool-call support and renders completed responses through its streaming interface. The adapter lives in `scripts/shared-email-agnes.mjs`. Updating the shared worker from its original source must preserve this adapter and keep the Workers AI binding absent.
+
+A secret-authenticated fixed-prompt worker diagnostic, invoked by the deploy-key-only `ai_insights:probeSharedEmail`, returned HTTP 200 from Agnes through the live daily-budget gate. This diagnostic does not read or send email. Historical Cloudflare neuron consumption cannot be undone; these current integrations no longer call Workers AI. Other independent services or future deployments can still consume the shared account's allowance.
+
+Results groups published projections, performance, live fixtures, upcoming fixtures and final scores into accessible native accordions. Fixture filters support text search, sport, competition, status, Lagos date ranges, projection/price coverage and sort order. Empty results are explicit. Lists load 40 items per section at a time. Retained performance totals are explicitly independent of fixture filters. Each sport dashboard groups all provider-returned competition names into a searchable All competitions accordion; selecting a competition filters its games and projections.
+
+## Projection coverage, bet machine and membership enforcement
+
+Fixtures first seen after kickoff remain score-only: retroactive pre-match forecasts would invalidate the record. Current-season standings and dates outside the free API-Sports window are refused by the provider. The backend now also builds shrunk ratings from retained real final scores when there are at least six same-competition results and three results for each team. With independent ratings and no quotes, the app publishes model-only probabilities and theoretical fair odds, disables ticket selection and reports missing prices explicitly. With neither usable odds nor sufficient rating inputs, it reports the analysis blockage instead of substituting generic percentages. Full worldwide priced coverage remains impossible within these account plans and monthly odds quotas. Legacy sample-table endpoints and seed operations no longer surface synthetic records.
+
+The live audited feed contained 50 published projections, with value grades A/B/C and PASS. Many model-only markets intentionally have no value grade. Value grading now separates a lower-likelihood positive-value selection (which can earn C) from the stricter final verdict's minimum 50% outright win chance. Unsupported quotes, non-positive EV and excessive model disagreement still cannot obtain a positive value grade. Likelihood bands A+/A/B/C/PASS are independent probability bands, not calibrated historical strike rates. The UI labels both meanings separately and displays percentage confidence as agreement among model checks. Baseline grade changes are timestamped and archived without rewriting the original published selection grades. Version `2026.10.probability-verdict.2` identifies the new grading rules; historical frozen grades stay unchanged.
+
+An OddsPapi rotating bookmaker produced HTTP 400 while the same metered tournament query with `1xbet` returned 56 fixtures. Production now uses that verified bookmaker. Requests are spaced after response completion, and HTTP 429 cooldowns persist across ticks, with Retry-After support. Quota-exhaustion responses conservatively stop monthly spending. Calls remain reserved before network requests.
+
+`/bet-machine` uses the shared quantitative projections and actual quoted prices from fixtures with a published pre-match record. Its bounded beam search prioritizes estimated all-win probability while enforcing exact leg count, combined odds limits, selection odds, minimum model percentage, selected sports/markets and Lagos time windows. Home/away filters also require that side to be the favored outright outcome. It keeps at most one pick per fixture, discounts pushes when ranking all-win chance, validates current quotes before replacing a working slip, and explicitly reports when no ticket meets the filters. Up to 200 candidates and a bounded search are considered; global optimality and independence of different games are not guaranteed. No LLM calls or Workers AI neurons are spent generating tickets. Probability-first mode may include negative EV unless the positive-value filter is selected.
+
+Every sport dashboard has native accordions for all competitions, live games, upcoming analysis, other scheduled fixtures and recent scores, with incremental list loading. Saved slips also use accordions. The header's duplicate desktop navigation has been removed; the menu retains navigation. Ticket preview shows kickoff in WAT, selection odds and model probability before stake/export/history actions. Local PDF export has a branded, paginated table; WhatsApp includes numbered fixtures, dates, markets, prices, percentages and summary totals. Push probabilities are retained in saved selections and discounted in strict all-win ticket estimates.
+
+RBAC exposes guest, member, subscriber and immutable super-admin roles. Only the bound super-admin receives full administrative access without payment. Other accounts require an active NGN 10,000 monthly membership for provider feeds, backend AI and saved-slip APIs. Public feed metadata no longer discloses storage URLs: a same-origin authenticated download route rechecks membership on every download and uses private/no-store caching. Owner authentication, super-admin bypass, private feed delivery and anonymous denial were tested against production.
+
+Checkout offers Flutterwave only. Successful settlement verifies provider reference, charge status, exact NGN amount and, for v4, the customer before granting a calendar month. An owner-scoped Check payment status action can reconcile verified charges independently of webhook delivery; checks are atomically throttled to 30 seconds. Subscription polling, signed webhooks and expiry invalidation share the same entitlement state. Read-only Flutterwave OAuth, bank listing and v4 charge lookup checks all returned HTTP 200; an actual paid transaction remains an external validation step.

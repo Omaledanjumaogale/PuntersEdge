@@ -4,7 +4,7 @@
  * Odds come keyed by numeric ids (participants, markets, outcomes), so a small
  * monthly lookup (sports, tournaments, markets, bookmakers, participants of
  * the tournaments we follow) turns them into names. One odds call covers
- * several tournaments for up to three bookmakers; the endpoint has a 1 s
+ * several tournaments for exactly one bookmaker; the endpoint has a 1 s
  * cooldown. `/v4/account` is free and reports the month's usage.
  */
 

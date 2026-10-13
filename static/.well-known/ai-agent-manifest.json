@@ -1,0 +1,12 @@
+{
+ "name": "PuntersEdge",
+ "description": "Probabilistic sports analytics across five sports",
+ "language": "en-NG",
+ "llms": "/llms.txt",
+ "llms_full": "/llms-full.txt",
+ "sitemap": "/sitemap.xml",
+ "capabilities": ["public sports analysis", "fixtures", "source health", "glossary"],
+ "parent_organization": {"name": "Elite Workforce Impact Nigeria Project", "url": "https://ewinproject.org"},
+ "attribution": {"name": "Omale Danjuma Ogale", "url": "https://omaledanjumaogale.ewinproject.org/"},
+ "limitations": ["Predictions are uncertain", "Sample mode is labelled", "Private APIs require authentication"]
+}

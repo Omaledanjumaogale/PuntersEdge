@@ -1,0 +1,2 @@
+<script lang="ts">import type { FAQ } from '#lib/schema/types.ts';let { items }: { items: FAQ[] } = $props();</script>
+<section aria-labelledby="faq-heading" class="my-6"><h2 id="faq-heading" class="text-xl font-bold text-chalk">What should you know about sports analysis?</h2>{#each items as item, i}<details class="mt-3 rounded-xl border border-line p-4"><summary id={`faq-${i}`} class="cursor-pointer font-semibold text-chalk">{item.question}</summary><p class="mt-3 text-haze">{item.answer}</p></details>{/each}</section>

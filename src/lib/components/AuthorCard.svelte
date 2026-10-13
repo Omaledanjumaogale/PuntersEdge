@@ -1,0 +1,1 @@
+<aside aria-label="Attribution" class="mt-6 border-t border-line pt-4 text-sm text-haze"><a href="https://omaledanjumaogale.ewinproject.org/" class="text-chalk underline">Omale Danjuma Ogale</a><p>Founder &amp; CEO · E-WIN Project Ecosystem</p></aside>

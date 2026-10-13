@@ -124,6 +124,7 @@ export function spend(e, cost, remote, now = Date.now()) {
  * @property {number} every minimum ms between runs
  * @property {boolean} [force] run even if `every` hasn't elapsed (e.g. first run of the day)
  * @property {boolean} [window] draw on the whole window's allowance (monthly lookups), not today's share
+ * @property {string} [group] paid odds coverage group, e.g. sport
  * @property {any} [params]
  */
 
@@ -146,7 +147,15 @@ export function planJobs(jobs, ledgers, lastRun, now, opts = {}) {
   const run = [];
   const skipped = [];
   const protectAbove = opts.protectAbove ?? 2;
-  for (const j of [...jobs].sort((a, b) => a.priority - b.priority)) {
+  const dayStart = Math.floor(now / 86400_000) * 86400_000;
+  const refreshed = new Set(jobs.filter(j => j.group && (lastRun[j.id] ?? 0) >= dayStart).map(j => `${j.ledger}:${j.group}`));
+  const priority = (/** @type {Job} */ j) => j.group && !refreshed.has(`${j.ledger}:${j.group}`) ? Math.min(6, j.priority) : j.priority;
+  const queue = [...jobs];
+  while (queue.length) {
+    // Re-rank after choosing a sport so one busy competition cannot starve
+    // the other dashboards of their daily share of the same monthly budget.
+    queue.sort((a, b) => priority(a) - priority(b) || (lastRun[a.id] ?? 0) - (lastRun[b.id] ?? 0));
+    const j = /** @type {Job} */ (queue.shift());
     const due = j.force || now - (lastRun[j.id] ?? 0) >= j.every;
     if (!due) continue;
     const a = allow[j.ledger];
@@ -169,6 +178,7 @@ export function planJobs(jobs, ledgers, lastRun, now, opts = {}) {
     }
     spent[j.ledger] = s + j.cost;
     run.push(j);
+    if (j.group) refreshed.add(`${j.ledger}:${j.group}`);
   }
   return { run, skipped };
 }

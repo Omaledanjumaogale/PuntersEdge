@@ -11,8 +11,9 @@
 	let adult = $state(false);
 	let error = $state('');
 	let busy = $state(false);
+	let verificationSent = $state(false);
 
-	const next = $derived(page.url.searchParams.get('next')?.startsWith('/') ? page.url.searchParams.get('next')! : '/account');
+	const next = $derived((page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
 	const strength = $derived(passwordStrength(password));
 	const strengthLabel = ['Too short', 'Okay', 'Good', 'Strong', 'Excellent'];
 	const strengthTone = ['bg-loss', 'bg-book', 'bg-model', 'bg-model', 'bg-pop'];
@@ -31,7 +32,7 @@
 		busy = true;
 		try {
 			await auth.signUp({ name, email, password });
-			await goto(next);
+			verificationSent = true;
 		} catch (err) {
 			error = (err as Error).message;
 		} finally {
@@ -43,6 +44,7 @@
 <svelte:head><title>Sign up — PuntersEdge</title></svelte:head>
 
 <AuthShell title="Join PuntersEdge ⚡" subtitle="Free account. Save your slip, bankroll and settings everywhere.">
+	{#if verificationSent}<p class="rounded-xl tint-model p-4" role="status">Check your email to verify your account before logging in.</p>{/if}
 	<form onsubmit={submit} class="grid gap-4" novalidate>
 		<label class="grid gap-1.5" for="signup-name">
 			<span class="text-sm font-semibold text-chalk">What should we call you?</span>

@@ -8,6 +8,7 @@
  */
 
 import { buildFootballPrediction } from './prediction_pipeline.js';
+import { rankSelections, selectionDecision } from './decision_screener.js';
 
 /** @param {number} p */
 const pct = (p) => `${(p * 100).toFixed(1)}%`;
@@ -65,7 +66,7 @@ export class PuntersEdgeAIAgentHub {
       role: 'Availability & lineup impact',
       stance: n > 0 ? 'bearish' : 'neutral',
       confidence: n > 0 ? 0.65 : 0.55,
-      headline: n === 0 ? 'Full-strength lineups' : `${n} absence${n > 1 ? 's' : ''} priced into the model`,
+      headline: n === 0 ? 'No absences supplied in this feed' : `${n} absence${n > 1 ? 's' : ''} priced into the model`,
       findings: [p.lineupAlert]
     };
   }
@@ -120,7 +121,7 @@ export class PuntersEdgeAIAgentHub {
    */
   riskAgent(p) {
     const v = p.bestValue;
-    const positive = v && v.edgePercent > 0;
+    const positive = v && selectionDecision(v).eligible;
     return {
       agent: 'Risk Manager',
       role: 'Kelly sizing & exposure',
@@ -130,9 +131,9 @@ export class PuntersEdgeAIAgentHub {
       findings: positive
         ? [
             `Break-even probability at ${v.bestOdds.toFixed(2)} is ${pct(1 / v.bestOdds)}; blended estimate is ${pct(v.modelProb)}.`,
-            'Quarter-Kelly keeps drawdowns survivable if the model is overconfident.'
+            'Quarter-Kelly reduces exposure. Model error and losing runs can still produce substantial losses.'
           ]
-        : ['Every available price is at or below fair value after removing margin.']
+        : ['No quoted outcome clears the combined likelihood, value and disagreement checks.']
     };
   }
 
@@ -142,10 +143,11 @@ export class PuntersEdgeAIAgentHub {
    */
   analyze(prediction) {
     const agents = [this.marketAgent(prediction), this.squadAgent(prediction), this.quantAgent(prediction), this.riskAgent(prediction)];
-    const v = prediction.bestValue;
-    const hasValue = Boolean(v && v.edgePercent > 0 && v.grade !== 'PASS');
+    /** @type {import('./market_book.js').MarketSelection[]} */
+    const candidates = prediction.markets?.flatMap((/** @type {any} */ group) => group.selections) ?? prediction.valueBets ?? [];
+    const v = rankSelections(candidates.filter((/** @type {any} */ selection) => selection.pricing === 'quoted'))[0];
 
-    const recommendation = hasValue
+    const recommendation = v && v.eligible && v.grade !== 'PASS'
       ? {
           action: 'BET',
           market: v.market,
@@ -156,7 +158,9 @@ export class PuntersEdgeAIAgentHub {
           edgePercent: v.edgePercent,
           stakePercent: v.kellyStakePercent,
           grade: v.grade,
-          rationale: `Blending the model (${Math.round(prediction.modelWeight * 100)}%) with the de-vigged market puts ${v.selection} at ${pct(v.modelProb)} against a market consensus of ${pct(v.marketProb)}. ${v.bookmaker}'s ${v.bestOdds.toFixed(2)} beats the fair price of ${v.fairOdds.toFixed(2)}, an expected edge of +${v.edgePercent.toFixed(2)}%.`
+          probability: v.successProbability,
+          decisionScore: v.decisionScore,
+          rationale: `Blending the model (${Math.round(prediction.modelWeight * 100)}%) with the de-vigged market puts ${v.selection} at ${pct(v.modelProb)} against a market consensus of ${pct(v.marketProb)}. ${v.bookmaker}'s ${v.bestOdds.toFixed(2)} beats the fair price of ${v.fairOdds.toFixed(2)}, an expected edge of +${v.edgePercent.toFixed(2)}%. The decision score is ${v.decisionScore.toFixed(1)}/100: estimated win likelihood has 65% weight, positive expected value 25%, and the probability margin above break-even 10%, discounted for model disagreement. This is an uncalibrated ranking heuristic, not a proven success rate.`
         }
       : {
           action: 'PASS',
@@ -168,7 +172,7 @@ export class PuntersEdgeAIAgentHub {
           edgePercent: v?.edgePercent ?? 0,
           stakePercent: 0,
           grade: 'PASS',
-          rationale: 'No selection clears fair value at the best available price. Passing is a position: the margin is the bookmaker’s edge, not yours.'
+          rationale: 'No quoted selection passes all decision checks: positive expected value, at least 50% estimated outright win probability, and no more than 15 percentage points of model–market disagreement. Derived prices are informational and cannot become a bet verdict.'
         };
 
     const consensusConfidence = agents.reduce((a, g) => a + g.confidence, 0) / agents.length;

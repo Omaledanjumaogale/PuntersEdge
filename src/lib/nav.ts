@@ -25,9 +25,12 @@ export const NAV: NavItem[] = [
 		group: 'sport' as const
 	})),
 	{ href: '/value-bets', label: 'Value bets', emoji: '🔥', hint: 'Prices above fair', group: 'main' },
+	{ href: '/bet-machine', label: 'Bet machine', emoji: '🎟️', hint: 'Build a model-ranked accumulator', group: 'more' },
 	{ href: '/results', label: 'Results', emoji: '📈', hint: 'Scores and our record', group: 'main' },
+	{ href: '/betslips', label: 'Slip history', emoji: '🧾', hint: 'Saved slips, PDF and sharing', group: 'more' },
 	{ href: '/bookmakers', label: 'Bookmakers', emoji: '🏦', hint: 'Who keeps the most', group: 'more' },
 	{ href: '/glossary', label: 'Glossary', emoji: '📖', hint: 'Terms explained', group: 'more' },
+	{ href: '/subscribe', label: 'All-access', emoji: '🔓', hint: '₦10,000 monthly membership', group: 'more' },
 	{ href: '/settings', label: 'Settings', emoji: '⚙️', hint: 'Bankroll and theme', group: 'more' }
 ];
 

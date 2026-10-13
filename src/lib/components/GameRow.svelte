@@ -21,8 +21,9 @@
 		</span>
 	</span>
 	{#if g.status.state === 'scheduled'}
-		<span class="text-xs font-medium text-haze">{g.books ? `${g.books} books` : 'no prices yet'}</span>
+		<span class="text-xs font-medium text-haze">{g.priced ? `${g.books} books` : g.projected ? 'Model forecast · no quotes' : 'Awaiting analysis data'}</span>
 	{:else}
 		<StatusPill status={g.status} />
 	{/if}
 </a>
+{#if g.availabilityReason && g.status.state === 'scheduled'}<p class="px-3 text-xs text-haze">{g.availabilityReason}</p>{/if}

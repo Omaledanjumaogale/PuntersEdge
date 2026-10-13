@@ -1,84 +1,52 @@
 name: Deploy Convex backend
-
-# Deploys convex/ (schema, auth, functions, live-data ingest) to production.
-# Requires one repository secret: CONVEX_DEPLOY_KEY
-#   GitHub → Settings → Secrets and variables → Actions → New repository secret
-# Optional secrets, copied into Convex environment variables when present:
-#   API_SPORTS_KEY, THE_ODDS_API_KEY, ODDSPAPI_KEY
-# (or set them directly in the Convex dashboard → Settings → Environment variables).
-# Optional repository variable: SITE_URL (your app's public URL).
-
 on:
   push:
     branches: [main]
-    paths:
-      - 'convex/**'
-      - 'src/lib/engine/**'
-      - 'src/lib/feeds/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'scripts/generate-auth-keys.mjs'
-      - '.github/workflows/convex-deploy.yml'
+    paths: ['convex/**', 'src/lib/engine/**', 'src/lib/feeds/**', 'package.json', 'package-lock.json', 'scripts/configure-convex-env.mjs', '.github/workflows/convex-deploy.yml']
   workflow_dispatch:
-
+permissions:
+  contents: read
 concurrency:
   group: convex-production
   cancel-in-progress: false
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
     env:
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://puntersedge.ewinproject.org' }}
+      CONVEX_HTTP_ACTIONS_URL: https://reliable-duck-539.eu-west-1.convex.site
+      RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+      PUNTERSEDGE_RESEND_API_KEY: ${{ secrets.PUNTERSEDGE_RESEND_API_KEY }}
+      API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+      ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+      AGNES_AI_KEY: ${{ secrets.AGNES_AI_KEY }}
+      AGNES_AI_MODEL: ${{ vars.AGNES_AI_MODEL }}
+      AIHUBMIX_API_KEY: ${{ secrets.AIHUBMIX_API_KEY }}
+      AIHUBMIX_BASE_URL: ${{ vars.AIHUBMIX_BASE_URL }}
+      FLW_ENABLED: ${{ vars.FLW_ENABLED || 'false' }}
+      FLW_SECRET_KEY: ${{ secrets.FLW_SECRET_KEY }}
+      FLW_CLIENT_ID: ${{ vars.FLW_CLIENT_ID }}
+      FLW_API_VERSION: ${{ vars.FLW_API_VERSION || 'v4' }}
+      FLW_SECRET_HASH: ${{ secrets.FLW_SECRET_HASH }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      PUBLIC_VAPID_KEY: ${{ vars.PUBLIC_VAPID_KEY }}
+      VAPID_SUBJECT: mailto:puntersedge@ewinproject.org
+      SUPER_ADMIN_USER_ID: ${{ vars.SUPER_ADMIN_USER_ID }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
-
-      - run: npm ci
-
-      - name: Engine tests
-        run: npm test
-
-      - name: Check the deploy key is configured
-        run: |
-          if [ -z "$CONVEX_DEPLOY_KEY" ]; then
-            echo "::error::Add the CONVEX_DEPLOY_KEY repository secret (Settings → Secrets and variables → Actions)."
-            exit 1
-          fi
-
-      - name: Create auth signing keys (first deploy only)
-        run: |
-          if [ -z "$(npx convex env get JWKS 2>/dev/null)" ]; then
-            echo "No JWKS on the deployment yet: generating a new RS256 key pair."
-            node scripts/generate-auth-keys.mjs --apply
-          else
-            echo "Auth signing keys already set; leaving them untouched so sessions stay valid."
-          fi
-
-      - name: Set SITE_URL
-        env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://quantedge-sports-pwa.pages.dev' }}
-        run: npx convex env set SITE_URL "$SITE_URL"
-
-      - name: Copy data-provider keys into Convex (when set as secrets)
-        env:
-          API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
-          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
-          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
-        run: |
-          for name in API_SPORTS_KEY THE_ODDS_API_KEY ODDSPAPI_KEY; do
-            value="${!name}"
-            if [ -n "$value" ]; then
-              npx convex env set "$name" "$value" > /dev/null && echo "Set $name"
-            else
-              echo "$name not provided as a secret; leaving the Convex value as it is."
-            fi
-          done
-
-      - name: Deploy functions and schema
+      - run: npm ci --legacy-peer-deps
+      - run: npm test
+      - run: npm run test:backend
+      - run: npm run check:backend
+      - name: Configure backend environment
+        run: node scripts/configure-convex-env.mjs
+      - name: Deploy schema, Better Auth component and functions
         run: npx convex deploy --typecheck enable

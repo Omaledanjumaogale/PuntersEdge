@@ -11,11 +11,12 @@
  * final score once the game is over. That gives an honest track record.
  */
 
+import { withModelOnlyMarkets } from '../engine/model-only.js';
 import { SPORTS, SPORT_KEYS } from './catalog.js';
 import { footballRatings, basketballRatings, scoreSportRatings, marketRatings } from '../engine/ratings.js';
 import { buildFootballPrediction, buildBasketballPrediction } from '../engine/prediction_pipeline.js';
 import { buildScoreSportPrediction } from '../engine/score_sports.js';
-import { settle, profitFor } from '../engine/settlement.js';
+import { snapshotOf, settleSnapshot, REVIEW_MS } from './performance.js';
 
 const H = 3600_000;
 const DAY = 24 * H;
@@ -74,6 +75,22 @@ export function inputFor(store, g) {
     else ratings = scoreSportRatings(table, g.homeId, g.awayId, def.family);
     if (ratings) source = `the ${g.league} table`;
   }
+  if (!ratings) {
+    // Derive strengths only from actually retained final scores, never synthetic priors alone.
+    const rows = new Map();
+    const recent = Object.values(store.games).filter(x => x.sport === g.sport && x.league === g.league && x.status.state === 'finished' && x.kickoff < g.kickoff && Number.isFinite(x.status.home) && Number.isFinite(x.status.away));
+    for (const match of recent) for (const side of /** @type {const} */ (['home','away'])) {
+      const id = side === 'home' ? match.homeId : match.awayId;
+      if(id === undefined) continue;
+      const row = rows.get(String(id)) ?? {teamId:id,team:match[side],played:0,for:0,against:0};
+      row.played++; row.for += match.status[side] ?? 0; row.against += match.status[side === 'home' ? 'away' : 'home'] ?? 0; rows.set(String(id),row);
+    }
+    if(recent.length >= 6 && (rows.get(String(g.homeId))?.played ?? 0) >= 3 && (rows.get(String(g.awayId))?.played ?? 0) >= 3) {
+      const values = [...rows.values()];
+      ratings = def.family === 'football' ? footballRatings(values,g.homeId ?? '',g.awayId ?? '') : def.family === 'basketball' ? basketballRatings(values,g.homeId ?? '',g.awayId ?? '',g.league) : scoreSportRatings(values,g.homeId ?? '',g.awayId ?? '',def.family);
+      if(ratings)source = `retained recent results (${recent.length} completed games; limited sample)`;
+    }
+  }
   if (!ratings) ratings = marketRatings(def.family, odds, g.league);
   if (!ratings) return null;
   return { ...base, ratings, ratingsSource: source };
@@ -88,9 +105,9 @@ export function inputFor(store, g) {
  */
 export function predict(sport, input, opts = {}) {
   const fam = SPORTS[sport].family;
-  if (fam === 'football') return buildFootballPrediction(input, opts);
-  if (fam === 'basketball') return buildBasketballPrediction(input, { ...opts, sport: /** @type {'basketball' | 'nba'} */ (sport) });
-  return buildScoreSportPrediction(input, fam, { ...opts, sport });
+  if (fam === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts));
+  if (fam === 'basketball') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport: /** @type {'basketball' | 'nba'} */ (sport) }));
+  return withModelOnlyMarkets(buildScoreSportPrediction(input, fam, { ...opts, sport }));
 }
 
 /**
@@ -100,42 +117,52 @@ export function predict(sport, input, opts = {}) {
  * @param {number} now
  */
 export function updateRecord(store, now) {
+  const changed = [];
   for (const g of Object.values(store.games)) {
-    const fam = SPORTS[g.sport].family;
-    const pending = store.record.pending[g.uid];
-    if (g.status.state === 'scheduled' && g.kickoff > now && g.kickoff - now < 6 * H && Object.keys(g.odds).length) {
-      const input = inputFor(store, g);
-      if (!input) continue;
-      try {
-        const p = predict(g.sport, input, { now });
-        // Quoted market-book selections carry line-specific keys we can settle.
-        const best = (p.markets ?? [])
-          .flatMap((/** @type {any} */ m) => m.selections)
-          .filter((/** @type {any} */ v) => v.pricing === 'quoted' && ['A+', 'A', 'B'].includes(v.grade))
-          .sort((/** @type {any} */ a, /** @type {any} */ b) => b.edgePercent - a.edgePercent)[0];
-        if (best) {
-          const key = best.id.slice(best.id.indexOf(':') + 1);
-          store.record.pending[g.uid] = {
-            uid: g.uid, sport: g.sport, family: fam, key,
-            match: `${g.home} vs ${g.away}`, league: g.league,
-            market: best.market, selection: best.selection, bookmaker: best.bookmaker,
-            odds: best.bestOdds, edge: best.edgePercent, grade: best.grade, kickoff: g.kickoff
-          };
-        } else delete store.record.pending[g.uid];
-      } catch {
-        // A bad input must never stop the feed.
-      }
-    } else if (pending && g.status.state === 'finished') {
-      const s = g.status;
-      const outcome = settle(/** @type {any} */ (fam), pending.key, { home: /** @type {number} */ (s.home), away: /** @type {number} */ (s.away), regHome: s.regHome, regAway: s.regAway });
-      if (outcome) {
-        store.record.settled.push({ ...pending, result: outcome, profit: Math.round(profitFor(outcome, pending.odds) * 100) / 100, score: `${s.home}–${s.away}` });
-      }
-      delete store.record.pending[g.uid];
-    } else if (pending && g.status.state === 'postponed') {
-      delete store.record.pending[g.uid];
+    let snapshot = store.projections[g.uid];
+    if (!snapshot && g.status.state === 'scheduled' && g.kickoff > now && g.kickoff < now + 4 * DAY) {
+      const input = inputFor(store,g);
+      if(input) try {
+        snapshot = snapshotOf(g,input,predict(g.sport,input,{now}),now);
+        store.projections[g.uid] = snapshot;
+        changed.push(snapshot);
+      } catch { /* Invalid input is reported as unavailable, never invented. */ }
     }
+    if (!snapshot) continue;
+    if(g.status.state === 'scheduled' && g.kickoff > now) {
+      const latestInput=inputFor(store,g);
+      if(latestInput) try {
+        const latest=predict(g.sport,latestInput,{now});
+        const previous=snapshot.latestGrades ?? Object.fromEntries(snapshot.selections.map((/** @type {any} */ s)=>[s.key,s.grade]));
+        let updated=false;
+        for(const selection of latest.markets.flatMap((/** @type {any} */ group)=>group.selections)) {
+          const key=selection.id.slice(g.uid.length+1);
+          if(previous[key] !== undefined && previous[key] !== selection.grade) {
+            snapshot.gradeHistory ??= [];
+            snapshot.gradeHistory.push({key,at:now,from:previous[key],to:selection.grade,modelProb:selection.modelProb,odds:selection.bestOdds});updated=true;
+          }
+          previous[key]=selection.grade;
+        }
+        snapshot.latestGrades=previous;
+        if(updated){snapshot.gradeHistory=snapshot.gradeHistory.slice(-100);if(!changed.includes(snapshot))changed.push(snapshot);}
+      } catch { /* Keep the previously published snapshot. */ }
+    }
+    const before = JSON.stringify({state:snapshot.state,score:snapshot.score});
+    settleSnapshot(snapshot,g,now);
+    if(before !== JSON.stringify({state:snapshot.state,score:snapshot.score}) && !changed.includes(snapshot)) changed.push(snapshot);
   }
+  // Only versioned, published pre-match verdicts contribute to the public record.
+  store.record.pending = {};
+  const settled = new Map(store.record.settled.filter(p=>p.publishedAt).map(p=>[p.uid,p]));
+  for(const snapshot of Object.values(store.projections)) {
+    const best = snapshot.selections.find((/** @type {any} */ selection) => selection.verdict);
+    if(!best) continue;
+    const pick = {...best,uid:snapshot.fixtureId,sport:snapshot.sport,family:snapshot.family,match:snapshot.match,league:snapshot.league,kickoff:snapshot.kickoff,publishedAt:snapshot.publishedAt,modelVersion:snapshot.modelVersion};
+    if(best.result && best.result !== 'ungraded') settled.set(snapshot.fixtureId,{...pick,score:`${snapshot.score.home}–${snapshot.score.away}`});
+    else if(snapshot.state === 'scheduled' || snapshot.state === 'live') store.record.pending[snapshot.fixtureId]=pick;
+  }
+  store.record.settled = [...settled.values()].sort((a,b)=>a.kickoff-b.kickoff).slice(-300);
+  return changed;
 }
 
 /** Track-record summary. */
@@ -169,7 +196,9 @@ export function buildFeed(store, now, usage) {
     const inWindow = g.kickoff > now - 3 * DAY && g.kickoff < now + 4 * DAY;
     if (!inWindow) continue;
     const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
-    const input = priceable && g.kickoff > now - 4 * H ? inputFor(store, g) : null;
+    const snapshot = store.projections[g.uid];
+    const reviewable = snapshot?.finishedAt && now < snapshot.finishedAt + REVIEW_MS;
+    const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g) : null;
     if (input) inputs[g.sport].push(input);
     games.push({
       id: g.uid,
@@ -180,7 +209,9 @@ export function buildFeed(store, now, usage) {
       kickoff: new Date(g.kickoff).toISOString(),
       status: g.status,
       books: Object.keys(g.odds).length,
-      priced: Boolean(input)
+      projected: Boolean(input),
+      availabilityReason: !input ? (Object.keys(g.odds).length ? 'No complete supported market or sufficient team-strength data.' : 'No usable bookmaker prices or sufficient team-strength data from this provider plan.') : undefined,
+      priced: Object.values(g.odds).some(book => Object.entries(book).some(([key,value])=>key !== 'at' && !key.toLowerCase().includes('line') && value > 1))
     });
   }
   const settled = store.record.settled;
@@ -190,7 +221,11 @@ export function buildFeed(store, now, usage) {
     inputs,
     games,
     record: { summary: recordSummary(settled), recent: settled.slice(-60).reverse(), pending: Object.values(store.record.pending).length },
-    usage: usage ?? null,
-    sources: store.diag
+    projections: Object.values(store.projections).filter((/** @type {any} */ p) => !p.finishedAt || now < p.finishedAt + REVIEW_MS).map((/** @type {any} */ p) => ({fixtureId:p.fixtureId,sport:p.sport,match:p.match,league:p.league,kickoff:new Date(p.kickoff).toISOString(),publishedAt:p.publishedAt,state:p.state,...(p.score?{score:`${p.score.home}–${p.score.away}`}:{})})),
+    gradeHistory: Object.fromEntries(Object.values(store.projections).map((p)=>[p.fixtureId,p.gradeHistory??[]])),
+    reviewInputs: Object.fromEntries(Object.values(store.projections).filter((/** @type {any} */ p) => !p.finishedAt || now < p.finishedAt+REVIEW_MS).map((/** @type {any} */ p) => [p.fixtureId,{sport:p.sport,frozenVerdictKey:p.selections.find((/** @type {any} */ s)=>s.verdict)?.key??null,frozenGrades:Object.fromEntries(p.selections.map((/** @type {any} */ s)=>[s.key,s.grade])),input:{...p.input,status:store.games[p.fixtureId]?.status??p.input.status},publishedAt:p.publishedAt,modelVersion:p.modelVersion}])),
+    // Quotas and source logs belong exclusively to the protected admin console.
+    usage: null,
+    sources: {}
   };
 }

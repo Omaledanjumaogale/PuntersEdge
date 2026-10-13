@@ -8,6 +8,7 @@
 	import ScoreSurface3D from '#lib/components/ScoreSurface3D.svelte';
 	import MarketList from '#lib/components/MarketList.svelte';
 	import AgentPanel from '#lib/components/AgentPanel.svelte';
+	import AIExplanation from '#lib/components/AIExplanation.svelte';
 	import PaceLab from '#lib/components/PaceLab.svelte';
 	import ProbBar from '#lib/components/ProbBar.svelte';
 	import PickInsight from '#lib/components/PickInsight.svelte';
@@ -17,7 +18,9 @@
 
 	let innerWidth = $state(1024);
 	const id = $derived(page.url.searchParams.get('id') ?? '');
-	const p = $derived(id ? app.byId(id) : undefined);
+	const recorded = $derived(feed.data?.reviewInputs?.[id]);
+	const review = $derived(page.url.searchParams.get('review') === '1' || ['live','finished'].includes(app.gameById(id)?.status.state ?? ''));
+	const p = $derived(id ? (review ? app.reviewById(id) : app.byId(id)) : undefined);
 	const game = $derived(id ? app.gameById(id) : undefined);
 	const info = $derived(sportOf(p?.sport ?? game?.sport ?? 'football'));
 	const hasMarkets = $derived(Boolean(p && p.markets.some((g) => g.selections.length > 0)));
@@ -30,6 +33,13 @@
 	<ChevronLeft class="h-4 w-4" /> {info.label}
 </a>
 
+{#if recorded}
+ <aside class="surface mt-4 p-4 text-sm text-haze">
+  {#if review}<strong class="text-chalk">Published pre-match review</strong> · {new Date(recorded.publishedAt).toLocaleString('en-NG')} · Baseline model 60%, quarter Kelly. Prices and probabilities are frozen from publication, not recalculated from the result.
+  {:else}<a class="font-semibold text-pop underline" href={`/match?id=${encodeURIComponent(id)}&review=1`}>View recorded pre-match projection</a> · {new Date(recorded.publishedAt).toLocaleString('en-NG')}{/if}
+  {#if game?.status.state === 'finished'}<p class="mt-2 font-display text-2xl font-bold text-chalk">Final score: {statusLabel(game.status)}</p><p class="mt-1">Analysis remains available for 12 hours after the final result is received.</p>{/if}
+ </aside>
+{/if}
 {#if p}
 	<header class="mt-3">
 		<p class="flex flex-wrap items-center gap-2 text-sm font-medium text-haze">
@@ -57,7 +67,7 @@
 		<section class="surface mt-6 p-5">
 			<h2 class="text-xl font-bold text-chalk">✋ No prices to beat yet</h2>
 			<p class="mt-1 text-haze">
-				{#if p.bookmakers.length === 0}We have the fixture and the model's numbers, but no bookmaker has posted prices we can read. Fair prices are below; check back closer to kickoff.{:else}No bookmaker price beats the fair price on any market.{/if}
+				{#if p.bookmakers.length === 0}We have the fixture and the model's numbers, but no bookmaker has posted prices we can read. Fair prices are below; check back closer to kickoff.{:else}No quoted selection meets all final-verdict rules. Review the market probabilities and value grades below.{/if}
 			</p>
 		</section>
 	{/if}
@@ -182,7 +192,9 @@
 		<p class="flex flex-wrap items-center gap-2 text-sm font-medium text-haze">
 			<span>{info.emoji} {game.league}, ⏰ {kickoff(game.kickoff, app.now)}</span>
 			<StatusPill status={game.status} />
+
 		</p>
+ {#if game.availabilityReason}<p class="mt-4 rounded-xl bg-ink p-4 text-sm text-haze">{game.availabilityReason}</p>{/if}
 		<h1 class="mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
 			{game.home} <span class="text-haze">vs</span>
 			{game.away}
@@ -192,10 +204,14 @@
 		{#if game.status.state === 'finished'}
 			<p class="font-display text-5xl font-bold text-chalk">{statusLabel(game.status)}</p>
 			<p class="mt-2 text-haze">Final score. If we had a graded pick on this game, it's settled on the <a href="/results" class="font-semibold text-pop underline-offset-4 hover:underline">Results</a> page.</p>
+		{:else if game.status.state === 'live'}
+			<p class="font-display text-5xl font-bold text-chalk">{statusLabel(game.status)}</p>
+			<p class="mt-2 text-haze">No pre-match projection was published for this fixture. Live scores are available, but this game is excluded from the prediction track record.</p>
 		{:else}
 			<p class="text-haze">We know about this game but can't price it yet: no bookmaker prices and no league table to rate the teams from. It will appear on the {info.label} dashboard as soon as we can.</p>
 		{/if}
 	</section>
+	<AIExplanation fixtureId={game.id} sport={game.sport} />
 {:else}
 	<section class="surface mt-6 p-6">
 		<h1 class="text-2xl font-bold text-chalk">🤷 That game isn't on the board</h1>

@@ -4,6 +4,10 @@
  * online/offline status.
  */
 
+import { auth } from '#lib/auth.svelte.ts';
+import { anyApi } from 'convex/server';
+import { toast } from '#lib/toast.svelte.ts';
+
 interface BeforeInstallPromptEvent extends Event {
 	prompt(): Promise<void>;
 	userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -18,11 +22,17 @@ class PwaState {
 	showIOSHint = $state(false);
 	updateReady = $state(false);
 	offline = $state(false);
+	pushEnabled = $state(false);
+	pushBusy = $state(false);
+	notificationPermission = $state<NotificationPermission | 'unsupported'>('unsupported');
+	#started = false;
 	#deferred: BeforeInstallPromptEvent | null = null;
 	#waiting: ServiceWorker | null = null;
 
 	init() {
-		if (typeof window === 'undefined') return;
+		if (typeof window === 'undefined' || this.#started) return;
+		this.#started = true;
+		if ('Notification' in window && window.isSecureContext) this.notificationPermission = Notification.permission;
 
 		const standalone =
 			window.matchMedia('(display-mode: standalone)').matches ||
@@ -60,6 +70,8 @@ class PwaState {
 		if (!('serviceWorker' in navigator) || import.meta.env.DEV) return;
 		try {
 			const reg = await navigator.serviceWorker.register('/service-worker.js');
+			if ('pushManager' in reg) this.pushEnabled = Boolean(await reg.pushManager.getSubscription());
+			this.pushEnabled = !!(await reg.pushManager?.getSubscription());
 
 			const track = (worker: ServiceWorker | null) => {
 				if (!worker) return;
@@ -95,13 +107,62 @@ class PwaState {
 		}
 	}
 
+	async enableNotifications() {
+		if (!auth.client) { toast.error('Sign in with an active subscription to enable push notifications.'); return; }
+		if (!('Notification' in window) || !('PushManager' in window) || !window.isSecureContext || !('serviceWorker' in navigator)) {
+			toast.error('Push notifications need HTTPS and a supported browser. On iPhone, install the app first.'); return;
+		}
+		this.pushBusy = true;
+		try {
+			// Ask permission directly from the user's click, before network awaits.
+			this.notificationPermission = await Notification.requestPermission();
+			if (this.notificationPermission !== 'granted') { toast.show('Allow notifications in your browser settings to enable push alerts.'); return; }
+			const { publicKey } = await auth.client.query(anyApi.push.publicVapid, {});
+			if (!publicKey) throw new Error('Background notification delivery is not configured yet.');
+			const registration = await navigator.serviceWorker.getRegistration();
+			if (!registration?.active || !registration.pushManager) throw new Error('Install or reload the production app before enabling background notifications.');
+			const bytes = Uint8Array.from(atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+			const previous = await registration.pushManager.getSubscription();
+			const subscription = previous ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes });
+			try {
+				const json = subscription.toJSON();
+				await auth.client.mutation(anyApi.push.register, { endpoint: subscription.endpoint, p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' });
+			} catch (error) { if (!previous) await subscription.unsubscribe(); throw error; }
+			this.pushEnabled = true;
+			toast.success('Background result notifications enabled on this device.');
+		} catch (error) { toast.error(error instanceof Error ? error.message : 'Could not enable background notifications.'); }
+		finally { this.pushBusy = false; }
+	}
+
+	async disableNotifications() {
+		this.pushBusy = true;
+		try {
+			const subscription = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription();
+			if (subscription) {
+				try { if (auth.client) await auth.client.mutation(anyApi.push.remove, { endpoint: subscription.endpoint }); }
+				finally { await subscription.unsubscribe(); this.pushEnabled = false; }
+			}
+			this.pushEnabled = false;
+			toast.success('Background notifications disabled on this device.');
+		} catch { toast.error('Could not disable notifications. Please try again.'); }
+		finally { this.pushBusy = false; }
+	}
+
+	async notify(title: string, body: string) {
+		if (this.notificationPermission !== 'granted') return;
+		const registration = await navigator.serviceWorker?.getRegistration();
+		if (registration) await registration.showNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'puntersedge-alert', data: { url: '/' } });
+		else new Notification(title, { body });
+	}
+
 	async install() {
 		if (!this.#deferred) return;
-		await this.#deferred.prompt();
-		const { outcome } = await this.#deferred.userChoice;
-		this.#deferred = null;
-		this.canInstall = false;
-		if (outcome === 'accepted') this.installed = true;
+		try {
+			await this.#deferred.prompt();
+			const { outcome } = await this.#deferred.userChoice;
+			if (outcome === 'accepted') this.installed = true;
+		} catch { toast.error('Installation could not start. Use your browser menu to install the app.'); }
+		finally { this.#deferred = null; this.canInstall = false; }
 	}
 
 	dismissIOSHint() {

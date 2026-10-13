@@ -22,7 +22,7 @@ import { self as sw } from '$app/service-worker';
 const abs = (path: string) => `/${path.replace(/^\/+/, '')}`;
 const build = immutable.map((f) => abs(f.path));
 const files = assets.map((f) => abs(f.path));
-const pages = prerendered.map((f) => abs(f.path));
+const pages = [...prerendered.map((f) => abs(f.path)), '/', '/board', '/sports', '/football', '/nba', '/basketball', '/hockey', '/baseball', '/glossary'];
 
 const SHELL = `qe-shell-${version}`;
 
@@ -79,6 +79,8 @@ sw.addEventListener('fetch', (event) => {
 	const url = new URL(request.url);
 
 	if (url.origin !== sw.location.origin) return;
+	// Auth, billing, administration and API responses must never enter the shared offline cache.
+	if (/^\/(?:api|admin|bet-machine|betslips|account|login|signup|subscribe|auth)(?:\/|$)/.test(url.pathname)) return;
 
 	if (PRECACHED.has(url.pathname) && request.mode !== 'navigate') {
 		event.respondWith(caches.match(url.pathname).then((hit) => hit ?? fetch(request)));
@@ -88,4 +90,31 @@ sw.addEventListener('fetch', (event) => {
 	if (request.mode === 'navigate') {
 		event.respondWith(networkFirstPage(request, url.pathname));
 	}
+});
+
+// Notification links are restricted to the application origin.
+sw.addEventListener('notificationclick', (event) => {
+ event.notification.close();
+ event.waitUntil((async () => {
+  const url = new URL(event.notification.data?.url ?? '/', sw.location.origin);
+  if (url.origin !== sw.location.origin) return;
+  const clients = await sw.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  const existing = clients.find((client) => new URL(client.url).origin === url.origin);
+  if (existing) { await existing.navigate(url.href); await existing.focus(); }
+  else await sw.clients.openWindow(url.href);
+ })());
+});
+
+sw.addEventListener('push', (event) => {
+ event.waitUntil((async () => {
+  let payload: { title?: string; body?: string; url?: string } = {};
+  try { payload = event.data?.json() ?? {}; } catch { /* Show a generic alert for malformed payloads. */ }
+  let url = new URL('/results', sw.location.origin);
+  try { url = new URL(typeof payload.url === 'string' ? payload.url : '/results', sw.location.origin); } catch { /* Retain the safe results link. */ }
+  await sw.registration.showNotification(typeof payload.title === 'string' ? payload.title.slice(0,100) : 'PuntersEdge update', {
+   body: typeof payload.body === 'string' ? payload.body.slice(0,240) : 'Open PuntersEdge for the latest results.',
+   icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'puntersedge-results',
+   data: { url: url.origin === sw.location.origin ? url.href : '/results' }
+  });
+ })());
 });

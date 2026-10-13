@@ -3,15 +3,15 @@
  *
  * Settings and the betslip persist to localStorage. Predictions are derived on
  * the device: engine inputs come from the live feed when one has loaded (see
- * feed.svelte.ts) and from the built-in sample feed otherwise, and every
+ * feed.svelte.ts) and remain empty until that feed is available, and every
  * prediction recomputes when a pricing setting (model weight, Kelly) changes.
  */
 
-import { FOOTBALL_INPUTS, BASKETBALL_INPUTS, NBA_INPUTS, HOCKEY_INPUTS, BASEBALL_INPUTS } from '#lib/data/fixtures.js';
 import { buildFootballPrediction, buildBasketballPrediction, type ValueBet } from '#lib/engine/prediction_pipeline.js';
 import { buildScoreSportPrediction } from '#lib/engine/score_sports.js';
 import { evaluateAccumulator } from '#lib/engine/bookmaker_engine.js';
 import { feed, type FeedGame } from '#lib/feed.svelte.ts';
+import { withModelOnlyMarkets } from '#lib/engine/model-only.js';
 import { SPORT_ORDER, type SportKey } from '#lib/sports.ts';
 
 export type FootballPrediction = ReturnType<typeof buildFootballPrediction>;
@@ -19,14 +19,6 @@ export type BasketballPrediction = ReturnType<typeof buildBasketballPrediction>;
 export type ScorePrediction = ReturnType<typeof buildScoreSportPrediction>;
 export type Prediction = FootballPrediction | BasketballPrediction | ScorePrediction;
 export type { ValueBet, SportKey };
-
-const SAMPLE: Record<SportKey, any[]> = {
-	football: FOOTBALL_INPUTS,
-	basketball: BASKETBALL_INPUTS,
-	nba: NBA_INPUTS,
-	hockey: HOCKEY_INPUTS,
-	baseball: BASEBALL_INPUTS
-};
 
 export interface Settings {
 	bankroll: number;
@@ -37,6 +29,8 @@ export interface Settings {
 }
 
 export interface SlipItem {
+	pushProb?: number;
+	marketKey?: string;
 	id: string;
 	fixtureId: string;
 	sport: SportKey;
@@ -49,7 +43,7 @@ export interface SlipItem {
 	edgePercent: number;
 }
 
-const DEFAULT_SETTINGS: Settings = { bankroll: 50000, kellyFraction: 0.25, modelWeight: 0.6, motion: true, theme: 'system' };
+export const DEFAULT_SETTINGS: Settings = { bankroll: 50000, kellyFraction: 0.25, modelWeight: 0.6, motion: true, theme: 'system' };
 const SETTINGS_KEY = 'qe:settings:v2';
 const SLIP_KEY = 'qe:slip:v2';
 const browser = typeof window !== 'undefined';
@@ -93,22 +87,22 @@ class AppState {
 	/** Selection just added, so the picker can confirm it. */
 	lastAdded = $state<string | null>(null);
 	/** Snapshot of "now" so kickoff times are stable within a session. */
-	readonly now = Date.now();
+	now = $state(Date.now());
 
-	/** 'live' once a live feed has loaded; 'sample' otherwise. */
+	/** 'live' once a live feed has loaded; 'unavailable' otherwise. */
 	source = $derived(feed.mode);
 
-	/** Engine inputs per sport: the live feed when present, the sample feed otherwise. */
+	/** Engine inputs per sport: the live feed when present, an empty board otherwise. */
 	#inputs(sport: SportKey): any[] {
-		return feed.data ? (feed.data.inputs?.[sport] ?? []) : SAMPLE[sport];
+		return feed.data ? (feed.data.inputs?.[sport] ?? []) : [];
 	}
 
 	#build(sport: SportKey, input: any): Prediction | null {
 		const opts = { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
 		try {
-			if (sport === 'football') return buildFootballPrediction(input, opts);
-			if (sport === 'basketball' || sport === 'nba') return buildBasketballPrediction(input, { ...opts, sport });
-			return buildScoreSportPrediction(input, sport, { ...opts, sport });
+			if (sport === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts));
+			if (sport === 'basketball' || sport === 'nba') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport }));
+			return withModelOnlyMarkets(buildScoreSportPrediction(input, sport, { ...opts, sport }));
 		} catch (err) {
 			// One malformed game must never take the board down.
 			console.warn(`Skipped ${input?.fixtureId}:`, err);
@@ -139,14 +133,14 @@ class AppState {
 			.sort((a, b) => b.edgePercent - a.edgePercent)
 	);
 
-	/** Featured match for the 3D hero: the strongest edge among sports with a score grid. */
+	/** Featured match for the 3D hero: the highest decision score among sports with a score grid. */
 	featured = $derived<FootballPrediction | ScorePrediction | undefined>(
 		([...this.football, ...this.hockey, ...this.baseball] as Array<FootballPrediction | ScorePrediction>)
 			.filter((p) => p.status.state === 'scheduled')
-			.sort((a, b) => (b.bestValue?.edgePercent ?? -99) - (a.bestValue?.edgePercent ?? -99))[0]
+			.sort((a, b) => (b.bestValue?.decisionScore ?? -99) - (a.bestValue?.decisionScore ?? -99))[0]
 	);
 
-	/** Schedule and results: every game the feed knows about (sample: the sample games). */
+	/** Schedule and results: every game the feed knows about (empty until the provider feed arrives). */
 	games = $derived<FeedGame[]>(
 		feed.data
 			? feed.data.games
@@ -163,7 +157,7 @@ class AppState {
 				}))
 	);
 
-	slipEconomics = $derived(evaluateAccumulator(this.slip.map((s) => ({ odds: s.odds, modelProb: s.modelProb }))));
+	slipEconomics = $derived(({...evaluateAccumulator(this.slip.map((s) => ({ odds: s.odds, modelProb: s.modelProb*(1-(s.pushProb??0)) }))),evPercent:100*(this.slip.reduce((total,s)=>total*(s.odds*s.modelProb*(1-(s.pushProb??0))+(s.pushProb??0)),1)-1)}));
 
 	constructor() {
 		if (browser) {
@@ -174,6 +168,21 @@ class AppState {
 		}
 	}
 
+	/** Reproduce the published baseline, independent of personal model settings. */
+	reviewById(id: string): Prediction | undefined {
+		const archived = feed.data?.reviewInputs?.[id];
+		if (!archived) return undefined;
+        const opts = {modelWeight:0.6,kellyFraction:0.25,now:archived.publishedAt};
+        try {
+            const prediction = withModelOnlyMarkets(archived.sport==='football' ? buildFootballPrediction(archived.input,opts) : archived.sport==='basketball'||archived.sport==='nba' ? buildBasketballPrediction(archived.input,{...opts,sport:archived.sport}) : buildScoreSportPrediction(archived.input,archived.sport,{...opts,sport:archived.sport}));
+            if(archived.frozenGrades) for(const group of prediction.markets) for(const selection of group.selections) {
+                const grade=archived.frozenGrades[selection.id.slice(id.length+1)];if(grade)selection.grade=grade;
+            }
+            if(archived.frozenVerdictKey!==undefined)prediction.bestValue=archived.frozenVerdictKey===null?undefined:prediction.markets.flatMap((g:any)=>g.selections).find((s:any)=>s.id===`${id}:${archived.frozenVerdictKey}`);
+            else if(prediction.bestValue&&archived.frozenGrades)prediction.bestValue.grade=archived.frozenGrades[prediction.bestValue.id.slice(id.length+1)]??prediction.bestValue.grade;
+            return prediction;
+        } catch {return undefined;}
+	}
 	byId(id: string): Prediction | undefined {
 		return this.all.find((p) => p.fixtureId === id);
 	}
@@ -192,8 +201,11 @@ class AppState {
 			this.slip = this.slip.filter((s) => s.id !== v.id);
 			return false;
 		}
+		const game = this.gameById(v.fixtureId);
+		if(v.pricing !== 'quoted' || game?.status.state !== 'scheduled' || Date.parse(game.kickoff) <= Date.now()) return false;
 		const item: SlipItem = {
 			id: v.id,
+			marketKey: v.id.slice(v.fixtureId.length + 1),
 			fixtureId: v.fixtureId,
 			sport: v.sport as SportKey,
 			matchTitle: v.matchTitle,
@@ -202,6 +214,7 @@ class AppState {
 			bookmaker: v.bookmaker,
 			odds: v.bestOdds,
 			modelProb: v.modelProb,
+			pushProb: (v as any).pushProb ?? 0,
 			edgePercent: v.edgePercent
 		};
 		this.slip = [...this.slip, item];

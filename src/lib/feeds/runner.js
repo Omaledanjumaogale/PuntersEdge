@@ -5,11 +5,11 @@
  * responses in tests.
  */
 
-import { SPORTS, SPORT_KEYS } from './catalog.js';
-import { current, spend, planJobs, LIMITS } from './budget.js';
+import { SPORTS, SPORT_KEYS, sportForOddsApiKey } from './catalog.js';
+import { current, spend, planJobs, allowance, LIMITS } from './budget.js';
 import { listJobs } from './jobs.js';
 import { apiSportsUrl, apiSportsErrors, parseGames, parseStandings, parseOdds, paging } from './apisports.js';
-import { oddsApiEventsUrl, oddsApiOddsUrl, oddsApiUsage, parseOddsApiEvents } from './theoddsapi.js';
+import { oddsApiSportsUrl, oddsApiEventsUrl, oddsApiOddsUrl, oddsApiUsage, parseOddsApiEvents } from './theoddsapi.js';
 import {
   oddspapiUrl,
   resolveSports,
@@ -57,30 +57,36 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
   const ledgerKeys = [...SPORT_KEYS.map((s) => `api-sports:${s}`), 'the-odds-api', 'oddspapi'];
   for (const k of ledgerKeys) ledgers[k] = current(k, inLedgers[k], now);
   const lastRun = { ...inLastRun };
+  for(const [id,at] of Object.entries(lastRun))if(now-at>35*24*H)delete lastRun[id];
+  let persistTail = Promise.resolve();
+  const persist = () => {
+    if (!reserve) return Promise.resolve();
+    // Provider lanes share one durable document. Serialize writes and take the
+    // snapshot when writing so another lane cannot overwrite a reservation.
+    persistTail = persistTail.then(() => reserve({ ...ledgers }));
+    return persistTail;
+  };
   /** @type {string[]} */
   const log = [];
   let storeChanged = false;
   let lookupsChanged = false;
+  const dateDenials=lookups.dateDenials;
+  if(dateDenials) for(const [key,until] of Object.entries(dateDenials)) if(Number(until) <= now){delete dateDenials[key];lookupsChanged=true;}
 
   const { jobs, protect } = listJobs(store, lookups, now, keys, ledgers);
   const { run, skipped } = planJobs(jobs, ledgers, lastRun, now, { protect, maxPerLedger: PER_TICK });
 
-  // Persist the planned spend first: a crash mid-tick then over-counts, never under-counts.
-  if (reserve && run.some((j) => j.cost > 0)) {
-    /** @type {Record<string, LedgerEntry>} */
-    const reserved = {};
-    for (const [k, e] of Object.entries(ledgers)) reserved[k] = e;
-    for (const j of run) reserved[j.ledger] = spend(reserved[j.ledger], j.cost, undefined, now);
-    await reserve(reserved);
-  }
+  // Every request, including pagination, is durably reserved immediately before
+  // network I/O. A crash may overcount but must never erase attempted spend.
 
   /** Remaining allowance check for follow-up pages. */
   const canSpend = (/** @type {string} */ ledger, /** @type {number} */ cost) => {
+    if (cost === 0) return true; // Documented free catalogs/events still work when paid credits are exhausted.
     const e = ledgers[ledger];
     const lim = LIMITS[e.provider];
     const capLeft = lim.limit - lim.reserve - e.used;
     const remote = typeof e.remoteRemaining === 'number' ? e.remoteRemaining - lim.reserve : Infinity;
-    return Math.min(capLeft, remote) >= cost;
+    return Math.min(capLeft, remote, allowance(e, now).today) >= cost;
   };
   /** Hosts that told us to stop this tick (429 etc.). */
   const halted = new Set();
@@ -93,16 +99,22 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
    */
   const call = async (provider, ledger, url, cost) => {
     const host = new URL(url).host;
-    if (halted.has(host)) throw new Error('halted');
+    if (halted.has(host) || (lookups.providerBackoffs?.[host] ?? 0) > now) throw new Error('halted');
     const wait = (lastCall[host] ?? 0) + SPACING[provider] - Date.now();
     if (wait > 0) await sleep(wait);
     lastCall[host] = Date.now();
+    if (!canSpend(ledger, cost)) throw new Error('budget exhausted');
+    const before = ledgers[ledger];
+    const reserved = spend(before, cost, undefined, now);
+    // Keep reservation in memory too: release-on-failure cannot refund it.
+    ledgers[ledger] = reserved;
+    if (cost > 0) await persist();
     let res;
     try {
       res = await fetcher(provider, url);
+      lastCall[host] = Date.now();
     } catch (err) {
       // No response: count it anyway (a request may have reached the provider).
-      ledgers[ledger] = spend(ledgers[ledger], cost, undefined, now);
       throw err;
     }
     /** @type {{ remaining?: number, used?: number }} */
@@ -118,10 +130,16 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
     }
     if (res.status === 429) {
       halted.add(host);
-      if (provider === 'oddspapi' && /LIMIT_EXCEEDED/i.test(JSON.stringify(res.body ?? ''))) remote.remaining = 0;
+      const retryAfter=res.headers.get('retry-after');
+      const delay=retryAfter ? (Number.isFinite(Number(retryAfter)) ? Number(retryAfter)*1000 : Date.parse(retryAfter)-now) : 30*60_000;
+      lookups.providerBackoffs ??= {};
+      lookups.providerBackoffs[host]=now+Math.min(24*3600_000,Math.max(30*60_000,Number.isFinite(delay)?delay:30*60_000));
+      lookupsChanged=true;
+      if (provider === 'oddspapi' && /LIMIT_EXCEEDED|quota|credits? exhausted/i.test(JSON.stringify(res.body ?? ''))) remote.remaining = 0;
     }
     if (provider === 'the-odds-api' && res.status === 401 && /quota/i.test(JSON.stringify(res.body ?? ''))) remote.remaining = 0;
-    ledgers[ledger] = spend(ledgers[ledger], actual, remote, now);
+    ledgers[ledger] = spend(before, actual, remote, now);
+    await persist();
     if (res.status >= 400) throw new Error(`HTTP ${res.status}${res.body?.message ? `: ${res.body.message}` : ''}`);
     return res.body;
   };
@@ -166,6 +184,14 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
         } while (page <= Math.min(total, 3) && canSpend(job.ledger, 1));
         note(store, `api-sports:${p.sport}:odds`, true, `prices for ${n} games`, now);
         return n > 0;
+      }
+      case 'toa-sports': {
+        const body = await call('the-odds-api', job.ledger, oddsApiSportsUrl(), 0);
+        if (!Array.isArray(body)) throw new Error('Invalid sport catalog response');
+        lookups.oddsApiSports = body.filter(s => s.active !== false && s.has_outrights !== true && !/championship_winner|world_series_winner/.test(s.key ?? '') && typeof s.key === 'string' && sportForOddsApiKey(s.key)).map(s => ({ key: s.key, title: String(s.title ?? s.key) }));
+        lookups.oddsApiSportsAt = now;
+        lookupsChanged = true;
+        return false;
       }
       case 'toa-events': {
         const body = await call('the-odds-api', job.ledger, oddsApiEventsUrl(p.key, { from: now - 2 * H, to: now + 3 * 24 * H }), 0);
@@ -224,7 +250,9 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
       }
       case 'op-odds': {
         const books = lookups.bookmakers ?? [];
-        const url = oddspapiUrl('/odds-by-tournaments', { tournamentIds: p.tournamentIds.join(','), bookmakers: books.map((b) => b.slug).slice(0, 3).join(',') });
+        // Verified against the production account; rotating unsupported books caused HTTP 400.
+        const bookmaker = '1xbet';
+        const url = oddspapiUrl('/odds-by-tournaments', { tournamentIds: p.tournamentIds.join(','), bookmaker });
         const body = await call('oddspapi', job.ledger, url, 1);
         const bookNames = Object.fromEntries(books.map((b) => [b.slug, b.name]));
         /** sportId → family; NBA is told apart from other basketball by tournament. */
@@ -266,6 +294,14 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
   await Promise.all(
     Object.values(byHost).map(async (list) => {
       for (const job of list) {
+        const p = job.params;
+        const dateKey = p?.kind === 'games' ? `${p.sport}:${p.date}` : null;
+        if(dateKey && (lookups.dateDenials?.[dateKey] ?? 0) > now){skipped.push({id:job.id,reason:'provider plan does not include this date'});continue;}
+        const seasonKey = p?.season !== undefined && ['standings', 'odds'].includes(p.kind) ? `${p.sport}:${p.season}` : null;
+        if (seasonKey && (lookups.seasonDenials?.[seasonKey] ?? 0) > now) {
+          skipped.push({id:job.id,reason:'provider plan does not include this season'});
+          continue;
+        }
         try {
           const changed = await exec(job);
           if (changed) storeChanged = true;
@@ -273,6 +309,16 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
           ran.push(job.id);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
+          if(dateKey && /free plans do not have access to this date/i.test(msg)){
+            lookups.dateDenials ??= {};
+            lookups.dateDenials[dateKey] = Date.parse(new Date(now).toISOString().slice(0,10)+'T00:00:00Z')+24*H;
+            lookupsChanged=true;
+          }
+          if (seasonKey && /free plans do not have access to this season/i.test(msg)) {
+            lookups.seasonDenials ??= {};
+            lookups.seasonDenials[seasonKey] = Date.parse(new Date(now).toISOString().slice(0, 10) + 'T00:00:00Z') + 24 * H;
+            lookupsChanged = true;
+          }
           if (msg !== 'halted') {
             note(store, job.id.split(':').slice(0, 2).join(':'), false, msg, now);
             log.push(`${job.id}: ${msg}`);
@@ -286,8 +332,9 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
   );
 
   const before = Object.keys(store.games).length;
+  const beforeProjections = Object.keys(store.projections).length;
   prune(store, now);
-  if (Object.keys(store.games).length !== before) storeChanged = true;
+  if (Object.keys(store.games).length !== before || Object.keys(store.projections).length !== beforeProjections) storeChanged = true;
 
   return { ledgers, lastRun, ran, skipped, storeChanged, lookupsChanged, log };
 }

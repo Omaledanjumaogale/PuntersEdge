@@ -42,6 +42,7 @@ import { bestMatch } from './matching.js';
  * @property {number} edge
  * @property {string} grade
  * @property {number} kickoff
+ * @property {number} [publishedAt]
  * @property {string} [result] won | lost | push | half-won | half-lost
  * @property {number} [profit] units per 1 staked
  * @property {string} [score]
@@ -49,6 +50,7 @@ import { bestMatch } from './matching.js';
 
 /**
  * @typedef {Object} Store
+ * @property {Record<string, any>} projections
  * @property {1} v
  * @property {Record<string, StoredGame>} games
  * @property {Record<string, { at: number, rows: import('../engine/ratings.js').TableRow[] }>} tables `${sport}:${leagueId}:${season}`
@@ -59,7 +61,7 @@ import { bestMatch } from './matching.js';
 
 /** @returns {Store} */
 export function emptyStore() {
-  return { v: 1, games: {}, tables: {}, oddsApiEvents: {}, record: { pending: {}, settled: [] }, diag: {} };
+  return { v: 1, projections: {}, games: {}, tables: {}, oddsApiEvents: {}, record: { pending: {}, settled: [] }, diag: {} };
 }
 
 /** Make sure an object read from storage has every field. */
@@ -73,6 +75,7 @@ export function reviveStore(/** @type {any} */ raw) {
     diag: raw.diag ?? {},
     tables: raw.tables ?? {},
     oddsApiEvents: raw.oddsApiEvents ?? {},
+    projections: raw.projections ?? {},
     games: raw.games ?? {}
   };
 }
@@ -102,25 +105,16 @@ function mergeOdds(/** @type {StoredGame} */ g, /** @type {Record<string, Record
  */
 export function upsertGames(store, games, now) {
   let added = 0;
+  const byAs = new Map(Object.values(store.games).filter(g=>g.ext.as).map(g=>[`${g.sport}:${g.ext.as}`,g]));
   for (const n of games) {
-    const uid = uidOf(n.sport, 'as', n.id);
-    let g = store.games[uid];
+    const canonical = uidOf(n.sport, 'as', n.id);
+    let g = store.games[canonical] ?? byAs.get(`${n.sport}:${n.id}`);
     if (!g) {
-      // Fold in an odds-only entry for the same game, if any.
       const orphans = Object.values(store.games).filter((x) => x.sport === n.sport && !x.ext.as);
       const m = bestMatch({ home: n.home, away: n.away, kickoff: n.kickoff }, orphans);
-      g = { uid, sport: n.sport, league: n.league, home: n.home, away: n.away, kickoff: n.kickoff, status: n.status, ext: {}, odds: {}, updated: now };
-      if (m) {
-        g.ext = { ...m.item.ext };
-        g.odds = { ...m.item.odds };
-        delete store.games[m.item.uid];
-        // Carry a pending pick across the id change.
-        if (store.record.pending[m.item.uid]) {
-          store.record.pending[uid] = { ...store.record.pending[m.item.uid], uid };
-          delete store.record.pending[m.item.uid];
-        }
-      }
-      store.games[uid] = g;
+      // Preserve the first published ID so projections, URLs and saved slips retain one identity.
+      g = m?.item ?? { uid:canonical, sport:n.sport, league:n.league, home:n.home, away:n.away, kickoff:n.kickoff, status:n.status, ext:{}, odds:{}, updated:now };
+      store.games[g.uid] = g;
       added++;
     }
     Object.assign(g, {
@@ -136,6 +130,7 @@ export function upsertGames(store, games, now) {
       updated: now
     });
     g.ext.as = n.id;
+    byAs.set(`${n.sport}:${n.id}`,g);
   }
   return added;
 }
@@ -188,7 +183,7 @@ export function attachOdds(store, src, events, now) {
 export function attachApiSportsOdds(store, sport, byGame, now) {
   let n = 0;
   for (const [id, odds] of Object.entries(byGame)) {
-    const g = store.games[uidOf(sport, 'as', id)];
+    const g = store.games[uidOf(sport, 'as', id)] ?? Object.values(store.games).find(game=>game.sport===sport&&game.ext.as===id);
     if (!g) continue;
     mergeOdds(g, odds, now);
     n++;
@@ -215,5 +210,6 @@ export function prune(store, now) {
   }
   for (const [k, t] of Object.entries(store.tables)) if (now - t.at > 10 * 24 * H) delete store.tables[k];
   for (const [uid, p] of Object.entries(store.record.pending)) if (now - p.kickoff > 4 * 24 * H) delete store.record.pending[uid];
+  for(const [id,p] of Object.entries(store.projections)) if(p.finishedAt && now >= p.finishedAt + 12 * H) delete store.projections[id];
   store.record.settled = store.record.settled.slice(-300);
 }

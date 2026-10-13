@@ -1,0 +1,44 @@
+# PuntersEdge
+
+> PuntersEdge provides probabilistic sports analytics for football, NBA, basketball, ice hockey and baseball. It is a platform under the Elite Workforce Impact Nigeria (E-WIN) Project Ecosystem. Sports predictions are uncertain; no pick guarantees a return.
+
+## Pages
+- [Home](/): Overview and data status.
+- [Sports](/sports): Supported sports and dashboards.
+- [Football](/football): Football fixtures and market analysis.
+- [NBA](/nba): NBA fixtures and market analysis.
+- [Basketball](/basketball): Basketball fixtures and market analysis.
+- [Ice hockey](/hockey): Hockey fixtures and market analysis.
+- [Baseball](/baseball): Baseball fixtures and market analysis.
+- [Analysis board](/board): Cross-sport probability and price comparisons.
+- [Value analysis](/value-bets): Model estimates compared with bookmaker prices.
+- [Bookmakers](/bookmakers): Bookmaker margin and price comparisons.
+- [Results](/results): Published predictions, settled verdicts and final scores.
+- [Glossary](/glossary): Definitions of probability, expected value and stake sizing.
+
+## Ecosystem and attribution
+- [E-WIN Project](https://ewinproject.org): Parent ecosystem.
+- [Omale Danjuma Ogale](https://omaledanjumaogale.ewinproject.org/): Founder & CEO.
+
+## Freshness
+Data badges distinguish live feeds from sample data. Feed timestamps identify freshness; source health and quotas are restricted to administrators. Provider quotas and outages can delay updates. Never describe sample fixtures as live.
+
+## Methodology and sources
+API-Sports supplies schedules, scores and available standings. OddsPapi and The Odds API supply available market prices. Coverage depends on provider plans, quotas and leagues. Football models goals, basketball models points, hockey models regulation goals and baseball models runs. Estimated probabilities are model outputs rather than observed certainties. Without suitable standings, estimates may be calibrated from market prices.
+
+## Topic clusters
+Fixtures and schedules: sports dashboards. Probability and pricing: analysis board, value analysis, bookmaker comparisons. Accountability and freshness: Results and published projections. Definitions: glossary.
+
+## Questions
+### Are predictions guaranteed?
+No. Models estimate uncertain sporting outcomes. Bookmaker prices and model estimates can change.
+### Is every fixture live?
+No. The interface identifies sample mode until a live feed is available. Check the data badge and feed timestamp before relying on a fixture.
+### Who operates the ecosystem?
+The parent is Elite Workforce Impact Nigeria Project, legally Elite Workforce Enterprises and Digital Emerging Arbitrage & Leverage Services. Omale Danjuma Ogale is identified as Founder & CEO.
+
+## Licensing
+No open data licence is granted by this index. Provider data remains subject to provider terms. Link to the relevant application page when citing its analysis. Do not treat this file as permission to redistribute bookmaker feeds.
+
+## Publication notes
+Only supplied ecosystem URLs are listed. Additional sister sites, translated content and author credentials must be verified before publication. Account, authentication and administrative content is private and excluded from indexing.

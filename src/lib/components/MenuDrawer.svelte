@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { anyApi } from 'convex/server';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { app } from '#lib/state.svelte.ts';
@@ -9,8 +10,16 @@
 	import Logo from './Logo.svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import { toast } from '#lib/toast.svelte.ts';
 	import { X, LogOut } from 'lucide-svelte';
 
+	let isSuperAdmin = $state(false);
+	$effect(() => {
+		const client = auth.client;
+		isSuperAdmin = false;
+		if (!client) return;
+		return client.onUpdate(anyApi.admin.status, {}, (status: { isSuperAdmin: boolean }) => { isSuperAdmin = status.isSuperAdmin === true; });
+	});
 	let panel = $state<HTMLElement>();
 	let busy = $state(false);
 
@@ -26,10 +35,14 @@
 
 	async function logOut() {
 		busy = true;
-		await auth.logOut();
-		busy = false;
-		close();
-		await goto('/');
+		try {
+			if (pwa.pushEnabled) if (pwa.pushEnabled) await pwa.disableNotifications();
+			await auth.logOut();
+			close();
+			await goto('/');
+			toast.success('You are logged out.');
+		} catch { toast.error('Could not log out. Please try again.'); }
+		finally { busy = false; }
 	}
 
 	// Close on navigation; focus the panel when it opens.
@@ -38,11 +51,23 @@
 		app.menuOpen = false;
 	});
 	$effect(() => {
-		if (app.menuOpen) queueMicrotask(() => panel?.focus());
+		if (!app.menuOpen) return;
+		const previous = document.activeElement as HTMLElement | null;
+		const overflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		queueMicrotask(() => panel?.focus());
+		return () => { document.body.style.overflow = overflow; previous?.focus(); };
 	});
 
 	function onkey(e: KeyboardEvent) {
-		if (e.key === 'Escape' && app.menuOpen) close();
+		if (!app.menuOpen) return;
+		if (e.key === 'Escape') { e.preventDefault(); close(); }
+		if (e.key === 'Tab' && panel) {
+			const controls = [...panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, textarea, [tabindex="0"]')];
+			const first = controls[0], last = controls.at(-1);
+			if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) { e.preventDefault(); last?.focus(); }
+			else if (!e.shiftKey && (document.activeElement === last || document.activeElement === panel)) { e.preventDefault(); first?.focus(); }
+		}
 	}
 </script>
 
@@ -86,6 +111,9 @@
 			{/if}
 		</section>
 
+		{#if isSuperAdmin}
+			<a href={page.url.pathname.startsWith('/admin') ? '/board' : '/admin'} class="btn-primary">{page.url.pathname.startsWith('/admin') ? 'Switch to user view' : 'Open admin console'}</a>
+		{/if}
 		<!-- Navigation -->
 		<nav aria-label="Main" class="grid gap-3">
 			<ul class="grid grid-cols-5 gap-1.5" aria-label="Sports">
@@ -143,6 +171,22 @@
 				{/each}
 			</div>
 			<p class="mt-1.5 text-xs text-haze">Showing {theme.resolved} mode.</p>
+		</section>
+
+		<section class="rounded-2xl bg-raised p-4 ring-1 ring-line" aria-labelledby="menu-notifications">
+			<h2 id="menu-notifications" class="text-sm font-semibold">Device notifications</h2>
+			<p class="mt-1 text-xs text-haze">Get result updates even when the app is closed. An active subscription is required.</p>
+			{#if pwa.pushEnabled}
+				<button class="btn-ghost mt-3 w-full" disabled={pwa.pushBusy} onclick={() => pwa.disableNotifications()}>Disable background alerts</button>
+			{/if}
+			{#if pwa.notificationPermission === 'granted'}
+				<button class="btn-ghost mt-3 w-full" onclick={() => pwa.notify('PuntersEdge test alert', 'Your device notifications are working.').catch(() => toast.error('Could not show the test alert.'))}>Send test alert</button>
+			{/if}
+			{#if !pwa.pushEnabled && (pwa.notificationPermission === 'default' || pwa.notificationPermission === 'granted')}
+				<button class="btn-ghost mt-3 w-full" disabled={pwa.pushBusy || !auth.signedIn} onclick={() => pwa.enableNotifications()}>{pwa.pushBusy ? 'Enabling…' : 'Enable background alerts'}</button>
+				{#if !auth.signedIn}<p class="mt-2 text-xs text-haze">Log in to enable background notifications.</p>{/if}
+			{:else if pwa.notificationPermission === 'denied'}<p class="mt-2 text-xs text-haze">Blocked in browser settings. Allow notifications there to enable alerts.</p>
+			{:else if pwa.notificationPermission === 'unsupported'}<p class="mt-2 text-xs text-haze">Your browser does not support device notifications here.</p>{/if}
 		</section>
 
 		<div class="mt-auto grid gap-2">

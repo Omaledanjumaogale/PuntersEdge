@@ -1,0 +1,32 @@
+name: Deploy Cloudflare Pages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PUBLIC_CONVEX_URL: https://reliable-duck-539.eu-west-1.convex.cloud
+      PUBLIC_CONVEX_SITE_URL: https://reliable-duck-539.eu-west-1.convex.site
+      PUBLIC_SITE_URL: https://puntersedge.ewinproject.org
+      XDG_CONFIG_HOME: /tmp/puntersedge-config
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - name: Deploy SSR worker, assets and PWA
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler pages deploy .svelte-kit/cloudflare --project-name puntersedge --branch main

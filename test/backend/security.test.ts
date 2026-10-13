@@ -1,0 +1,162 @@
+import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
+import { convexTest } from 'convex-test';
+import betterAuth from '@convex-dev/better-auth/test';
+import { componentsGeneric, anyApi } from 'convex/server';
+import schema from '../../convex/schema';
+const modules = import.meta.glob('../../convex/**/*.ts');
+const create = () => { const t = convexTest(schema, modules); betterAuth.register(t); return t; };
+beforeEach(()=>{vi.stubEnv('BETTER_AUTH_SECRET',crypto.randomUUID()+crypto.randomUUID());vi.stubEnv('SITE_URL','https://puntersedge.example.test');vi.stubEnv('CONVEX_SITE_URL','https://backend.example.test');});
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+async function member(t: ReturnType<typeof create>, email = 'member@example.test') {
+ const component = componentsGeneric().betterAuth;
+ const user = await t.mutation(component.adapter.create, {input:{model:'user',data:{name:'Member',email,emailVerified:true,createdAt:Date.now(),updatedAt:Date.now()}}});
+ const session = await t.mutation(component.adapter.create,{input:{model:'session',data:{userId:user._id,token:crypto.randomUUID(),expiresAt:Date.now()+3600000,createdAt:Date.now(),updatedAt:Date.now()}}});
+ const signed = t.withIdentity({subject:user._id,sessionId:session._id});
+ const localId = await signed.mutation(anyApi.users.syncProfile,{});
+ return {signed,localId};
+}
+
+describe('backend access and subscription security', () => {
+ it('rejects anonymous access to live files, admin actions and payment checkout', async () => {
+  const t = create();
+  await expect(t.query(anyApi.feed.meta, {})).rejects.toThrow('Sign in');
+  await expect(t.query(anyApi.admin.overview, {})).rejects.toThrow('Administrator');
+  await expect(t.mutation(anyApi.workflows.refreshData, {})).rejects.toThrow();
+  await expect(t.action(anyApi.payments.checkout, { provider: 'flutterwave' })).rejects.toThrow('Sign in');
+ });
+ it('enforces paid access and immutable administrator identity for signed-in accounts', async () => {
+  const t=create(); const {signed,localId}=await member(t,'owner@example.test');
+  vi.stubEnv('SUPER_ADMIN_USER_ID','another-user');
+  expect(await signed.query(anyApi.admin.status,{})).toEqual({isSuperAdmin:false});
+  await expect(signed.query(anyApi.admin.overview,{})).rejects.toThrow('Administrator');
+  await expect(signed.query(anyApi.feed.meta,{})).rejects.toThrow('active all-access');
+  await t.run(async ctx=>ctx.db.insert('subscriptions',{userId:localId,expiresAt:Date.now()+60000,updatedAt:Date.now()}));
+  expect(await signed.query(anyApi.feed.meta,{})).toBeNull();
+  vi.stubEnv('SUPER_ADMIN_USER_ID',localId);
+  expect(await signed.query(anyApi.admin.status,{})).toEqual({isSuperAdmin:true});
+  await signed.query(anyApi.admin.overview,{});
+ });
+ it('RBAC protects premium slips and role changes follow subscription expiry without granting admin',async()=>{
+  const t=create(),{signed,localId}=await member(t);
+  expect(await signed.query(anyApi.access.role,{})).toMatchObject({role:'member',active:false});
+  await expect(signed.query(anyApi.betslip.history,{})).rejects.toThrow('active all-access');
+  await t.run(async ctx=>ctx.db.insert('subscriptions',{userId:localId,expiresAt:Date.now()+10000,updatedAt:Date.now()}));
+  expect(await signed.query(anyApi.access.role,{})).toMatchObject({role:'subscriber',active:true});
+  expect(await signed.query(anyApi.betslip.history,{})).toEqual([]);
+  await expect(signed.query(anyApi.admin.overview,{})).rejects.toThrow('Administrator');
+  await t.run(async ctx=>{const row=await ctx.db.query('subscriptions').unique();await ctx.db.patch(row!._id,{expiresAt:Date.now()-1});});
+  await expect(signed.query(anyApi.betslip.history,{})).rejects.toThrow('active all-access');
+  vi.stubEnv('SUPER_ADMIN_USER_ID',localId);expect(await signed.query(anyApi.access.role,{})).toMatchObject({role:'super_admin',active:true});
+ });
+ it('premium downloads require current entitlement and never disclose a storage URL in public metadata',async()=>{
+  const t=create(),{signed,localId}=await member(t);
+  const storageId=await t.run(ctx=>ctx.storage.store(new Blob(['test-feed'])));
+  await t.run(ctx=>ctx.db.insert('feed_state',{key:'feed',data:{storageId,version:'v1',generatedAt:new Date().toISOString()}}));
+  expect((await t.fetch('/feed')).status).toBe(403);
+  expect((await signed.fetch('/feed')).status).toBe(403);
+  const subscription=await t.run(ctx=>ctx.db.insert('subscriptions',{userId:localId,expiresAt:Date.now()+10000,updatedAt:Date.now()}));
+  expect(await signed.query(anyApi.feed.meta,{})).toMatchObject({url:'/api/feed'});
+  vi.stubGlobal('fetch',vi.fn(async()=>new Response('test-feed')));
+  const response=await signed.fetch('/feed');expect(response.status).toBe(200);expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  await t.run(ctx=>ctx.db.patch(subscription,{expiresAt:Date.now()-1}));expect((await signed.fetch('/feed')).status).toBe(403);
+ });
+ it('payment status checks are owner-scoped, throttled, and verify the charge before granting access',async()=>{
+  const t=create(),{signed,localId}=await member(t),other=await member(t,'another@example.test');
+  const reference='pe_owner_check';
+  await t.run(ctx=>ctx.db.insert('payments',{userId:localId,provider:'flutterwave',reference,apiVersion:'v4',providerCustomerId:'cus_owner',amount:10000,currency:'NGN',status:'pending',createdAt:Date.now()}));
+  await expect(other.signed.action(anyApi.payments.checkStatus,{reference})).rejects.toThrow('Payment not found');
+  vi.stubEnv('FLW_CLIENT_ID','unit-client');vi.stubEnv('FLW_SECRET_KEY','unit-secret');
+  const charge={id:'chg_owner',reference,customer_id:'cus_owner',amount:10000,currency:'NGN',status:'succeeded'};
+  vi.stubGlobal('fetch',vi.fn(async(url:string)=>url.includes('openid-connect')?Response.json({access_token:'unit-token',expires_in:3600}):url.includes('?reference=')?Response.json({status:'success',data:[charge]}):Response.json({status:'success',data:charge})));
+  expect(await signed.action(anyApi.payments.checkStatus,{reference})).toEqual({paid:true});
+  expect((await t.run(ctx=>ctx.db.query('subscriptions').withIndex('by_user',q=>q.eq('userId',localId)).unique()))?.expiresAt).toBeGreaterThan(Date.now());
+  expect(await signed.action(anyApi.payments.checkStatus,{reference})).toEqual({paid:true});
+  const next='pe_pending_check';await t.run(ctx=>ctx.db.insert('payments',{userId:localId,provider:'flutterwave',reference:next,apiVersion:'v4',providerCustomerId:'cus_owner',amount:10000,currency:'NGN',status:'pending',createdAt:Date.now()}));
+  vi.stubGlobal('fetch',vi.fn(async()=>Response.json({status:'success',data:[]})));
+  expect(await signed.action(anyApi.payments.checkStatus,{reference:next})).toEqual({paid:false});
+  await expect(signed.action(anyApi.payments.checkStatus,{reference:next})).rejects.toThrow('30 seconds');
+ });
+ it('removed Korapay routes and checkout cannot be used',async()=>{const t=create();expect((await t.fetch('/payments/korapay',{method:'POST'})).status).toBe(404);await expect(t.action(anyApi.payments.checkout,{provider:'korapay'})).rejects.toThrow('Validator');});
+ it('rejects invalid webhook signatures without granting access', async () => {
+  vi.stubEnv('BETTER_AUTH_SECRET',crypto.randomUUID()+crypto.randomUUID());
+  vi.stubEnv('SITE_URL','https://puntersedge.example.test');
+  vi.stubEnv('CONVEX_SITE_URL','https://backend.example.test');
+  vi.stubEnv('FLW_SECRET_KEY','test-only-not-a-live-key');vi.stubEnv('FLW_SECRET_HASH','test-webhook-hash');vi.stubEnv('FLW_API_VERSION','v3');
+  const t=create();
+  const response=await t.fetch('/payments/flutterwave',{method:'POST',headers:{'Content-Type':'application/json','flutterwave-signature':'invalid'},body:JSON.stringify({event:'charge.completed',data:{reference:'forged'}})});
+  expect(response.status).toBe(401);
+  expect(await t.run(async ctx=>ctx.db.query('subscriptions').collect())).toEqual([]);
+ });
+ it('validates a signed webhook against provider data before granting membership', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T12:00:00Z'));
+  vi.stubEnv('BETTER_AUTH_SECRET',crypto.randomUUID()+crypto.randomUUID());
+  vi.stubEnv('SITE_URL','https://puntersedge.example.test');
+  vi.stubEnv('CONVEX_SITE_URL','https://backend.example.test');
+  vi.stubEnv('FLW_SECRET_KEY','test-only-not-a-live-key');vi.stubEnv('FLW_SECRET_HASH','test-webhook-hash');vi.stubEnv('FLW_API_VERSION','v3');
+  const t=create(); const userId=await t.run(async ctx=>ctx.db.insert('users',{}));
+  await t.run(async ctx=>ctx.db.insert('payments',{userId,provider:'flutterwave',reference:'pe_signed-ref',amount:10000,currency:'NGN',status:'pending',createdAt:Date.now()}));
+  const data={tx_ref:'pe_signed-ref',id:123,status:'successful'};
+  vi.stubGlobal('fetch',vi.fn(async (url: string)=>{
+   expect(url).toBe('https://api.flutterwave.com/v3/transactions/123/verify');
+   return Response.json({status:true,data:{id:123,status:'successful',tx_ref:'pe_signed-ref',amount:10000,currency:'NGN'}});
+  }));
+  const init={method:'POST',headers:{'Content-Type':'application/json','verif-hash':'test-webhook-hash'},body:JSON.stringify({event:'charge.completed',data})};
+  expect((await t.fetch('/payments/flutterwave',init)).status).toBe(200);
+  const first=await t.run(async ctx=>ctx.db.query('subscriptions').unique());
+  expect((await t.fetch('/payments/flutterwave',init)).status).toBe(200);
+  expect((await t.run(async ctx=>ctx.db.query('subscriptions').unique()))?.expiresAt).toBe(first?.expiresAt);
+  expect(fetch).toHaveBeenCalledTimes(1);
+ });
+ it('limits backend AI attempts and returns a cached answer without consuming another attempt', async () => {
+  const t=create();const userId='test-user';
+  for(let i=0;i<10;i++)await t.mutation(anyApi.ai_usage.reserve,{userId,cacheKey:`fixture-${i}`});
+  await t.mutation(anyApi.ai_usage.save,{userId,cacheKey:'fixture-9',result:{text:'Grounded result',provider:'test',generatedAt:Date.now()}});
+  expect(await t.mutation(anyApi.ai_usage.reserve,{userId,cacheKey:'fixture-9'})).toMatchObject({result:{text:'Grounded result'}});
+  await expect(t.mutation(anyApi.ai_usage.reserve,{userId,cacheKey:'new-fixture'})).rejects.toThrow('Daily AI limit');
+ });
+ it('prevents duplicate in-flight requests and enforces an application-wide provider cap', async () => {
+  const t=create();
+  await t.mutation(anyApi.ai_usage.reserve,{userId:'duplicate-user',cacheKey:'fixture'});
+  await expect(t.mutation(anyApi.ai_usage.reserve,{userId:'duplicate-user',cacheKey:'fixture'})).rejects.toThrow('already being requested');
+  for(let i=0;i<99;i++) await t.mutation(anyApi.ai_usage.reserve,{userId:`budget-user-${i}`,cacheKey:`fixture-${i}`,provider:'agnes'});
+  await expect(t.mutation(anyApi.ai_usage.reserve,{userId:'next-user',cacheKey:'last',provider:'agnes'})).rejects.toThrow("daily AI budget");
+  expect(await t.mutation(anyApi.ai_usage.reserve,{userId:'other-provider',cacheKey:'free-model',provider:'aihubmix'})).toMatchObject({result:null});
+ });
+ it('allows subscribed device registration and rejects private network endpoints', async () => {
+  const t=create(); const {signed,localId}=await member(t);
+  const device={endpoint:'https://fcm.googleapis.com/fcm/send/test-device',p256dh:'B'.repeat(87),auth:'A'.repeat(22)};
+  await expect(signed.mutation(anyApi.push.register,device)).rejects.toThrow('active all-access');
+  await t.run(async ctx=>ctx.db.insert('subscriptions',{userId:localId,expiresAt:Date.now()+60000,updatedAt:Date.now()}));
+  await expect(signed.mutation(anyApi.push.register,{...device,endpoint:'https://127.0.0.1/private'})).rejects.toThrow('Unsupported push');
+  await signed.mutation(anyApi.push.register,device);
+  expect(await t.run(async ctx=>ctx.db.query('push_subscriptions').collect())).toHaveLength(1);
+  await signed.mutation(anyApi.push.remove,{endpoint:device.endpoint});
+  expect(await t.run(async ctx=>ctx.db.query('push_subscriptions').collect())).toHaveLength(0);
+ });
+ it('grants one month exactly once and refuses mismatched verified payments', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-01-31T12:00:00Z'));
+  const t = create();
+  const userId = await t.run(async ctx => ctx.db.insert('users', { email: 'member@example.test' }));
+  await t.run(async ctx => ctx.db.insert('payments', {userId, provider:'flutterwave',reference:'trusted-reference',amount:10000,currency:'NGN',status:'pending',createdAt:Date.now()}));
+  const verified = {provider:'flutterwave',reference:'trusted-reference',transactionId:'txn-1',amount:10000,currency:'NGN'};
+  await expect(t.mutation(anyApi.payments.settle, {...verified,amount:100})).rejects.toThrow();
+  await expect(t.mutation(anyApi.payments.settle, {...verified,currency:'USD'})).rejects.toThrow();
+  await t.mutation(anyApi.payments.settle, verified);
+  await t.mutation(anyApi.payments.settle, verified);
+  const subscription = await t.run(async ctx => ctx.db.query('subscriptions').unique());
+  expect(subscription?.expiresAt).toBe(Date.parse('2026-02-28T12:00:00Z'));
+  expect(await t.run(async ctx => ctx.db.query('payments').unique())).toMatchObject({status:'paid',providerTransactionId:'txn-1'});
+ });
+ it('paid renewals stack from existing expiry; failed verification cannot create access', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T12:00:00Z'));
+  const t = create();
+  const userId = await t.run(async ctx => ctx.db.insert('users', {}));
+  const expiry = Date.parse('2026-11-12T12:00:00Z');
+  await t.run(async ctx => ctx.db.insert('subscriptions',{userId,expiresAt:expiry,updatedAt:Date.now()}));
+  await t.run(async ctx => ctx.db.insert('payments',{userId,provider:'flutterwave',reference:'renew',amount:10000,currency:'NGN',status:'pending',createdAt:Date.now()}));
+  await expect(t.mutation(anyApi.payments.settle,{provider:'flutterwave',reference:'renew',transactionId:'txn',amount:9999,currency:'NGN'})).rejects.toThrow();
+  await t.mutation(anyApi.payments.settle,{provider:'flutterwave',reference:'renew',transactionId:'txn',amount:10000,currency:'NGN'});
+  expect((await t.run(async ctx => ctx.db.query('subscriptions').unique()))?.expiresAt).toBe(Date.parse('2026-12-12T12:00:00Z'));
+ });
+});

@@ -1,0 +1,24 @@
+# PuntersEdge
+
+> PuntersEdge provides probabilistic sports analytics for football, NBA, basketball, ice hockey and baseball. It is a platform under the Elite Workforce Impact Nigeria (E-WIN) Project Ecosystem. Sports predictions are uncertain; no pick guarantees a return.
+
+## Pages
+- [Home](/): Overview and data status.
+- [Sports](/sports): Supported sports and dashboards.
+- [Football](/football): Football fixtures and market analysis.
+- [NBA](/nba): NBA fixtures and market analysis.
+- [Basketball](/basketball): Basketball fixtures and market analysis.
+- [Ice hockey](/hockey): Hockey fixtures and market analysis.
+- [Baseball](/baseball): Baseball fixtures and market analysis.
+- [Analysis board](/board): Cross-sport probability and price comparisons.
+- [Value analysis](/value-bets): Model estimates compared with bookmaker prices.
+- [Bookmakers](/bookmakers): Bookmaker margin and price comparisons.
+- [Results](/results): Published predictions, settled verdicts and final scores.
+- [Glossary](/glossary): Definitions of probability, expected value and stake sizing.
+
+## Ecosystem and attribution
+- [E-WIN Project](https://ewinproject.org): Parent ecosystem.
+- [Omale Danjuma Ogale](https://omaledanjumaogale.ewinproject.org/): Founder & CEO.
+
+## Freshness
+Data badges distinguish live feeds from sample data. Feed timestamps identify freshness; source health and quotas are restricted to administrators. Provider quotas and outages can delay updates. Never describe sample fixtures as live.

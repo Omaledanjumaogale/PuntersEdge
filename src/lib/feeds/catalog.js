@@ -78,7 +78,8 @@ export const SPORTS = {
       { name: /^ligue 1$/i, category: /^france$/i },
       { name: /champions league$/i, category: /^(international clubs|europe|international)$/i },
       { name: /europa league$/i, category: /^(international clubs|europe|international)$/i },
-      { name: /(npfl|premier (football )?league)/i, category: /^nigeria$/i }
+      { name: /(npfl|premier (football )?league)/i, category: /^nigeria$/i },
+      { name: /.+/ }
     ],
     apiSportsOdds: true,
     season: (d) => splitStart(d, 7)
@@ -100,7 +101,7 @@ export const SPORTS = {
     theOddsApi: ['basketball_euroleague', 'basketball_nbl', 'basketball_wnba'],
     oddsApiMarkets: 'h2h,spreads,totals',
     oddspapiSport: /^basketball$/i,
-    oddspapiTournaments: [{ name: /^euroleague$/i }, { name: /^eurocup$/i }, { name: /^(acb|liga acb|liga endesa)$/i, category: /^spain$/i }],
+    oddspapiTournaments: [{ name: /^euroleague$/i }, { name: /^eurocup$/i }, { name: /^(acb|liga acb|liga endesa)$/i, category: /^spain$/i }, { name: /^(?!nba(?:$|[ -]preseason)).+/i }],
     apiSportsOdds: true,
     season: (d) => `${splitStart(d, 8)}-${splitStart(d, 8) + 1}`
   },
@@ -132,7 +133,7 @@ export const SPORTS = {
     theOddsApi: ['icehockey_nhl', 'icehockey_sweden_hockey_league'],
     oddsApiMarkets: 'h2h,spreads,totals',
     oddspapiSport: /^(ice hockey|hockey|icehockey)$/i,
-    oddspapiTournaments: [{ name: /^nhl$/i }, { name: /^khl$/i }],
+    oddspapiTournaments: [{ name: /.+/ }],
     apiSportsOdds: true,
     season: (d) => splitStart(d, 8)
   },
@@ -150,7 +151,7 @@ export const SPORTS = {
     theOddsApi: ['baseball_mlb', 'baseball_npb', 'baseball_kbo'],
     oddsApiMarkets: 'h2h,spreads,totals',
     oddspapiSport: /^baseball$/i,
-    oddspapiTournaments: [{ name: /^mlb$/i }, { name: /^npb$/i }, { name: /^kbo$/i }],
+    oddspapiTournaments: [{ name: /.+/ }],
     apiSportsOdds: true,
     season: (d) => year(d)
   }
@@ -165,12 +166,16 @@ export const SPORT_KEYS = /** @type {SportKey[]} */ (Object.keys(SPORTS));
  * @param {string} [country]
  */
 export function competitionFor(sport, league, country) {
-  return SPORTS[sport].competitions.find((c) => c.name.test(league ?? '') && (!c.country || !country || c.country.test(country)));
+  // NBA regulation is 48 minutes and has its own provider/dashboard.
+  if (sport === 'basketball' && /^nba(?:$|[ -]preseason)/i.test(league ?? '')) return undefined;
+  const known = SPORTS[sport].competitions.find((c) => c.name.test(league ?? '') && (!c.country || !country || c.country.test(country)));
+  return known ?? (typeof league === 'string' && league.trim() ? { label: league.trim(), name: /.*/, tier: 4 } : undefined);
 }
 
 /** Map a The Odds API sport key back to our sport. */
 export function sportForOddsApiKey(/** @type {string} */ key) {
-  return SPORT_KEYS.find((s) => SPORTS[s].theOddsApi.includes(key));
+  return SPORT_KEYS.find((s) => SPORTS[s].theOddsApi.includes(key))
+    ?? (key.startsWith('soccer_') ? 'football' : key.startsWith('basketball_') ? (key === 'basketball_nba' ? 'nba' : 'basketball') : key.startsWith('icehockey_') ? 'hockey' : key.startsWith('baseball_') ? 'baseball' : undefined);
 }
 
 /** Readable league name for a The Odds API key (used when an event has no API-Sports match). */

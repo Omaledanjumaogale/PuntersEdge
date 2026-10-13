@@ -1,33 +1,31 @@
 <script lang="ts">
+	import { anyApi } from 'convex/server';
 	import { page } from '$app/state';
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { theme } from '#lib/theme.svelte.ts';
-	import { NAV, isActive } from '#lib/nav.ts';
 	import Logo from './Logo.svelte';
 	import { Menu, ReceiptText } from 'lucide-svelte';
 
-	const desktopLinks = NAV.filter((n) => ['/board', '/sports', '/value-bets', '/results', '/bookmakers'].includes(n.href));
+	let isSuperAdmin = $state(false);
+	$effect(() => {
+		const client = auth.client;
+		isSuperAdmin = false;
+		if (!client) return;
+		return client.onUpdate(anyApi.admin.status, {}, (status: { isSuperAdmin: boolean }) => { isSuperAdmin = status.isSuperAdmin === true; });
+	});
+
 </script>
 
 <header class="safe-top sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur-xl">
 	<div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
 		<a href="/" aria-label="PuntersEdge home" class="rounded-xl"><Logo size={34} /></a>
 
-		<nav class="ml-4 hidden items-center gap-1 text-sm xl:flex" aria-label="Main">
-			{#each desktopLinks as l (l.href)}
-				{@const active = isActive(page.url.pathname, l.href, l.also)}
-				<a
-					href={l.href}
-					aria-current={active ? 'page' : undefined}
-					class="rounded-full px-3 py-1.5 font-medium transition-colors {active ? 'bg-raised text-chalk ring-1 ring-line' : 'text-haze hover:text-chalk'}"
-				>
-					<span aria-hidden="true">{l.emoji}</span> {l.label}
-				</a>
-			{/each}
-		</nav>
 
 		<div class="ml-auto flex items-center gap-2">
+			{#if isSuperAdmin}
+				<a href={page.url.pathname.startsWith('/admin') ? '/board' : '/admin'} class="inline-flex min-h-10 items-center rounded-full bg-pop px-3 text-xs font-semibold text-ink">{page.url.pathname.startsWith('/admin') ? 'User view' : 'Admin'}</a>
+			{/if}
 			<button
 				onclick={() => theme.toggle()}
 				class="grid h-10 w-10 place-items-center rounded-full bg-raised text-lg ring-1 ring-line transition-transform hover:ring-pop active:scale-90"

@@ -84,7 +84,7 @@ test('matching: different teams stay apart', () => {
 });
 
 // ── provider parsers ────────────────────────────────────────────────────
-test('api-sports: football fixtures, status and tracked leagues only', () => {
+test('api-sports: football fixtures preserve major and minor league coverage', () => {
   const body = {
     errors: [],
     response: [
@@ -94,10 +94,12 @@ test('api-sports: football fixtures, status and tracked leagues only', () => {
     ]
   };
   const g = parseGames('football', body);
-  assert.equal(g.length, 2);
+  assert.equal(g.length, 3);
   assert.equal(g[0].status.state, 'finished');
   assert.equal(g[0].status.regHome, 1);
-  assert.equal(g[1].league, 'NPFL');
+  assert.equal(g[1].league, 'Premier League');
+  assert.equal(g[1].country, 'Wales');
+  assert.equal(g[2].league, 'NPFL');
   assert.deepEqual(apiSportsErrors({ errors: { plan: 'Free plans do not have access to this season' } }), ['plan: Free plans do not have access to this season']);
   assert.ok(competitionFor('football', 'UEFA Champions League', 'World'));
 });
@@ -152,7 +154,15 @@ test('runner: one tick builds a priced feed for every sport from three providers
   let ledgers = {}, lastRun = {};
   // A few ticks: lookups first, then odds.
   for (let i = 0; i < 4; i++) {
-    const r = await runTick({ store, lookups, ledgers, lastRun, now: clock, fetcher: world.fetcher, keys: { apiSports: true, oddsApi: true, oddspapi: true }, sleep: async () => {} });
+    const r = await runTick({ store, lookups, ledgers, lastRun, now: clock, fetcher: async (provider, url) => {
+      const u = new URL(url);
+      if (provider === "oddspapi" && u.pathname.endsWith("/odds-by-tournaments")) {
+        assert.ok(u.searchParams.get("bookmaker"), "OddsPapi requires one bookmaker");
+        assert.equal(u.searchParams.has("bookmakers"), false);
+        assert.equal(u.searchParams.get("bookmaker").includes(","), false);
+      }
+      return world.fetcher(provider, url);
+    }, keys: { apiSports: true, oddsApi: true, oddspapi: true }, sleep: async () => {} });
     ledgers = r.ledgers;
     lastRun = r.lastRun;
     assert.deepEqual(r.log, []);
@@ -163,7 +173,7 @@ test('runner: one tick builds a priced feed for every sport from three providers
   // Team names from three providers resolved onto the same games.
   const fb = Object.values(store.games).filter((g) => g.sport === 'football' && g.kickoff > clock);
   assert.ok(fb.some((g) => g.odds['1xBet'] && g.odds.Pinnacle && g.odds.SportyBet), 'football game has API-Sports, The Odds API and OddsPapi prices');
-  assert.ok(!Object.values(store.games).some((g) => g.uid.includes('-toa-') && g.sport === 'football'), 'no duplicate odds-only football games');
+  assert.ok(!Object.values(store.games).some((g) => !g.ext.as && g.sport === 'football'), 'no duplicate odds-only football games');
   // Ratings come from the league tables once they're in.
   assert.ok(feed.inputs.football.some((i) => i.ratingsSource !== 'market'));
   // Every input runs through its engine.

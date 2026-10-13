@@ -13,7 +13,7 @@ import { generateScoreMatrix } from './football_model.js';
 import { adjustParametersForLineups } from './lineup_impact.js';
 import { deriveDoubleChance, deriveDrawNoBet } from './bookmaker_engine.js';
 import { fairProbabilities } from './vig_removal.js';
-import { calculateExpectedValue, calculateKellyStake, gradeSelection, analyzeOddsMovement } from './decision_screener.js';
+import { calculateExpectedValue, calculateKellyStake, gradeSelection, analyzeOddsMovement, rankSelections, selectionDecision } from './decision_screener.js';
 import { projectBasketballGame, LEAGUE_PROFILES, probabilityOver, probabilityHomeCovers } from './basketball_model.js';
 import { round, fairOdds } from './math.js';
 import { buildFootballMarkets, buildBasketballMarkets } from './market_book.js';
@@ -50,6 +50,9 @@ const MAX_CREDIBLE_EDGE = 25;
  * @property {number} edgePercent
  * @property {number} kellyStakePercent
  * @property {'A+' | 'A' | 'B' | 'C' | 'PASS'} grade
+ * @property {'quoted' | 'derived'} [pricing]
+ * @property {number} [decisionScore]
+ * @property {number} [successProbability]
  */
 
 /**
@@ -131,6 +134,7 @@ function scanMarkets(ctx, candidates, odds, kellyFraction = 0.25) {
     const stake = calculateKellyStake(c.prob, best.odds, kellyFraction);
     out.push({
       id: `${ctx.fixtureId}:${c.key}`,
+      pricing: 'quoted',
       fixtureId: ctx.fixtureId,
       sport: ctx.sport,
       matchTitle: ctx.matchTitle,
@@ -146,6 +150,9 @@ function scanMarkets(ctx, candidates, odds, kellyFraction = 0.25) {
       kellyStakePercent: stake.recommendedStakePct,
       grade: ev.isPositiveEV ? gradeSelection(ev.edgePercent, Math.abs(c.prob - c.marketProb) * 100) : 'PASS'
     });
+    const decision = selectionDecision(out[out.length - 1]);
+    out[out.length - 1].grade = decision.grade;
+    if (!decision.eligible) out[out.length - 1].kellyStakePercent = 0;
   }
   return out.sort((a, b) => b.edgePercent - a.edgePercent);
 }
@@ -244,6 +251,7 @@ export function buildFootballPrediction(input, options = {}) {
   const blended1x2 = { home: probabilities.homeWin, draw: probabilities.draw, away: probabilities.awayWin };
 
   const top = mp.topPredictedScores[0];
+  const markets = buildFootballMarkets(input, mp, model.rho, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 });
   return {
     sport: /** @type {const} */ ('football'),
     family: /** @type {const} */ ('football'),
@@ -280,13 +288,13 @@ export function buildFootballPrediction(input, options = {}) {
     bookmakers: Object.keys(input.odds),
     margins: margins(input.odds, ['home', 'draw', 'away']),
     valueBets,
-    bestValue: valueBets[0],
+    bestValue: rankSelections(markets.flatMap(g => g.selections).filter(s => s.pricing === 'quoted'))[0],
     summary: {
       scoreline: `${top.home}–${top.away}`,
       caption: `Most likely score (xG ${lambdaHome.toFixed(2)}–${muAway.toFixed(2)})`,
       unit: 'goals'
     },
-    markets: buildFootballMarkets(input, mp, model.rho, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 }),
+    markets,
     movement,
     marketSteamAlert: Boolean(movement?.smartMoneyIndication),
     absences,
@@ -430,6 +438,7 @@ export function buildBasketballPrediction(input, options = {}) {
 
   const absences = (input.absences ?? []).map((a) => ({ ...a, teamName: a.team === 'home' ? input.homeTeam : input.awayTeam }));
 
+  const markets = buildBasketballMarkets({ ...input, sport: options.sport }, proj, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 });
   return {
     sport: /** @type {'basketball' | 'nba'} */ (options.sport ?? 'basketball'),
     family: /** @type {const} */ ('basketball'),
@@ -463,13 +472,13 @@ export function buildBasketballPrediction(input, options = {}) {
     bookmakers: Object.keys(input.odds),
     margins: margins(flat, ['homeMl', 'awayMl']),
     valueBets,
-    bestValue: valueBets[0],
+    bestValue: rankSelections(markets.flatMap(g => g.selections).filter(s => s.pricing === 'quoted'))[0],
     summary: {
       scoreline: `${Math.round(sim.projectedScore.home)}–${Math.round(sim.projectedScore.away)}`,
       caption: `Projected over ${sim.expectedPace} possessions`,
       unit: 'points'
     },
-    markets: buildBasketballMarkets({ ...input, sport: options.sport }, proj, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 }),
+    markets,
     movement,
     marketSteamAlert: Boolean(movement?.smartMoneyIndication),
     absences,

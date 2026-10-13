@@ -7,7 +7,7 @@ Live fixtures, fair prices, value bets and stake sizes for **football, NBA, bask
 ## What it does
 
 - **Prices every market from first principles, per sport.** Football: Dixon–Coles (absences priced in). NBA and basketball: tempo-free pace × efficiency, priced analytically for any line. Ice hockey: Poisson goals with overtime/shootout resolution. Baseball: negative-binomial runs with extra innings.
-- **Live data on a budget.** A Convex cron pulls fixtures, live scores, results, league tables and bookmaker prices from API-Sports, The Odds API and OddsPapi, rationed so no quota is ever exceeded and every day of the month gets fresh prices.
+- **Live data on a budget.** A Convex cron pulls fixtures, live scores, results, league tables and bookmaker prices from API-Sports, The Odds API and OddsPapi, rationed within safe daily/monthly budgets; provider plans can still limit freshness and coverage.
 - **Honest track record.** Each game's best graded pick is recorded before kickoff and settled from the final score on the Results page.
 - **Removes the bookmaker's margin** with Shin's method and blends the model with the de-vigged market consensus (default 60/40, adjustable).
 - **Scans every market at every book** for prices above fair value, then sizes stakes with fractional Kelly on your bankroll.
@@ -30,9 +30,11 @@ Live fixtures, fair prices, value bets and stake sizes for **football, NBA, bask
 ## Getting started
 
 ```bash
-npm install
+npm ci --legacy-peer-deps  # Node 24
 npm run dev        # http://localhost:5173
 npm test           # engine test suite (node:test)
+npm run test:backend # Convex/Better Auth access, billing and webhook tests
+npm run check:backend # backend TypeScript
 npm run check      # svelte-check / TypeScript
 npm run pipeline   # run the engine over the sample feed in the terminal
 npm run build      # production build → .svelte-kit/cloudflare
@@ -40,19 +42,19 @@ npm run preview    # serve the production build with Wrangler on :4173
 npm run build:single  # one self-contained HTML demo → dist-preview/index.html
 ```
 
-## Deployment
+## Backend integration and deployment
 
-**Frontend (Cloudflare Pages):** build command `npm run build`, output directory `.svelte-kit/cloudflare`. The public Convex URL is read from `.env.production`.
+The application now uses server-rendered Svelte pages, realtime authenticated Convex feed subscriptions, Better Auth cookie sessions and Resend verification/password recovery. All-access membership costs **₦10,000 per calendar month**, with manual renewals through Flutterwave v4 bank transfer or optional hosted checkout providers. Webhooks verify payment details with the provider before access is granted; duplicate callbacks cannot grant extra months. The administrator is bound to an immutable verified user ID. The branded console has performance/calibration charts, sport/grade/market/probability-band/model-version breakdowns, separate final-verdict stats, private source quotas and audited membership controls.
 
-**Backend (Convex):** `.github/workflows/convex-deploy.yml` deploys `convex/` on every push that touches it. One-time setup:
+Members can opt in to background Web Push result alerts after VAPID configuration; foreground device alerts remain available where supported.
 
-1. GitHub → **Settings → Secrets and variables → Actions → New repository secret**: name `CONVEX_DEPLOY_KEY`, value = your production deploy key from the Convex dashboard. Optionally add `API_SPORTS_KEY`, `THE_ODDS_API_KEY` and `ODDSPAPI_KEY` the same way (see Live data setup).
-2. Optional: add a repository **variable** `SITE_URL` with your app's public URL (defaults to `https://quantedge-sports-pwa.pages.dev`).
-3. Run the workflow once from the **Actions** tab (or push a change to `convex/`).
+The application lives at **puntersedge.ewinproject.org**, under the **ewinproject.org** mother ecosystem. Resend uses the mother domain with sender **PuntersEdge <puntersedge@ewinproject.org>**. Browser bundles contain public endpoint URLs only.
 
-On its first run the workflow generates the RS256 key pair Convex Auth signs sessions with (`JWT_PRIVATE_KEY`, `JWKS`) and never overwrites it afterwards. To do the same by hand: `node scripts/generate-auth-keys.mjs --apply` with `CONVEX_DEPLOY_KEY` set.
+Read [docs/INTEGRATION.md](docs/INTEGRATION.md) for every environment variable, webhook URL, deployment workflow and known external blocker. Read [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for secure administrator setup and legacy-account migration, and [docs/SEO.md](docs/SEO.md) for crawl/metadata publication checks. Production workflows are in `.github/workflows/convex-deploy.yml` and `pages-deploy.yml`; hosted configuration helpers never include credential literals.
 
-Never commit deploy keys. Only `PUBLIC_CONVEX_URL` belongs in the repo; it ships to browsers anyway.
+Backend AI explanations use Agnes with an explicitly configured model or AIHubMix catalog models marked `:free` or the verified `xiaomi-mimo-v2.6-pro-free` alias, with no automatic paid fallback. Only subscribed members may request them. The backend obtains fixture context itself and limits attempts to 10 per member per UTC day, caching a bounded result. Missing provider configuration leaves deterministic analysis available on sample data.
+
+Convex and Pages are deployed at the production domain. Real fixture ingestion, both AI completions and owner verification email delivery have been confirmed. All 108 automated tests pass. Payment settlement and production device-push delivery remain unverified; GitHub source/workflow publication requires write access. See the integration guide for exact hosted status.
 
 ## Live data setup
 
@@ -70,9 +72,9 @@ Bookmaker and livescore websites (SportyBet, 1xBet, 22Bet, RedScore, 24live) are
 
 ## Accounts
 
-Email + password sign-up, login and logout use [Convex Auth](https://labs.convex.dev/auth) (`convex/auth.ts`). The Svelte client (`src/lib/auth.svelte.ts`) speaks the same protocol as the official React client: short-lived JWTs, rotating refresh tokens serialised across tabs, server-side revocation on logout. Signed-in users' betslips sync to Convex (`convex/betslip.ts`, scoped to the session user).
+Email/password signup, verified sign-in, logout and recovery use the official [Convex Better Auth component](https://labs.convex.dev/better-auth) (`convex/auth.ts`). The Svelte client uses HttpOnly cookie sessions through the same-origin `/api/auth/*` proxy and obtains short-lived JWTs for authenticated realtime queries. Signed-in users' betslips and analysis settings synchronize to their immutable Convex user profile.
 
-Without a Convex URL (e.g. the single-file preview) accounts run in a clearly labelled on-device demo mode with PBKDF2-hashed passwords.
+Without an available entitled provider feed, dashboards remain empty and show an explicit unavailable state. Production signup never emulates successful authentication locally.
 
 ## Progressive Web App
 
@@ -111,7 +113,7 @@ Bookmakers in the feed quote headline markets (1X2, total 2.5, BTTS; moneyline, 
 
 ## Data
 
-With the provider keys set, the app runs on the **live feed** published by Convex (see Live data setup). Without them — or before the first live feed exists — it falls back to `src/lib/data/fixtures.js`, a **sample feed** with realistic ratings and prices, and labels everything "Sample games". Either way the feed holds inputs only: every probability, fair price, edge and stake is computed on the device.
+With the provider keys set, the app runs on the **live feed** published by Convex (see Live data setup). Without an available entitled provider feed, dashboards remain empty. Generated sample fixtures are never substituted into production boards. The feed holds inputs only: probabilities, prices, edges and stakes are computed on the device.
 
 ## Responsible use
 
@@ -120,3 +122,7 @@ PuntersEdge doesn't place bets. Positive expected value is a long-run property; 
 ## License
 
 MIT
+
+Published pre-match inputs and every market are archived for reproducible model evaluation. Finished analysis remains accessible for 12 hours after its final result is received. Saved slip history retains scores, preserves completed selections while allowing edits to unfinished legs and supports local PDF/WhatsApp exports. See [docs/BETSLIPS.md](docs/BETSLIPS.md).
+
+The advanced bet machine lives at `/bet-machine`. Premium file downloads and saved slips require an active subscription (super-admin bypass). Flutterwave is the sole active gateway; see the integration guide for coverage limits, grading semantics and payment validation status.

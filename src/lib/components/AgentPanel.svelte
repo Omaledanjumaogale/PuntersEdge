@@ -3,6 +3,7 @@
 	import { PuntersEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
 	import { odds, ngn } from '#lib/format.ts';
 	import { app } from '#lib/state.svelte.ts';
+	import AIExplanation from '#lib/components/AIExplanation.svelte';
 
 	let { p }: { p: Prediction } = $props();
 	const hub = new PuntersEdgeAIAgentHub();
@@ -47,4 +48,5 @@
 		{/if}
 		<p class="mt-3 max-w-prose text-[15px] leading-relaxed text-chalk">{rec.rationale}</p>
 	</div>
+	<AIExplanation fixtureId={p.fixtureId} sport={p.sport} />
 </section>

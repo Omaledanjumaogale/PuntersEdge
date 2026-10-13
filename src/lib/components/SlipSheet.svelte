@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
+	import { toast } from '#lib/toast.svelte.ts';
+	import { downloadSlipPdf, whatsappSlip } from '#lib/slip-export.ts';
+	import { api } from '../../../convex/_generated/api.js';
 	import { odds, pct, ngn, signed } from '#lib/format.ts';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -9,9 +12,16 @@
 	let mode = $state<'singles' | 'acca'>('acca');
 	let stake = $state(1000);
 	let copied = $state(false);
+	let reviewed = $state(false);
+	$effect(()=>{app.slip.map(i=>`${i.id}:${i.odds}`).join('|'); reviewed=false;});
+	let slipName = $state('');
+	let savingHistory = $state(false);
+	let exporting = $state(false);
+	async function pdf(){exporting=true;try{await downloadSlipPdf(exportSlip);}catch{toast.error('PDF download failed.');}finally{exporting=false;}}
 
 	const items = $derived(app.slip);
 	const econ = $derived(app.slipEconomics);
+	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
 	const isAcca = $derived(mode === 'acca' && items.length > 1);
 
 	const singlesEv = $derived(items.reduce((acc, i) => acc + stake * (i.modelProb * i.odds - 1), 0));
@@ -34,6 +44,17 @@
 		}
 	}
 
+	async function saveHistory() {
+		if (!auth.client) { toast.error('Log in to save a named slip.'); return; }
+		savingHistory = true;
+		try {
+			const selections = items.map(({ fixtureId, sport, matchTitle, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+			await auth.client.mutation(api.betslip.saveHistory, { name: slipName.trim() || `My slip ${new Date().toLocaleDateString('en-NG')}`, items: selections, stake, betType: mode });
+			toast.success('Named slip saved to your history.'); slipName = '';
+		} catch (reason) { toast.error((reason as Error).message); }
+		finally { savingHistory = false; }
+	}
+
 	function onkey(e: KeyboardEvent) {
 		if (e.key === 'Escape' && app.slipOpen) close();
 	}
@@ -52,7 +73,8 @@
 	>
 		<div class="mx-auto mt-2 h-1 w-10 rounded-full bg-line md:hidden"></div>
 		<header class="flex items-center gap-2 px-5 pb-3 pt-3">
-			<h2 id="slip-title" class="text-xl font-bold text-chalk">🧾 Betslip</h2>
+			<h2 id="slip-title" class="text-xl font-bold text-chalk">{reviewed?'Ticket preview':'🧾 Betslip'}</h2>
+			<a href="/betslips" onclick={close} class="text-xs font-semibold text-model underline">History</a>
 			<span class="text-sm text-haze">{items.length} selection{items.length === 1 ? '' : 's'}</span>
 			<div class="ml-auto flex gap-1">
 				{#if items.length}
@@ -66,9 +88,10 @@
 			{#each items as i (i.id)}
 				<div class="ticket flex items-center gap-3 px-4 py-3" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">
-						<p class="truncate text-xs text-haze">{i.matchTitle}</p>
+						<p class="text-xs text-haze">{i.matchTitle}</p>
+						{#if app.gameById(i.fixtureId)}<p class="mt-1 text-xs text-haze">{new Date(app.gameById(i.fixtureId)!.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}
 						<p class="truncate font-semibold text-chalk">{i.selection}</p>
-						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}</p>
+						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}{#if (i.pushProb??0)>0}, refund {pct(i.pushProb??0,1)}{/if}</p>
 						{#if app.sameGameFixtures.has(i.fixtureId)}<p class="mt-0.5 text-xs font-semibold text-book">🔗 Same match as another pick</p>{/if}
 					</div>
 					<span class="font-display text-lg font-semibold text-book">{odds(i.odds)}</span>
@@ -96,7 +119,8 @@
 		</div>
 
 		{#if items.length}
-			<footer class="space-y-3 border-t border-line px-5 pb-3 pt-4">
+			<footer class="max-h-[50dvh] space-y-3 overflow-y-auto border-t border-line px-5 pb-3 pt-4">
+				{#if !reviewed}<button class="btn-primary w-full" onclick={()=>reviewed=true}>Preview full ticket & set stake</button><p class="text-center text-xs text-haze">Review every selection before saving or sharing.</p>{:else}
 				{#if items.length > 1}
 					<div class="grid grid-cols-2 gap-1 rounded-full bg-ink p-1 text-sm" role="tablist">
 						{#each [['acca', 'Accumulator'], ['singles', 'Singles']] as [m, label]}
@@ -132,12 +156,19 @@
 					<p class="rounded-xl tint-loss px-3 py-2 text-xs text-loss">This combination has negative expected value ({signed(econ.evPercent)}%). Singles keep each edge intact.</p>
 				{/if}
 
+				{#if auth.signedIn}
+					<label class="grid gap-1 text-sm text-haze">Name this slip<input class="rounded-xl bg-ink px-3 py-2 text-chalk ring-1 ring-line" maxlength="80" bind:value={slipName} placeholder="Weekend picks" /></label>
+					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
+				{/if}
+				<div class="grid grid-cols-2 gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button><a class="btn-secondary text-center" href={whatsappSlip(exportSlip)} target="_blank" rel="noopener noreferrer">WhatsApp</a></div>
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">
 					{#if copied}<Check class="h-4 w-4" /> Copied{:else}<Copy class="h-4 w-4" /> Copy slip for your bookmaker{/if}
 				</button>
 				<p class="text-center text-xs text-haze">
 					{#if auth.signedIn && auth.mode === 'convex'}☁️ Synced to your account. {:else if !auth.signedIn}<a href="/login" onclick={close} class="font-semibold text-pop underline">Log in</a> to sync this slip. {/if}PuntersEdge doesn't place bets. 18+, bet within your means.
 				</p>
+			<button class="btn-secondary w-full" onclick={()=>reviewed=false}>Back to editing selections</button>
+				{/if}
 			</footer>
 		{/if}
 	</div>

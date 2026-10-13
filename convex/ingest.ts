@@ -14,13 +14,16 @@
  *   API_SPORTS_KEY (or API_FOOTBALL_KEY), ODDSPAPI_KEY, THE_ODDS_API_KEY
  */
 import { internalAction } from "./_generated/server";
+import { makeFunctionReference } from "convex/server";
 import { internal } from "./_generated/api";
 import { gzipSync, gunzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import type { Id } from "./_generated/dataModel";
 import { runTick, type Fetcher } from "../src/lib/feeds/runner.js";
 import { reviveStore } from "../src/lib/feeds/store.js";
-import { buildFeed, updateRecord } from "../src/lib/feeds/build.js";
+import { SPORTS } from "../src/lib/feeds/catalog.js";
+import { MODEL_VERSION } from "../src/lib/feeds/performance.js";
+import { buildFeed, updateRecord, predict } from "../src/lib/feeds/build.js";
 import { usageSummary } from "../src/lib/feeds/budget.js";
 
 /** Hosts this action may call. */
@@ -34,6 +37,11 @@ const ALLOWED = new Set([
   "api.oddspapi.io",
 ]);
 
+function redact(message: string, k: ReturnType<typeof keys>) {
+  for (const value of Object.values(k)) if (value) message = message.split(value).join('[redacted]');
+  return message.replace(/(apiKey=)[^&\s]+/gi, '$1[redacted]').slice(0, 300);
+}
+
 function keys() {
   return {
     apiSports: process.env.API_SPORTS_KEY || process.env.API_FOOTBALL_KEY || "",
@@ -44,15 +52,13 @@ function keys() {
 
 /** The metered network layer handed to the runner. */
 function makeFetcher(k: ReturnType<typeof keys>): Fetcher {
-  // Testing only: route provider calls to a local mock (never set in production).
-  const override = process.env.FEED_BASE_OVERRIDE;
   return async (provider, url) => {
     const u = new URL(url);
     if (!ALLOWED.has(u.host)) throw new Error(`Host not allowed: ${u.host}`);
-    const headers: Record<string, string> = { accept: "application/json" };
+    const headers: Record<string, string> = { accept: "application/json", "User-Agent": "PuntersEdge/1.0" };
     if (provider === "api-sports") headers["x-apisports-key"] = k.apiSports;
     else u.searchParams.set("apiKey", provider === "the-odds-api" ? k.oddsApi : k.oddspapi);
-    const target = override ? `${override.replace(/\/$/, "")}/${u.host}${u.pathname}${u.search}` : u.toString();
+    const target = u.toString();
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 25_000);
     try {
@@ -63,6 +69,9 @@ function makeFetcher(k: ReturnType<typeof keys>): Fetcher {
         body = text ? JSON.parse(text) : null;
       } catch {
         body = { message: text.slice(0, 200) };
+      }
+      if (res.status >= 400 && body && typeof body === 'object' && 'message' in body) {
+        body = { ...body, message: redact(String((body as { message: unknown }).message), k) };
       }
       return { status: res.status, body, headers: res.headers };
     } finally {
@@ -108,6 +117,7 @@ export const tick = internalAction({
     try {
       const store = reviveStore(await readGz(ctx, state.storeId));
       const lookups = (await readGz(ctx, state.lookupsId)) ?? {};
+      const settledBefore = new Set(store.record.settled.map((pick: { uid: string }) => pick.uid));
 
       const r = await runTick({
         store,
@@ -123,14 +133,16 @@ export const tick = internalAction({
       });
       ledgers = r.ledgers;
 
-      updateRecord(store, now);
+      const projectionChanges = updateRecord(store, now);
+      const fixtureStates = Object.values(store.games).map((g:any)=>({fixtureId:g.uid,kickoff:g.kickoff,status:g.status.state,family:SPORTS[g.sport as keyof typeof SPORTS].family,...(Number.isFinite(g.status.home)&&Number.isFinite(g.status.away)?{score:{home:g.status.home,away:g.status.away,...(g.status.regHome!==undefined?{regHome:g.status.regHome}:{}),...(g.status.regAway!==undefined?{regAway:g.status.regAway}:{})}}:{})}));
+      await ctx.runMutation(makeFunctionReference<'mutation'>('betslip:resolveSavedFixtures'),{states:fixtureStates});
       const usage = usageSummary(r.ledgers, now);
       const feed = buildFeed(store, now, usage);
       const { generatedAt, usage: _u, ...content } = feed;
       const version = createHash("sha1").update(JSON.stringify(content)).digest("hex").slice(0, 16);
 
       // Writes happen only when something changed.
-      const storeId = r.storeChanged || !state.storeId ? await ctx.storage.store(gz(store)) : undefined;
+      const storeId = r.storeChanged || projectionChanges.length || !state.storeId ? await ctx.storage.store(gz(store)) : undefined;
       const lookupsId = r.lookupsChanged ? await ctx.storage.store(gz(lookups)) : undefined;
       let feedArg;
       if (version !== state.feedVersion) {
@@ -138,12 +150,29 @@ export const tick = internalAction({
         const counts = Object.fromEntries(Object.entries(feed.inputs).map(([s, xs]) => [s, (xs as unknown[]).length]));
         feedArg = { storageId: feedId, version, generatedAt, counts: { ...counts, games: feed.games.length } };
       }
-      await ctx.runMutation(internal.feed.commit, { now, ledgers: r.ledgers, lastRun: r.lastRun, log: r.log, storeId, lookupsId, feed: feedArg, usage });
+      await ctx.runMutation(internal.feed.commit, { now, ledgers: r.ledgers, lastRun: r.lastRun, log: r.log, storeId, lookupsId, feed: feedArg, usage, coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter((g:any)=>!g.priced).length,pending:Object.values(store.record.pending).length,modelVersion:MODEL_VERSION} });
+      // Archive only snapshots that have now been committed to the subscriber feed.
+      for(let offset=0;offset<projectionChanges.length;offset+=10) await ctx.scheduler.runAfter(0,makeFunctionReference<'action'>('performanceArchive:storeBatch'),{snapshots:projectionChanges.slice(offset,offset+10).map((p:any)=>JSON.stringify(p))});
+      const newResults = store.record.settled.filter((pick: { uid: string }) => !settledBefore.has(pick.uid)).length;
+      if (newResults > 0) await ctx.scheduler.runAfter(0, makeFunctionReference<"action">("notifications:deliver"), { count: newResults });
       return { ran: r.ran, skipped: r.skipped.length, log: r.log, feedUpdated: Boolean(feedArg) };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = redact(err instanceof Error ? err.message : String(err), k);
       await ctx.runMutation(internal.feed.release, { ledgers, error: msg, now });
       throw err;
     }
   },
 });
+
+export const inspect = internalAction({args:{},handler:async(ctx):Promise<Record<string,unknown>>=>{
+ const state=await ctx.runQuery(internal.feed.diagnosticState,{});
+ if(!state.feed?.storageId)return {ready:false};
+ const feed=await readGz(ctx,state.feed.storageId);
+ const grades:Record<string,number>={},pricing:Record<string,number>={};
+ for(const [sport,inputs] of Object.entries(feed?.inputs??{}))for(const input of inputs as any[])try{
+  const projection=predict(sport as keyof typeof SPORTS,input,{});
+  for(const group of projection.markets)for(const selection of group.selections){grades[selection.grade]=(grades[selection.grade]??0)+1;pricing[selection.pricing]=(pricing[selection.pricing]??0)+1;}
+ }catch{}
+ const unavailable=(feed?.games??[]).filter((g:any)=>!g.projected && ['scheduled','live'].includes(g.status.state));
+ return {ready:true,grades,pricing,unavailable:unavailable.length,unavailableExamples:unavailable.slice(0,3).map((g:any)=>({id:g.id,reason:g.availabilityReason,sport:g.sport,league:g.league})),counts:state.feed.counts,generatedAt:state.feed.generatedAt,usage:state.feed.usage,sources:feed?.sources??{},games:feed?.games?.slice(0,3)??[],projections:feed?.projections?.slice(0,3)??[],projectedCount:feed?.projections?.length??0,reviewCount:Object.keys(feed?.reviewInputs??{}).length,lastTick:state.lastTick};
+}});

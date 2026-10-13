@@ -26,11 +26,11 @@ export const CATEGORIES: { name: GlossaryCategory; emoji: string }[] = [
 ];
 
 export const GRADES = [
-	{ grade: 'A+', emoji: '🔥', name: 'Strong value', rule: 'Edge of 6% or more', tone: 'bg-model text-ink' },
-	{ grade: 'A', emoji: '⚡', name: 'Good value', rule: 'Edge from 3.5% to 6%', tone: 'bg-model text-ink' },
-	{ grade: 'B', emoji: '👍', name: 'Some value', rule: 'Edge from 1.5% to 3.5%', tone: 'tint-model text-model ring-1 ring-model/50' },
-	{ grade: 'C', emoji: '🤏', name: 'Thin value', rule: 'Edge above 0% but under 1.5%', tone: 'bg-raised text-chalk ring-1 ring-line' },
-	{ grade: 'PASS', emoji: '✋', name: 'No value', rule: 'Price is at or below fair', tone: 'bg-raised text-haze ring-1 ring-line' }
+	{ grade: 'A+', emoji: '🔥', name: 'Strong value', rule: 'Decision score of 70 or more', tone: 'bg-model text-ink' },
+	{ grade: 'A', emoji: '⚡', name: 'Good value', rule: 'Decision score from 60 to 70', tone: 'bg-model text-ink' },
+	{ grade: 'B', emoji: '👍', name: 'Some value', rule: 'Decision score from 50 to 60', tone: 'tint-model text-model ring-1 ring-model/50' },
+	{ grade: 'C', emoji: '🤏', name: 'Thin value', rule: 'Eligible quoted value below score 50', tone: 'bg-raised text-chalk ring-1 ring-line' },
+	{ grade: 'PASS', emoji: '✋', name: 'Pass', rule: 'Fails price or probability checks', tone: 'bg-raised text-haze ring-1 ring-line' }
 ] as const;
 
 export const GLOSSARY: GlossaryTerm[] = [
@@ -77,15 +77,15 @@ export const GLOSSARY: GlossaryTerm[] = [
 		emoji: '🏅',
 		category: 'Grades',
 		short: 'How strong the value is, from 🔥 A+ down to ✋ PASS.',
-		long: 'Grades come from the edge. A+ is 6% or more, A is 3.5–6%, B is 1.5–3.5%, C is anything positive below 1.5%, and PASS means no edge. When our model disagrees with the market by more than 8 percentage points the grade is marked down, because big disagreements are more often model error than market error.',
-		example: 'A +10% edge where model and market are close → A+.'
+		long: 'Grades use the shared decision score: estimated outright win likelihood has 65% weight, bounded positive expected value 25%, and probability cushion above break-even 10%, discounted for model disagreement. Eligible quoted selections receive A+ at score 70, A at 60, B at 50 and C below 50. Derived prices, nonpositive EV, estimated win likelihood below 50%, unusually high EV or excessive model-market disagreement retain PASS. This is a ranking policy, not a proven success percentage; performance is measured from published predictions and final results.',
+		example: 'A positive edge on a longshot may still receive PASS. A high grade does not guarantee a win.'
 	},
 	{
 		id: 'pass',
 		term: 'PASS / no bet',
 		emoji: '✋',
 		category: 'Grades',
-		short: 'Every available price is at or below fair value.',
+		short: 'Price or probability checks do not support a recommendation.',
 		long: 'Passing is a decision, not a failure. The bookmaker’s margin means most bets lose money over time; you only want the ones where the price is better than the true chance.'
 	},
 	{

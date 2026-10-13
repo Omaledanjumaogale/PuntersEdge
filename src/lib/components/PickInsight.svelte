@@ -146,7 +146,8 @@
 			</span>
 			<span class="flex items-center gap-1.5 text-haze" title="How strongly the four checks agree">
 				Confidence
-				<span class="flex gap-0.5" aria-label="{dots} of 5">
+				<span class="text-xs font-semibold text-pop">{pct(confidence,1)} confidence</span>
+				<span class="flex gap-0.5" aria-label="Confidence {pct(confidence,1)} · {dots} of 5">
 					{#each Array(5) as _, i}
 						<span class="h-2 w-2 rounded-full {i < dots ? 'bg-pop' : 'bg-line'}"></span>
 					{/each}

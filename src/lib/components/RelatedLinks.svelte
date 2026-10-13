@@ -1,0 +1,2 @@
+<script lang="ts">let { links = [] }: { links?: { title: string; href: string }[] } = $props();</script>
+<nav aria-label="Related resources" class="my-6"><h2 id="related-resources" class="text-xl font-bold text-chalk">Where can you learn more?</h2><ul class="mt-3 space-y-2">{#each links as link}<li><a class="text-model underline" href={link.href}>{link.title}</a></li>{/each}<li><a class="text-model underline" href="https://ewinproject.org">E-WIN Project Ecosystem</a></li></ul></nav>

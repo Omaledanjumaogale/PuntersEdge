@@ -8,7 +8,7 @@
 	{#if pwa.offline}
 		<div transition:fly={{ y: 16, duration: 250 }} class="pointer-events-auto flex items-center gap-2 rounded-full bg-raised px-4 py-2 text-sm ring-1 ring-line" role="status">
 			<WifiOff class="h-4 w-4 text-book" />
-			Offline. Showing the last prices you loaded.
+			Offline. Cached pages and sample analysis remain available; live updates require a connection.
 		</div>
 	{/if}
 

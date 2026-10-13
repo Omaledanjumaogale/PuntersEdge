@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { app, type Prediction } from '#lib/state.svelte.ts';
 	import { tilt } from '#lib/actions/tilt.ts';
-	import { kickoff, countdown, sportEmoji } from '#lib/format.ts';
+	import { PuntersEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
+	import { kickoff, countdown, sportEmoji, pct } from '#lib/format.ts';
 	import ProbBar from './ProbBar.svelte';
 	import StatusPill from './StatusPill.svelte';
 	import PickTicket from './PickTicket.svelte';
@@ -14,6 +15,7 @@
 	// Pre-match edges aren't bets once a game is under way.
 	const pick = $derived(p.status.state === 'scheduled' ? p.bestValue : undefined);
 	const insightId = $derived(`insight-${p.fixtureId}`);
+	const confidence = $derived(new PuntersEdgeAIAgentHub().analyze(p).consensusConfidence);
 	const marketCount = $derived(p.markets.reduce((a, g) => a + g.selections.length, 0));
 </script>
 
@@ -61,6 +63,9 @@
 			]}
 		/>
 	{/if}
+
+ <p class="text-xs text-haze">Basis: {p.ratingsSource === 'market' ? 'market consensus · no independent team ratings' : p.ratingsSource}.</p>
+ <div class="flex items-center gap-3 text-xs text-haze" title="Agreement among analytical checks; not a measured historical strike rate"><span>Heuristic confidence</span><meter min="0" max="100" value={confidence*100} aria-label="Heuristic confidence" class="min-w-0 flex-1">{pct(confidence,1)}</meter><strong class="text-pop">{pct(confidence,1)}</strong></div>
 
 	{#if p.marketSteamAlert || p.absences.length > 0}
 		<ul class="flex flex-wrap gap-2 text-xs font-medium">

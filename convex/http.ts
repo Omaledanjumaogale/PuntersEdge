@@ -1,9 +1,24 @@
 import { httpRouter } from "convex/server";
-import { auth } from "./auth";
+import { httpAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { authComponent, createAuth } from "./auth";
+
+import { flutterwaveWebhook } from "./payments";
 
 const http = httpRouter();
+http.route({ path: "/payments/flutterwave", method: "POST", handler: flutterwaveWebhook });
+
+http.route({path:"/feed",method:"GET",handler:httpAction(async(ctx)=>{
+ try {
+  const meta=await ctx.runQuery(internal.feed.storageMeta,{});
+  if(!meta?.url)return new Response("Feed unavailable",{status:503});
+  const response=await fetch(meta.url,{signal:AbortSignal.timeout(15000)});
+  if(!response.ok)return new Response("Feed unavailable",{status:503});
+  return new Response(response.body,{headers:{"Content-Type":"application/gzip","Cache-Control":"private, no-store","Vary":"Authorization"}});
+ }catch{return new Response("Active membership required",{status:403,headers:{"Cache-Control":"no-store"}});}
+})});
 
 // Exposes /.well-known/openid-configuration and JWKS for token verification.
-auth.addHttpRoutes(http);
+authComponent.registerRoutes(http, createAuth);
 
 export default http;

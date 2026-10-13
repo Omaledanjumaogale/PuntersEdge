@@ -6,7 +6,7 @@
 
 	let { pick, showMatch = false }: { pick: ValueBet; showMatch?: boolean } = $props();
 	const selected = $derived(app.inSlip(pick.id));
-	const positive = $derived(pick.edgePercent > 0);
+	const positive = $derived(pick.edgePercent > 0 && pick.pricing === 'quoted');
 </script>
 
 <div class="ticket flex min-w-0 items-stretch">
@@ -28,10 +28,11 @@
 		{#if positive}
 			<span class="text-xs leading-tight text-haze">Stake<br /><span class="font-semibold text-chalk">{ngn(app.stakeFor(pick.kellyStakePercent))}</span></span>
 			<button
+				disabled={!selected && (app.gameById(pick.fixtureId)?.status.state!=='scheduled'||Date.parse(app.gameById(pick.fixtureId)?.kickoff??'')<=Date.now())}
 				onclick={() => (selected ? app.toggle(pick) : app.addAndExplore(pick))}
 				aria-pressed={selected}
 				aria-label={selected ? `Remove ${pick.selection} from slip` : `Add ${pick.selection} to slip`}
-				class="grid h-9 w-9 place-items-center rounded-full transition-all active:scale-90 {selected ? 'bg-model text-ink' : 'bg-chalk text-ink hover:scale-105'}"
+				class="disabled:opacity-30 grid h-9 w-9 place-items-center rounded-full transition-all active:scale-90 {selected ? 'bg-model text-ink' : 'bg-chalk text-ink hover:scale-105'}"
 			>
 				{#if selected}<Check class="h-4 w-4" strokeWidth={3} />{:else}<Plus class="h-4 w-4" strokeWidth={3} />{/if}
 			</button>

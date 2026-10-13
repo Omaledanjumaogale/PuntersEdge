@@ -3,7 +3,8 @@
  * internal mutations the ingest action uses to claim a tick, reserve quota
  * and commit results. Everything here touches at most two small documents.
  */
-import { query, internalMutation, type MutationCtx } from "./_generated/server";
+import { query, internalQuery, internalMutation, type MutationCtx } from "./_generated/server";
+import { requireSubscription } from "./access";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
@@ -23,9 +24,10 @@ async function putDoc(ctx: MutationCtx, key: "ingest" | "feed", data: Record<str
 }
 
 /** What the app needs to load the latest feed file, plus quota usage. */
-export const meta = query({
+export const storageMeta = internalQuery({
   args: {},
   handler: async (ctx) => {
+    await requireSubscription(ctx);
     const doc = await ctx.db
       .query("feed_state")
       .withIndex("by_key", (q) => q.eq("key", "feed"))
@@ -38,11 +40,18 @@ export const meta = query({
       generatedAt: d.generatedAt as string,
       encoding: (d.encoding as string) ?? "gzip",
       counts: d.counts ?? null,
-      usage: d.usage ?? null,
+      usage: null,
       checkedAt: (d.checkedAt as string) ?? d.generatedAt,
     };
   },
 });
+
+export const meta = query({args:{},handler:async(ctx)=>{
+ await requireSubscription(ctx);
+ const doc=await ctx.db.query('feed_state').withIndex('by_key',q=>q.eq('key','feed')).unique();
+ if(!doc?.data?.storageId)return null;
+ return {url:'/api/feed',version:doc.data.version as string,generatedAt:doc.data.generatedAt as string,encoding:'gzip',counts:doc.data.counts??null,usage:null,checkedAt:doc.data.checkedAt??doc.data.generatedAt};
+}});
 
 /** Take the ingest lock and return state; null when another tick is running. */
 export const claim = internalMutation({
@@ -88,6 +97,7 @@ export const commit = internalMutation({
       })
     ),
     usage: v.any(),
+    coverage: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const ingest = (await getDoc(ctx, "ingest"))?.data ?? {};
@@ -97,6 +107,8 @@ export const commit = internalMutation({
       lockUntil: 0,
       lastTick: args.now,
       lastLog: args.log.slice(0, 20),
+      lastError: null,
+      lastErrorAt: null,
     };
     if (args.storeId) {
       if (ingest.storeId && ingest.storeId !== args.storeId) await ctx.storage.delete(ingest.storeId);
@@ -110,10 +122,12 @@ export const commit = internalMutation({
     if (args.feed) {
       if (feedDoc.storageId && feedDoc.storageId !== args.feed.storageId) await ctx.storage.delete(feedDoc.storageId);
       patch.feedVersion = args.feed.version;
-      await putDoc(ctx, "feed", { ...args.feed, encoding: "gzip", usage: args.usage, checkedAt: new Date(args.now).toISOString() });
+      await putDoc(ctx, "feed", { ...args.feed, encoding: "gzip", usage: args.usage,
+      ...(args.coverage ? {coverage:args.coverage} : {}), checkedAt: new Date(args.now).toISOString() });
     } else if (feedDoc.storageId) {
       // Content unchanged: only refresh the quota panel (one small patch).
-      await putDoc(ctx, "feed", { usage: args.usage, checkedAt: new Date(args.now).toISOString() });
+      await putDoc(ctx, "feed", { usage: args.usage,
+      ...(args.coverage ? {coverage:args.coverage} : {}), checkedAt: new Date(args.now).toISOString() });
     }
     await putDoc(ctx, "ingest", patch);
   },
@@ -126,3 +140,10 @@ export const release = internalMutation({
     await putDoc(ctx, "ingest", { lockUntil: 0, lastError: error.slice(0, 300), lastErrorAt: now, ...(ledgers ? { ledgers } : {}) });
   },
 });
+
+/** Deploy-key-only functional diagnostics, never exposed as a public feed URL. */
+export const diagnosticState = internalQuery({args:{},handler:async(ctx)=>{
+ const feed=await ctx.db.query('feed_state').withIndex('by_key',q=>q.eq('key','feed')).unique();
+ const ingest=await ctx.db.query('feed_state').withIndex('by_key',q=>q.eq('key','ingest')).unique();
+ return {feed:feed?.data??null,lastTick:ingest?.data?.lastTick??null};
+}});

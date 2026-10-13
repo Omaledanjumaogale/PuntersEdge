@@ -14,7 +14,7 @@
 
 import { generateScoreMatrix, fitGoalParametersFromProbabilities } from './football_model.js';
 import { fairProbabilities } from './vig_removal.js';
-import { calculateKellyStake, gradeSelection } from './decision_screener.js';
+import { calculateKellyStake, gradeSelection, selectionDecision } from './decision_screener.js';
 import { normalCdf, probit, round, fairOdds } from './math.js';
 
 /** Ignore edges above this — almost always stale prices or data errors. */
@@ -102,6 +102,9 @@ function price(ctx, candidates, w, kellyFraction) {
       grade: edge > 0 ? gradeSelection(edgePercent, Math.abs(prob - marketProb) * 100) : 'PASS',
       pricing: c.pricing
     });
+    const decision = selectionDecision(out[out.length - 1]);
+    out[out.length - 1].grade = decision.grade;
+    if (!decision.eligible) out[out.length - 1].kellyStakePercent = 0;
   }
   return out;
 }

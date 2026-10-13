@@ -362,3 +362,43 @@ test('settlement: football on 90 minutes, other sports include extra play', () =
   assert.equal(profitFor('won', 2.5), 1.5);
   assert.equal(profitFor('half-lost', 2), -0.5);
 });
+
+test('decision: likely positive-EV quoted outcome outranks an edge-only longshot', async () => {
+  const { rankSelections } = await import('../src/lib/engine/decision_screener.js');
+  const longshot = { selection: 'longshot', modelProb: 0.2, marketProb: 0.19, bestOdds: 6, edgePercent: 20, pricing: 'quoted' };
+  const likely = { selection: 'likely', modelProb: 0.75, marketProb: 0.7, bestOdds: 1.4, edgePercent: 5, pricing: 'quoted' };
+  const ranked = rankSelections([longshot, likely]);
+  assert.equal(ranked[0].selection, 'likely');
+  assert.ok(ranked[0].decisionScore > 0);
+  assert.equal(ranked[1].eligible, false, 'a value grade does not make a low-likelihood outcome a verdict');
+  assert.equal(ranked[1].grade, 'C', 'a genuine positive-value longshot retains its weaker value grade');
+});
+
+test('decision: derived quotes, nonpositive EV and excessive disagreement retain PASS', async () => {
+  const { selectionDecision } = await import('../src/lib/engine/decision_screener.js');
+  const base = { modelProb: 0.75, marketProb: 0.7, bestOdds: 1.4, edgePercent: 5, pricing: 'quoted' };
+  for (const patch of [{ pricing: 'derived' }, { edgePercent: 0 }, { marketProb: 0.4 }]) {
+    const decision = selectionDecision({ ...base, ...patch });
+    assert.equal(decision.grade, 'PASS');
+    assert.equal(decision.decisionScore, 0);
+  }
+  assert.equal(selectionDecision({...base,pushProb:.4}).eligible,false,'push risk excludes the final verdict independently of the value grade');
+});
+
+test('pipeline verdict searches quoted selections across the full market book', async () => {
+  const { rankSelections } = await import('../src/lib/engine/decision_screener.js');
+  const football = buildFootballPrediction(FOOTBALL_INPUTS[0]);
+  const basketball = buildBasketballPrediction(BASKETBALL_INPUTS[0]);
+  for (const p of [football, basketball]) {
+    const ranked = rankSelections(p.markets.flatMap(group => group.selections).filter(selection => selection.pricing === 'quoted'));
+    assert.equal(p.bestValue?.id, ranked[0]?.id);
+    assert.equal(p.bestValue?.grade, ranked[0]?.grade);
+  }
+});
+
+test('value grading supports A+, A, B and C without giving unsupported quotes value grades',async()=>{
+ const {selectionDecision,likelihoodGrade}=await import('../src/lib/engine/decision_screener.js');
+ const examples=[['A+',.9,1.3,17],['A',.85,1.22,3.7],['B',.75,1.4,5],['C',.55,2,10]];
+ for(const [grade,modelProb,bestOdds,edgePercent] of examples)assert.equal(selectionDecision({modelProb,marketProb:modelProb,bestOdds,edgePercent,pricing:'quoted'}).grade,grade);
+ assert.equal(selectionDecision({modelProb:.9,marketProb:.9,bestOdds:1.3,edgePercent:17,pricing:'derived'}).grade,'PASS');assert.equal(likelihoodGrade(.9),'A+');assert.equal(likelihoodGrade(.75),'A');
+});

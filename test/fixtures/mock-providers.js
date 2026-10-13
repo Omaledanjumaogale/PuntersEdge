@@ -128,6 +128,7 @@ export function mockWorld(clock) {
     }
 
     if (provider === 'the-odds-api') {
+      if (u.pathname === '/v4/sports') { calls.free++; return { status:200, body: Object.keys(TOA).map(key => ({key,active:true,title:key})), headers:headers({ 'x-requests-last': 0 }) }; }
       const m = /\/v4\/sports\/([^/]+)\/(events|odds)/.exec(u.pathname);
       if (!m) return { status: 404, body: {}, headers: headers({}) };
       const sport = TOA[m[1]];

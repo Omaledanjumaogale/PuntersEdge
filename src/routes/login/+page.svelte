@@ -10,7 +10,7 @@
 	let error = $state('');
 	let busy = $state(false);
 
-	const next = $derived(page.url.searchParams.get('next')?.startsWith('/') ? page.url.searchParams.get('next')! : '/account');
+	const next = $derived((page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
 
 	$effect(() => {
 		if (auth.signedIn && !busy) goto(next, { replaceState: true });
@@ -52,6 +52,7 @@
 		{/if}
 
 		<button type="submit" class="btn-primary w-full text-base" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
+		<a href="/reset-password" class="text-center text-sm text-model">Forgot your password?</a>
 	</form>
 	{#snippet footer()}
 		New here? <a href="/signup{next !== '/account' ? `?next=${encodeURIComponent(next)}` : ''}" class="font-semibold text-pop underline underline-offset-4">Create an account</a>

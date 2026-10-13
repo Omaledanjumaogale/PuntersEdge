@@ -1,0 +1,22 @@
+import {it,expect} from 'vitest';
+import {convexTest} from 'convex-test';
+import {anyApi} from 'convex/server';
+import schema from '../../convex/schema';
+import {contributionsFor} from '../../src/lib/feeds/performance.js';
+const modules=import.meta.glob('../../convex/**/*.ts');
+it('keeps durable performance idempotent and replaces corrected results without double counting',async()=>{
+ const t=convexTest(schema,modules);
+ const base={fixtureId:'fixture-1',sport:'football',family:'football',match:'Home vs Away',league:'League',kickoff:Date.now(),publishedAt:Date.now()-60000,modelVersion:'test-version',state:'finished',score:{home:1,away:0}};
+ const rows=[{market:'Result',grade:'A',modelProb:.7,marketProb:.6,result:'won',profit:1,pricing:'quoted',verdict:true}];
+ const store=()=>t.run(ctx=>ctx.storage.store(new Blob(['fixture'])));
+ const first={...base,storageId:await store(),fingerprint:'original',contributions:contributionsFor({kickoff:base.kickoff,selections:rows}),recent:rows};
+ await t.mutation(anyApi.performance.record,first);
+ await t.mutation(anyApi.performance.record,{...first,storageId:await store()});
+ let metric=await t.run(ctx=>ctx.db.query('performance_metrics').withIndex('by_sport',q=>q.eq('sport','football')).unique());
+ expect(metric?.fixtures).toBe(1);expect(metric?.settledFixtures).toBe(1);expect(metric?.groups.summary.n).toBe(1);expect(metric?.groups.summary.won).toBe(1);
+ const corrected=rows.map(row=>({...row,result:'lost',profit:-1}));
+ await t.mutation(anyApi.performance.record,{...first,score:{home:0,away:1},storageId:await store(),fingerprint:'corrected',contributions:contributionsFor({kickoff:base.kickoff,selections:corrected}),recent:corrected});
+ metric=await t.run(ctx=>ctx.db.query('performance_metrics').withIndex('by_sport',q=>q.eq('sport','football')).unique());
+ expect(metric?.groups.summary.n).toBe(1);expect(metric?.groups.summary.won).toBe(0);expect(metric?.groups.summary.lost).toBe(1);expect(metric?.groups.summary.profit).toBe(-1);
+ expect(await t.query(anyApi.performance.fixtureStates,{ids:['fixture-1']})).toMatchObject([{score:{home:0,away:1}}]);
+});
