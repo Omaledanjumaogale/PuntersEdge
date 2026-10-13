@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {notificationCounts} from '../src/lib/notification-events.js';
+const now=Date.parse('2026-10-13T12:00Z'),game=(state,home=0,away=0)=>({kickoff:now-3600000,status:{state,home,away}});
+test('notifications ignore historical backfills and unchanged refreshes',()=>{const after={a:game('finished',2,1)};assert.deepEqual(notificationCounts({},after,now),{newMatches:0,liveStarts:0,scoreUpdates:0,finishedGames:0});assert.equal(notificationCounts(after,after,now).finishedGames,0);});
+test('provider events distinguish new fixtures, live transitions, scores and final corrections',()=>{const before={a:game('scheduled'),b:game('live'),c:game('live',1),d:game('finished',2,1)};const after={a:game('live'),b:game('live',1),c:game('finished',2,1),d:game('finished',3,1),e:{kickoff:now+3600000,status:{state:'scheduled'}}};assert.deepEqual(notificationCounts(before,after,now),{newMatches:1,liveStarts:1,scoreUpdates:1,finishedGames:2});});

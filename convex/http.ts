@@ -18,6 +18,13 @@ http.route({path:"/feed",method:"GET",handler:httpAction(async(ctx)=>{
  }catch{return new Response("Active membership required",{status:403,headers:{"Cache-Control":"no-store"}});}
 })});
 
+http.route({path:'/preview',method:'GET',handler:httpAction(async(ctx)=>{
+ const meta=await ctx.runQuery(internal.feed.previewStorageMeta,{});
+ if(!meta?.url)return new Response('Preview unavailable',{status:503});
+ const response=await fetch(meta.url,{signal:AbortSignal.timeout(15000)});
+ return new Response(response.body,{status:response.status,headers:{'Content-Type':'application/gzip','Cache-Control':'public, max-age=120','X-Preview-Version':meta.version}});
+})});
+
 // Exposes /.well-known/openid-configuration and JWKS for token verification.
 authComponent.registerRoutes(http, createAuth);
 

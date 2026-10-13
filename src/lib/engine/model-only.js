@@ -1,5 +1,6 @@
 /** Show independently supported forecasts even when providers supply no quoted prices. */
-export function withModelOnlyMarkets(/** @type {any} */ prediction) {
+export function withModelOnlyMarkets(/** @type {any} */ prediction, /** @type {Record<string,number>} */ quoteObservedAt = {}) {
+ prediction.quoteObservedAt=quoteObservedAt;
  if(prediction.markets.some((/** @type {any} */ g)=>g.selections.length))return prediction;
  const p=prediction.probabilities;
  const rows=[['home',`${prediction.homeTeam} Win`,p.homeWin,'Match result'],['away',`${prediction.awayTeam} Win`,p.awayWin,'Match result']];

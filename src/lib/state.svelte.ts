@@ -100,9 +100,9 @@ class AppState {
 	#build(sport: SportKey, input: any): Prediction | null {
 		const opts = { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
 		try {
-			if (sport === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts));
-			if (sport === 'basketball' || sport === 'nba') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport }));
-			return withModelOnlyMarkets(buildScoreSportPrediction(input, sport, { ...opts, sport }));
+			if (sport === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt);
+			if (sport === 'basketball' || sport === 'nba') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport }),input.quoteObservedAt);
+			return withModelOnlyMarkets(buildScoreSportPrediction(input, sport, { ...opts, sport }),input.quoteObservedAt);
 		} catch (err) {
 			// One malformed game must never take the board down.
 			console.warn(`Skipped ${input?.fixtureId}:`, err);

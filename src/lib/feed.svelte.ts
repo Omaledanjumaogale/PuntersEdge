@@ -10,7 +10,6 @@
  */
 import type { ConvexClient } from 'convex/browser';
 import { auth } from '#lib/auth.svelte.ts';
-import { pwa } from '#lib/pwa.svelte.ts';
 import { convexUrl } from '#lib/convex.ts';
 import { api } from '../../convex/_generated/api.js';
 import type { SportKey } from '#lib/sports.ts';
@@ -66,6 +65,8 @@ export interface UsageLine {
 }
 
 export interface LiveFeed {
+ access?: 'preview';
+ previewFixtures?:{id:string;sport:SportKey;league:string;home:string;away:string;kickoff:string;headline:{selection:string;odds:number;modelProb:number}|null}[];
  gradeHistory?: Record<string,{key:string;at:number;from:string;to:string;modelProb:number;odds:number}[]>;
  projections?: {fixtureId:string;sport:SportKey;match:string;league:string;kickoff:string;publishedAt:number;state:string;score?:string}[];
  reviewInputs?: Record<string,{sport:SportKey;input:any;frozenVerdictKey?:string|null;frozenGrades?:Record<string,string>;publishedAt:number;modelVersion:string}>;
@@ -103,6 +104,7 @@ class FeedState {
 	#dispose: (() => void) | undefined;
 	#unsubscribe: (() => void) | undefined;
 	#started = false;
+	#previewTimer:ReturnType<typeof setInterval>|undefined;
 	#generation = 0;
 	#requestId = 0;
 
@@ -120,13 +122,14 @@ class FeedState {
 		this.#dispose = $effect.root(() => {
 			$effect(() => {
 				this.#unsubscribe?.();
+				clearInterval(this.#previewTimer);
 				this.#unsubscribe = undefined;
 				this.#generation++;
 				const client = auth.client;
-				this.#client = auth.signedIn ? client : null;
+				this.#client = auth.viewer?.activeSubscription ? client : null;
 				this.data = null; this.version = null; this.mode = 'unavailable'; this.usage = null;
 				try { localStorage.removeItem(CACHE_KEY); } catch { /* blocked storage */ }
-				if (!this.#client) { this.status = 'idle'; return; }
+				if (!this.#client) { void this.#loadPreview(); this.#previewTimer=setInterval(()=>void this.#loadPreview(),120000); return; }
 				this.status = 'checking';
 				this.#unsubscribe = client!.onUpdate(api.feed.meta, {}, (meta) => {
 					void this.#accept(meta);
@@ -154,9 +157,7 @@ class FeedState {
 				const data = (await gunzipJson(await res.arrayBuffer())) as LiveFeed;
 				if (data?.v !== 1 || !data.inputs || !Array.isArray(data.games)) throw new Error('Unexpected feed format');
 				if (generation !== this.#generation || requestId !== this.#requestId) return;
-				const prior = this.data?.record?.recent?.[0]?.uid;
 				data.usage = meta.usage; this.data = data; this.version = meta.version; this.mode = 'live';
-				if (prior && data.record.recent[0]?.uid !== prior) void pwa.notify('New settled result', 'Your live results panel has been updated.');
 			}
 			this.error = null; this.status = 'ready';
 		} catch (err) {
@@ -166,14 +167,20 @@ class FeedState {
 		}
 	}
 
+ async #loadPreview(){
+  const generation=this.#generation;this.status='checking';
+  try{const response=await fetch('/api/preview',{signal:AbortSignal.timeout(20000)});if(!response.ok)throw new Error('Board previews are temporarily unavailable.');const data=await gunzipJson(await response.arrayBuffer()) as LiveFeed;if(data.access!=='preview'||!Array.isArray(data.previewFixtures))throw new Error('Unexpected preview format.');if(generation!==this.#generation)return;this.data=data;this.mode='live';this.status='ready';this.version=response.headers.get('X-Preview-Version');this.error=null;}catch(error){if(generation!==this.#generation)return;this.error=(error as Error).message;this.status='error';}
+ }
+
 	async refresh() {
-		if (!this.#client) return;
+		if (!this.#client) {await this.#loadPreview();return;}
 		try { await this.#accept(await this.#client.query(api.feed.meta, {})); }
 		catch { this.error = 'Live feed access could not be verified.'; this.status = 'error'; }
 	}
 
 	stop() {
 		this.#generation++;
+		clearInterval(this.#previewTimer);
 		this.#unsubscribe?.(); this.#dispose?.(); this.#client = null;
 		this.#unsubscribe = undefined; this.#dispose = undefined; this.#started = false;
 	}

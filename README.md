@@ -126,3 +126,6 @@ MIT
 Published pre-match inputs and every market are archived for reproducible model evaluation. Finished analysis remains accessible for 12 hours after its final result is received. Saved slip history retains scores, preserves completed selections while allowing edits to unfinished legs and supports local PDF/WhatsApp exports. See [docs/BETSLIPS.md](docs/BETSLIPS.md).
 
 The advanced bet machine lives at `/bet-machine`. Premium file downloads and saved slips require an active subscription (super-admin bypass). Flutterwave is the sole active gateway; see the integration guide for coverage limits, grading semantics and payment validation status.
+
+
+Free visitors see the landing page and a limited board of real fixtures. Fixture clicks display a closable VIP invitation; full analysis and all analytical tools require Exclusive VIP (₦10,000/month), with super-admin-only console access. The bet machine chooses its own ticket size within the requested combined-odds range and shows every qualifying option. Notifications are opt-in per device, with category preferences saved in Settings. See the integration guide for preview sanitization, route enforcement, notification delivery and device-testing limitations.

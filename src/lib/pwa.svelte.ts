@@ -71,7 +71,6 @@ class PwaState {
 		try {
 			const reg = await navigator.serviceWorker.register('/service-worker.js');
 			if ('pushManager' in reg) this.pushEnabled = Boolean(await reg.pushManager.getSubscription());
-			this.pushEnabled = !!(await reg.pushManager?.getSubscription());
 
 			const track = (worker: ServiceWorker | null) => {
 				if (!worker) return;
@@ -115,7 +114,7 @@ class PwaState {
 		this.pushBusy = true;
 		try {
 			// Ask permission directly from the user's click, before network awaits.
-			this.notificationPermission = await Notification.requestPermission();
+			this.notificationPermission = Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
 			if (this.notificationPermission !== 'granted') { toast.show('Allow notifications in your browser settings to enable push alerts.'); return; }
 			const { publicKey } = await auth.client.query(anyApi.push.publicVapid, {});
 			if (!publicKey) throw new Error('Background notification delivery is not configured yet.');
@@ -129,7 +128,7 @@ class PwaState {
 				await auth.client.mutation(anyApi.push.register, { endpoint: subscription.endpoint, p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' });
 			} catch (error) { if (!previous) await subscription.unsubscribe(); throw error; }
 			this.pushEnabled = true;
-			toast.success('Background result notifications enabled on this device.');
+			toast.success('Your selected event notifications are enabled on this device.');
 		} catch (error) { toast.error(error instanceof Error ? error.message : 'Could not enable background notifications.'); }
 		finally { this.pushBusy = false; }
 	}

@@ -3,8 +3,15 @@
 	import { pwa } from '#lib/pwa.svelte.ts';
 	import { ngn } from '#lib/format.ts';
 	import { auth } from '#lib/auth.svelte.ts';
+	import {anyApi} from 'convex/server';
+	import {toast} from '#lib/toast.svelte.ts';
+	import {DEFAULT_NOTIFICATION_PREFERENCES,NOTIFICATION_LABELS} from '#lib/notification-events.js';
 	import { theme } from '#lib/theme.svelte.ts';
 
+	let preferences=$state({...DEFAULT_NOTIFICATION_PREFERENCES});
+	let preferencesReady=$state(false),savingPreferences=$state(false);
+	$effect(()=>{const client=auth.client;preferencesReady=false;if(!client)return;return client.onUpdate(anyApi.push.preferences,{},value=>{preferences={...value};preferencesReady=true;},()=>toast.error('Could not load notification preferences.'));});
+	async function savePreferences(){if(!auth.client)return;savingPreferences=true;try{await auth.client.mutation(anyApi.push.savePreferences,{preferences:$state.snapshot(preferences)});toast.success('Notification choices saved across your devices.');}catch{toast.error('Could not save notification choices.');}finally{savingPreferences=false;}}
 	const themes = [
 		{ value: 'light', label: 'Light', emoji: '☀️' },
 		{ value: 'dark', label: 'Dark', emoji: '🌙' },
@@ -22,7 +29,7 @@
 
 <header class="max-w-2xl">
 	<h1 class="text-4xl font-extrabold text-chalk">⚙️ Settings</h1>
-	<p class="mt-2 text-haze">Saved on this device. Changes reprice every fixture instantly.</p>
+	<p class="mt-2 text-haze">Model settings sync with your account. Notification choices apply across your registered devices.</p>
 </header>
 
 <div class="mt-8 grid max-w-2xl gap-5">
@@ -115,6 +122,24 @@
 			>
 				<span class="absolute top-1 h-5 w-5 rounded-full bg-chalk transition-[left] {app.settings.motion ? 'left-6' : 'left-1'}"></span>
 			</button>
+		</div>
+	</section>
+
+	<section class="surface p-5" aria-labelledby="notifications-title">
+		<h2 id="notifications-title" class="text-lg font-bold text-chalk">Notifications</h2>
+		<p class="mt-2 text-sm leading-relaxed text-haze">Choose the events you want. Connected devices receive grouped alerts after provider refreshes, rather than an alert for every point. Each category sends at most once per 15 minutes.</p>
+		<div class="mt-4 divide-y divide-line">
+			{#each Object.entries(NOTIFICATION_LABELS) as [key,label]}
+				<label class="flex cursor-pointer items-center justify-between gap-4 py-3 text-sm"><span>{label}</span><input type="checkbox" class="h-5 w-5 accent-[var(--color-model)]" checked={preferences[key as keyof typeof preferences]} disabled={!preferencesReady||savingPreferences} onchange={(event)=>preferences[key as keyof typeof preferences]=event.currentTarget.checked}/></label>
+			{/each}
+		</div>
+		<button class="btn-primary mt-3" disabled={!preferencesReady||savingPreferences} onclick={savePreferences}>{savingPreferences?'Saving…':'Save event choices'}</button>
+		<div class="mt-5 rounded-xl border border-line bg-ink p-4">
+			<p class="text-sm font-semibold">This device: {pwa.pushEnabled?'notifications connected':pwa.notificationPermission==='denied'?'permission blocked':'notifications not connected'}</p>
+			{#if pwa.isIOS&&!pwa.installed}<p class="mt-2 text-sm text-haze">Install from Safari → Share → Add to Home Screen, then open the installed app to enable notifications.</p>
+			{:else if pwa.notificationPermission==='unsupported'}<p class="mt-2 text-sm text-haze">Use an HTTPS browser with Web Push support. On iPhone, open the installed app.</p>
+			{:else if pwa.notificationPermission==='denied'}<p class="mt-2 text-sm text-haze">Allow notifications in your browser or device settings, then reload. We won’t repeatedly request permission.</p>{/if}
+			<button class="btn-ghost mt-3 text-sm" disabled={pwa.pushBusy||pwa.offline} onclick={()=>pwa.pushEnabled?pwa.disableNotifications():pwa.enableNotifications()}>{pwa.pushBusy?'Connecting…':pwa.pushEnabled?'Disconnect this device':'Enable notifications on this device'}</button>
 		</div>
 	</section>
 

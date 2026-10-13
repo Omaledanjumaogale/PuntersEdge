@@ -1,4 +1,6 @@
 <script lang="ts">
+	import {auth} from '#lib/auth.svelte.ts';
+	import {vip} from '#lib/vip.svelte.ts';
 	import { app } from '#lib/state.svelte.ts';
 	import { theme } from '#lib/theme.svelte.ts';
 	import { pct, kickoff } from '#lib/format.ts';
@@ -26,6 +28,11 @@
 <svelte:head><title>Board — PuntersEdge</title></svelte:head>
 <svelte:window bind:innerWidth />
 
+{#if !auth.viewer?.activeSubscription}
+ <header><div class="flex flex-wrap items-center gap-3"><h1 class="text-4xl font-extrabold">The free board</h1><DataBadge/></div><p class="mt-3 max-w-2xl text-haze">A small preview of real upcoming fixtures and an available headline market per fixture. Full analysis, confidence and all market options are part of Exclusive VIP.</p></header>
+ <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{#each (feed.data?.previewFixtures??[]).filter(f=>Date.parse(f.kickoff)>app.now) as fixture}<button onclick={()=>vip.show()} class="surface flex flex-col gap-4 p-5 text-left transition hover:ring-1 hover:ring-pop"><div class="flex items-center justify-between text-xs text-haze"><span>{SPORTS[fixture.sport].emoji} {fixture.league}</span><span>VIP analysis 🔒</span></div><h2 class="text-xl font-bold">{fixture.home} <span class="text-haze">vs</span> {fixture.away}</h2><p class="text-xs text-haze">{kickoff(fixture.kickoff,app.now)}</p>{#if fixture.headline}<div class="rounded-xl bg-ink p-4"><p class="font-semibold">{fixture.headline.selection}</p><p class="mt-2 text-sm">Model {pct(fixture.headline.modelProb,1)} · odds {fixture.headline.odds.toFixed(2)}</p></div>{/if}<span class="text-sm font-semibold text-pop">Unlock the complete match analysis →</span></button>{:else}<p class="surface p-5 text-haze">{feed.status==='checking'?'Loading real fixture previews…':'No upcoming preview fixtures are currently available. Provider coverage changes with the schedule.'}</p>{/each}</div>
+ <p class="mt-5 text-xs text-haze">Preview prices are recorded provider quotes, not guaranteed offers. Model percentages are estimates.</p>
+{:else}
 <!-- Hero: the engine's output for the highest decision score with a score grid, in 3D -->
 {#if f && top}
 <section class="relative -mx-4 overflow-hidden sm:mx-0 sm:rounded-[var(--radius-sheet)] sm:border sm:border-line" aria-labelledby="hero-title">
@@ -107,3 +114,5 @@
 		Model weight {Math.round(app.settings.modelWeight * 100)}% vs market, adjustable in <a href="/settings" class="text-chalk underline underline-offset-4">Settings</a>.
 	</p>
 </section>
+
+{/if}

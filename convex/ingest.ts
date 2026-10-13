@@ -23,6 +23,8 @@ import { runTick, type Fetcher } from "../src/lib/feeds/runner.js";
 import { reviveStore } from "../src/lib/feeds/store.js";
 import { SPORTS } from "../src/lib/feeds/catalog.js";
 import { MODEL_VERSION } from "../src/lib/feeds/performance.js";
+import { notificationCounts } from "../src/lib/notification-events.js";
+import { buildBoardPreview } from "../src/lib/feeds/preview.js";
 import { buildFeed, updateRecord, predict } from "../src/lib/feeds/build.js";
 import { usageSummary } from "../src/lib/feeds/budget.js";
 
@@ -97,6 +99,7 @@ type ClaimState = {
   storeId: Id<"_storage"> | null;
   lookupsId: Id<"_storage"> | null;
   feedVersion: string | null;
+  previewVersion:string|null;
 };
 
 const gz = (value: unknown) => new Blob([gzipSync(Buffer.from(JSON.stringify(value)), { level: 9 })], { type: "application/gzip" });
@@ -117,7 +120,7 @@ export const tick = internalAction({
     try {
       const store = reviveStore(await readGz(ctx, state.storeId));
       const lookups = (await readGz(ctx, state.lookupsId)) ?? {};
-      const settledBefore = new Set(store.record.settled.map((pick: { uid: string }) => pick.uid));
+      const previousGames=structuredClone(store.games);
 
       const r = await runTick({
         store,
@@ -150,11 +153,15 @@ export const tick = internalAction({
         const counts = Object.fromEntries(Object.entries(feed.inputs).map(([s, xs]) => [s, (xs as unknown[]).length]));
         feedArg = { storageId: feedId, version, generatedAt, counts: { ...counts, games: feed.games.length } };
       }
-      await ctx.runMutation(internal.feed.commit, { now, ledgers: r.ledgers, lastRun: r.lastRun, log: r.log, storeId, lookupsId, feed: feedArg, usage, coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter((g:any)=>!g.priced).length,pending:Object.values(store.record.pending).length,modelVersion:MODEL_VERSION} });
+      const previewFeed=buildBoardPreview(feed,now);
+      const {generatedAt:_previewTime,...previewContent}=previewFeed;
+      const previewVersion=createHash('sha1').update(JSON.stringify(previewContent)).digest('hex').slice(0,16);
+      const preview=previewVersion!==state.previewVersion?{storageId:await ctx.storage.store(gz(previewFeed)),version:previewVersion}:undefined;
+      await ctx.runMutation(internal.feed.commit, { now, ledgers: r.ledgers, lastRun: r.lastRun, log: r.log, storeId, lookupsId, preview, feed: feedArg, usage, coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter((g:any)=>!g.priced).length,pending:Object.values(store.record.pending).length,modelVersion:MODEL_VERSION} });
       // Archive only snapshots that have now been committed to the subscriber feed.
       for(let offset=0;offset<projectionChanges.length;offset+=10) await ctx.scheduler.runAfter(0,makeFunctionReference<'action'>('performanceArchive:storeBatch'),{snapshots:projectionChanges.slice(offset,offset+10).map((p:any)=>JSON.stringify(p))});
-      const newResults = store.record.settled.filter((pick: { uid: string }) => !settledBefore.has(pick.uid)).length;
-      if (newResults > 0) await ctx.scheduler.runAfter(0, makeFunctionReference<"action">("notifications:deliver"), { count: newResults });
+      const events=notificationCounts(previousGames,store.games,now);
+      for(const [event,count] of Object.entries(events))if(count>0)await ctx.scheduler.runAfter(0,makeFunctionReference<'action'>('notifications:deliver'),{event,count,batchId:`${now}:${event}`});
       return { ran: r.ran, skipped: r.skipped.length, log: r.log, feedUpdated: Boolean(feedArg) };
     } catch (err) {
       const msg = redact(err instanceof Error ? err.message : String(err), k);

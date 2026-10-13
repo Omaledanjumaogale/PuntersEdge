@@ -53,6 +53,12 @@ export const meta = query({args:{},handler:async(ctx)=>{
  return {url:'/api/feed',version:doc.data.version as string,generatedAt:doc.data.generatedAt as string,encoding:'gzip',counts:doc.data.counts??null,usage:null,checkedAt:doc.data.checkedAt??doc.data.generatedAt};
 }});
 
+export const previewStorageMeta=internalQuery({args:{},handler:async(ctx)=>{
+ const doc=await ctx.db.query('feed_state').withIndex('by_key',q=>q.eq('key','feed')).unique();
+ if(!doc?.data?.previewStorageId)return null;
+ return {url:await ctx.storage.getUrl(doc.data.previewStorageId as Id<'_storage'>),version:doc.data.previewVersion};
+}});
+
 /** Take the ingest lock and return state; null when another tick is running. */
 export const claim = internalMutation({
   args: { now: v.number() },
@@ -66,6 +72,7 @@ export const claim = internalMutation({
       lastRun: d.lastRun ?? {},
       storeId: (d.storeId as Id<"_storage"> | undefined) ?? null,
       lookupsId: (d.lookupsId as Id<"_storage"> | undefined) ?? null,
+      previewVersion: (d.previewVersion as string|undefined)??null,
       feedVersion: (d.feedVersion as string | undefined) ?? null,
     };
   },
@@ -96,6 +103,7 @@ export const commit = internalMutation({
         counts: v.any(),
       })
     ),
+    preview:v.optional(v.object({storageId:v.id("_storage"),version:v.string()})),
     usage: v.any(),
     coverage: v.optional(v.any()),
   },
@@ -128,6 +136,11 @@ export const commit = internalMutation({
       // Content unchanged: only refresh the quota panel (one small patch).
       await putDoc(ctx, "feed", { usage: args.usage,
       ...(args.coverage ? {coverage:args.coverage} : {}), checkedAt: new Date(args.now).toISOString() });
+    }
+    if(args.preview){
+      if(feedDoc.previewStorageId&&feedDoc.previewStorageId!==args.preview.storageId)await ctx.storage.delete(feedDoc.previewStorageId);
+      await putDoc(ctx,'feed',{previewStorageId:args.preview.storageId,previewVersion:args.preview.version});
+      patch.previewVersion=args.preview.version;
     }
     await putDoc(ctx, "ingest", patch);
   },

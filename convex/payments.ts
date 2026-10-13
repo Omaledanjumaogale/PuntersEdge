@@ -97,6 +97,7 @@ export const settle = internalMutation({ args: { provider, reference: v.string()
   if (subscription) await ctx.db.patch(subscription._id, values); else await ctx.db.insert('subscriptions', values);
   await ctx.scheduler.runAt(values.expiresAt, refs.payments.expire, { userId: payment.userId, expiresAt: values.expiresAt });
   await ctx.db.patch(payment._id, { status: 'paid', paidAt: Date.now(), providerTransactionId: args.transactionId });
+  await ctx.scheduler.runAfter(0,refs.notifications.deliver,{count:1,event:'activities',activity:'membershipActivated',targetUserId:payment.userId,batchId:`membership:${payment._id}`});
 }});
 export const pending = internalQuery({args:{reference:v.string()},handler:async(ctx,args)=>ctx.db.query('payments').withIndex('by_reference',q=>q.eq('reference',args.reference)).unique()});
 export const verify = internalAction({ args: { provider, reference: v.string(), transactionId: v.string() }, handler: async (ctx, args) => {
@@ -140,7 +141,7 @@ export const flutterwaveWebhook = httpAction(async (ctx, req) => {
 /** Scheduled changes invalidate realtime entitlement queries at expiry. */
 export const expire = internalMutation({ args: { userId: v.id('users'), expiresAt: v.number() }, handler: async (ctx, args) => {
  const subscription = await ctx.db.query('subscriptions').withIndex('by_user', q => q.eq('userId', args.userId)).unique();
- if (subscription?.expiresAt === args.expiresAt && subscription.expiresAt <= Date.now()) await ctx.db.patch(subscription._id, { updatedAt: Date.now() });
+ if (subscription?.expiresAt === args.expiresAt && subscription.expiresAt <= Date.now()) { await ctx.db.patch(subscription._id, { updatedAt: Date.now() }); await ctx.scheduler.runAfter(0,refs.notifications.deliver,{count:1,event:'activities',activity:'membershipExpired',targetUserId:args.userId,batchId:`expired:${args.userId}:${args.expiresAt}`}); }
 }});
 
 export const beginStatusCheck=internalMutation({args:{userId:v.id('users'),reference:v.string()},handler:async(ctx,args)=>{

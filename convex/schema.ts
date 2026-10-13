@@ -15,6 +15,7 @@ export default defineSchema({
     phoneVerificationTime: v.optional(v.number()),
     isAnonymous: v.optional(v.boolean()),
     favouriteSport: v.optional(v.string()),
+    notificationPreferences:v.optional(v.object({newMatches:v.boolean(),liveStarts:v.boolean(),scoreUpdates:v.boolean(),finishedGames:v.boolean(),activities:v.boolean()})),
     settings: v.optional(v.object({bankroll:v.number(),kellyFraction:v.number(),modelWeight:v.number(),motion:v.boolean(),theme:v.union(v.literal("system"),v.literal("light"),v.literal("dark"))})),
   }).index("email", ["email"]).index("by_auth_subject", ["authSubject"]),
 
@@ -195,7 +196,7 @@ export default defineSchema({
     data: v.any(),
   }).index("by_key", ["key"]),
 
-  push_subscriptions: defineTable({userId:v.id("users"),endpoint:v.string(),p256dh:v.string(),auth:v.string(),createdAt:v.number()}).index("by_endpoint",["endpoint"]).index("by_user",["userId"]),
+  push_subscriptions: defineTable({userId:v.id("users"),endpoint:v.string(),p256dh:v.string(),auth:v.string(),createdAt:v.number(),lastAlerts:v.optional(v.any())}).index("by_endpoint",["endpoint"]).index("by_user",["userId"]),
   admin_audit: defineTable({ actorId: v.id("users"), targetId: v.id("users"), operation: v.string(), createdAt: v.number() }),
   payments: defineTable({
     userId: v.id("users"), provider: v.union(v.literal("flutterwave"), v.literal("korapay")),

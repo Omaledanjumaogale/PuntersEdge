@@ -14,7 +14,7 @@
  * - Waits for the page to send SKIP_WAITING so updates are user-approved.
  */
 
-import { immutable, assets, prerendered } from '$app/manifest';
+import { immutable, assets } from '$app/manifest';
 import { version } from '$app/env';
 import { self as sw } from '$app/service-worker';
 
@@ -22,7 +22,7 @@ import { self as sw } from '$app/service-worker';
 const abs = (path: string) => `/${path.replace(/^\/+/, '')}`;
 const build = immutable.map((f) => abs(f.path));
 const files = assets.map((f) => abs(f.path));
-const pages = [...prerendered.map((f) => abs(f.path)), '/', '/board', '/sports', '/football', '/nba', '/basketball', '/hockey', '/baseball', '/glossary'];
+const pages = ['/', '/board'];
 
 const SHELL = `qe-shell-${version}`;
 
@@ -57,7 +57,7 @@ async function networkFirstPage(request: Request, path: string): Promise<Respons
 	const cache = await caches.open(SHELL);
 	try {
 		const response = await Promise.race([fetch(request), timeout(3000)]);
-		if (response.ok && response.type === 'basic') cache.put(path, response.clone());
+		if (response.ok && response.type === 'basic' && !/private|no-store/i.test(response.headers.get('Cache-Control')??'')) await cache.put(path, response.clone());
 		return response;
 	} catch {
 		return (
@@ -80,7 +80,7 @@ sw.addEventListener('fetch', (event) => {
 
 	if (url.origin !== sw.location.origin) return;
 	// Auth, billing, administration and API responses must never enter the shared offline cache.
-	if (/^\/(?:api|admin|bet-machine|betslips|account|login|signup|subscribe|auth)(?:\/|$)/.test(url.pathname)) return;
+	if (/^\/(?:api|admin|sports|football|nba|basketball|hockey|baseball|match|results|value-bets|bookmakers|glossary|settings|bet-machine|betslips|account|login|signup|subscribe|auth|reset-password)(?:\/|$)/.test(url.pathname)) return;
 
 	if (PRECACHED.has(url.pathname) && request.mode !== 'navigate') {
 		event.respondWith(caches.match(url.pathname).then((hit) => hit ?? fetch(request)));
@@ -113,7 +113,7 @@ sw.addEventListener('push', (event) => {
   try { url = new URL(typeof payload.url === 'string' ? payload.url : '/results', sw.location.origin); } catch { /* Retain the safe results link. */ }
   await sw.registration.showNotification(typeof payload.title === 'string' ? payload.title.slice(0,100) : 'PuntersEdge update', {
    body: typeof payload.body === 'string' ? payload.body.slice(0,240) : 'Open PuntersEdge for the latest results.',
-   icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'puntersedge-results',
+   icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: typeof (payload as {tag?:string}).tag==='string'?(payload as {tag:string}).tag.slice(0,80):'puntersedge-results',
    data: { url: url.origin === sw.location.origin ? url.href : '/results' }
   });
  })());

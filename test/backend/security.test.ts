@@ -160,3 +160,29 @@ describe('backend access and subscription security', () => {
   expect((await t.run(async ctx => ctx.db.query('subscriptions').unique()))?.expiresAt).toBe(Date.parse('2026-12-12T12:00:00Z'));
  });
 });
+
+it('anonymous board preview downloads only its separate sanitized file',async()=>{
+ const t=create();const previewId=await t.run(ctx=>ctx.storage.store(new Blob(['sanitized-preview']))),premiumId=await t.run(ctx=>ctx.storage.store(new Blob(['premium-data'])));
+ await t.run(ctx=>ctx.db.insert('feed_state',{key:'feed',data:{storageId:premiumId,previewStorageId:previewId,previewVersion:'safe-v1'}}));
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response('sanitized-preview')));
+ const response=await t.fetch('/preview');expect(response.status).toBe(200);expect(await response.text()).toBe('sanitized-preview');expect(response.headers.get('Cache-Control')).toContain('public');
+ expect((await t.fetch('/feed')).status).toBe(403);
+});
+it('notification preferences are account-owned and every send rechecks preferences, subscription and duplicate rate',async()=>{
+ const t=create(),a=await member(t,'alerts-a@example.test'),b=await member(t,'alerts-b@example.test');
+ const preferences={newMatches:false,liveStarts:true,scoreUpdates:false,finishedGames:true,activities:true};
+ await a.signed.mutation(anyApi.push.savePreferences,{preferences});expect(await b.signed.query(anyApi.push.preferences,{})).toMatchObject({newMatches:true});
+ const expiry=Date.now()+60000;
+ const ids=await t.run(async ctx=>{await ctx.db.insert('subscriptions',{userId:a.localId,expiresAt:expiry,updatedAt:Date.now()});const sub=await ctx.db.insert('subscriptions',{userId:b.localId,expiresAt:Date.now()-1,updatedAt:Date.now()});const first=await ctx.db.insert('push_subscriptions',{userId:a.localId,endpoint:'https://fcm.googleapis.com/fcm/send/a',p256dh:'B'.repeat(87),auth:'A'.repeat(22),createdAt:Date.now()});const second=await ctx.db.insert('push_subscriptions',{userId:b.localId,endpoint:'https://fcm.googleapis.com/fcm/send/b',p256dh:'B'.repeat(87),auth:'A'.repeat(22),createdAt:Date.now()});return {first,second,sub};});
+ expect((await t.query(anyApi.push.recipients,{event:'newMatches'})).recipients).toHaveLength(0);expect((await t.query(anyApi.push.recipients,{event:'finishedGames'})).recipients).toHaveLength(1);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.first,event:'newMatches',batchId:'one',now:Date.now()})).toBe(false);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.first,event:'finishedGames',batchId:'one',now:Date.now()})).toBe(true);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.first,event:'finishedGames',batchId:'one',now:Date.now()+1})).toBe(false);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.first,event:'finishedGames',batchId:'two',now:Date.now()+2})).toBe(false);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.second,event:'finishedGames',batchId:'three',now:Date.now()})).toBe(false);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.first,event:'activities',targetUserId:b.localId,batchId:'wrong-owner',now:Date.now()})).toBe(false);
+ expect((await t.query(anyApi.push.recipients,{event:'activities',targetUserId:b.localId})).recipients.map(d=>d.userId)).toEqual([b.localId]);
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.second,event:'activities',targetUserId:b.localId,batchId:'expired-account-notice',now:Date.now()})).toBe(true);
+ await b.signed.mutation(anyApi.push.savePreferences,{preferences:{...preferences,activities:false}});
+ expect(await t.mutation(anyApi.push.claimAlert,{id:ids.second,event:'activities',targetUserId:b.localId,batchId:'disabled-notice',now:Date.now()+900001})).toBe(false);
+});

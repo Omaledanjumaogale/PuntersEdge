@@ -3,12 +3,14 @@
 	import '@fontsource-variable/instrument-sans/index.css';
 	import './layout.css';
 	import { onMount } from 'svelte';
+	import VipInvitation from '#lib/components/VipInvitation.svelte';
 	import AccessNotice from '#lib/components/AccessNotice.svelte';
 	import EcosystemBanner from '#lib/components/EcosystemBanner.svelte';
 	import SEO from '#lib/components/SEO.svelte';
 	import ToastProvider from '#lib/components/ToastProvider.svelte';
 	import { page } from '$app/state';
-	import { onNavigate } from '$app/navigation';
+	import {premiumPath} from '#lib/access-routes.ts';
+	import { goto, onNavigate } from '$app/navigation';
 	import { app } from '#lib/state.svelte.ts';
 	import { pwa } from '#lib/pwa.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
@@ -39,6 +41,8 @@
 		document.documentElement.dataset.motion = app.settings.motion ? 'on' : 'off';
 	});
 
+	$effect(()=>{if(auth.status!=='loading'&&!auth.viewer?.activeSubscription&&premiumPath(page.url.pathname))void goto('/board?upgrade=1',{replaceState:true});});
+
 	// Cross-fade between routes where the View Transitions API exists.
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || !app.settings.motion) return;
@@ -59,10 +63,12 @@
 {#if page.url.pathname === '/'}<EcosystemBanner />{/if}
 <main id="main" class="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 md:pb-12">
 	{#if ['/bet-machine','/board','/value-bets','/football','/nba','/basketball','/hockey','/baseball','/results'].includes(page.url.pathname)}<AccessNotice />{/if}
-	{@render children()}
+	{#if !premiumPath(page.url.pathname)||auth.viewer?.activeSubscription}{@render children()}{:else}<p class="surface p-8 text-haze" role="status">Checking VIP membership…</p>{/if}
 </main>
 <BottomNav />
 <SlipSheet />
 <MenuDrawer />
 <MarketPicker />
 <PwaBanners />
+
+<VipInvitation />

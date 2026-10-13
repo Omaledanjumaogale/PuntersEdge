@@ -64,7 +64,8 @@ export function inputFor(store, g) {
     league: g.league,
     kickoffTime: new Date(g.kickoff).toISOString(),
     status: g.status,
-    odds
+    odds,
+    quoteObservedAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,price.at]))
   };
   /** @type {any} */
   let ratings = null;
@@ -105,9 +106,9 @@ export function inputFor(store, g) {
  */
 export function predict(sport, input, opts = {}) {
   const fam = SPORTS[sport].family;
-  if (fam === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts));
-  if (fam === 'basketball') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport: /** @type {'basketball' | 'nba'} */ (sport) }));
-  return withModelOnlyMarkets(buildScoreSportPrediction(input, fam, { ...opts, sport }));
+  if (fam === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt);
+  if (fam === 'basketball') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport: /** @type {'basketball' | 'nba'} */ (sport) }),input.quoteObservedAt);
+  return withModelOnlyMarkets(buildScoreSportPrediction(input, fam, { ...opts, sport }),input.quoteObservedAt);
 }
 
 /**

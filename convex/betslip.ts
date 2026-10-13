@@ -143,7 +143,9 @@ export const saveHistory = mutation({
     const states: State[] = await fixtureStates(ctx, args.items.map(selection => selection.fixtureId));
     const items = decorate(args.items, states);
     if (items.some(isFinal)) throw new Error('A fixture has finished or been cancelled. Save selections before completion.');
-    return ctx.db.insert('saved_slips', { ...args, name: args.name.trim(), userId, items, ...economics(items, args.stake, args.betType), updatedAt: Date.now(), locked: false, awaitingResults: true });
+    const id=await ctx.db.insert('saved_slips', { ...args, name: args.name.trim(), userId, items, ...economics(items, args.stake, args.betType), updatedAt: Date.now(), locked: false, awaitingResults: true });
+    await ctx.scheduler.runAfter(0,internal.notifications.deliver,{count:1,event:'activities',targetUserId:userId,activity:'ticketSaved',batchId:`ticket:${id}`});
+    return id;
   },
 });
 export const updateHistory = mutation({
