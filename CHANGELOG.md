@@ -9,3 +9,4 @@
 - Receive deterministic explanations of supplied facts and missing inputs by default.
 - Train and evaluate score-only candidates on authorized API-Sports histories, with chronological comparisons and documented limits. The results do not establish bookmaker superiority.
 - Evaluate and serve separately fitted period totals, team totals and handicaps; price Asian quarter outcomes explicitly and track five-state probability scores.
+- Show green favourable-estimate indicators, cross-market choice notes and explicit screening grade rules while preserving validation gates; repair Cloudflare dependency installation.

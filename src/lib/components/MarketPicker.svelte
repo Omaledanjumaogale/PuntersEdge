@@ -12,7 +12,7 @@
 
 	const p = $derived(app.pickerFixture ? app.byId(app.pickerFixture) : undefined);
 	const legsHere = $derived(p ? app.slip.filter((s) => s.fixtureId === p.fixtureId).length : 0);
-	const valueCount = $derived(p ? p.markets.flatMap((g) => g.selections).filter((s) => s.edgePercent > 0).length : 0);
+	const valueCount = $derived(p ? p.markets.flatMap((g) => g.selections).filter((s) => (s as any).opportunity?.green).length : 0);
 
 	function close() {
 		app.pickerFixture = null;
@@ -64,13 +64,13 @@
 
 		<div class="mx-5 mb-3 grid grid-cols-2 gap-1 rounded-full bg-ink p-1 text-sm ring-1 ring-line" role="tablist" aria-label="Filter markets">
 			<button role="tab" aria-selected={!valueOnly} onclick={() => (valueOnly = false)} class="rounded-full py-1.5 font-medium {!valueOnly ? 'bg-raised text-chalk ring-1 ring-pop' : 'text-haze'}">🎯 All markets</button>
-			<button role="tab" aria-selected={valueOnly} onclick={() => (valueOnly = true)} class="rounded-full py-1.5 font-medium {valueOnly ? 'bg-raised text-chalk ring-1 ring-pop' : 'text-haze'}">🔥 Value only ({valueCount})</button>
+			<button role="tab" aria-selected={valueOnly} onclick={() => (valueOnly = true)} class="rounded-full py-1.5 font-medium {valueOnly ? 'bg-raised text-chalk ring-1 ring-pop' : 'text-haze'}">🟢 Favourable estimates ({valueCount})</button>
 		</div>
 
 		<div class="flex-1 overflow-y-auto px-5 pb-4">
 			<MarketList groups={p.markets.filter((g) => g.selections.length > 0)} {valueOnly} />
 			<p class="mt-4 text-xs text-haze">
-				Prices marked "derived" are built from each bookmaker's own headline prices and margin, the way books set their other markets.
+				Green means estimated favourable value at a current quoted price. Screening grades describe the estimate; a validated recommendation additionally requires evidence approval. Derived prices are theoretical.
 				Confirm the price at the bookmaker before you bet.
 			</p>
 		</div>

@@ -1,4 +1,5 @@
-import { rankSelections } from './decision_screener.js';
+import { rankSelections,selectionDecision } from './decision_screener.js';
+import {reviewOpportunities} from './opportunities.js';
 export const MAX_QUOTE_AGE_MS = 15 * 60_000;
 /** @param {string} key */
 export function quoteKeys(key) {
@@ -29,8 +30,11 @@ export function applyEvidence(p,input,now) {
   s.eligibilityReasons=reasons;
   s.quoteObservedAt=times.length&&times.every(Number.isFinite)?Math.min(...times):null;
   if(reasons.length){s.eligible=false;s.grade='PASS';s.kellyStakePercent=0;}
+  Object.assign(s,selectionDecision(s));
+  if(!s.eligible){s.grade='PASS';s.kellyStakePercent=0;}
  }
+ reviewOpportunities(p,evidence,now);
  p.valueBets=rankSelections(rows.filter((/** @type {any} */s)=>s.pricing==='quoted'));
- p.bestValue=p.valueBets[0];
+ p.bestValue=p.valueBets.find((/** @type {any} */s)=>s.eligible&&s.grade!=='PASS');
  return p;
 }

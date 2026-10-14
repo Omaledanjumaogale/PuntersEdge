@@ -28,6 +28,15 @@ describe('backend access and subscription security', () => {
   await expect(signed.mutation(anyApi.models.register,{artifact})).rejects.toThrow('immutable');
   await signed.mutation(anyApi.models.retire,{id});expect(await signed.query(anyApi.models.list,{})).toMatchObject([{mode:'retired',approved:false}]);
  });
+ it('deployment candidate installer requires configured owner and preserves immutable unapproved versions',async()=>{
+  const t=create();await expect(t.mutation(anyApi.models.installCandidates,{artifacts:[]})).rejects.toThrow('Configured administrator');
+  const {localId}=await member(t,'deploy-owner@example.test');vi.stubEnv('SUPER_ADMIN_USER_ID',localId);
+  const artifact={sport:'football',version:'deploy-candidate',league:'L',trainedThrough:'2024-01-01T00:00:00Z',intercept:0,homeAdvantage:0,rho:0,teams:{a:{attack:0,defence:0},b:{attack:0,defence:0}},trainingCount:100};
+  expect(await t.mutation(anyApi.models.installCandidates,{artifacts:[artifact]})).toMatchObject({installed:1,approved:false});
+  expect(await t.mutation(anyApi.models.installCandidates,{artifacts:[artifact]})).toMatchObject({installed:0});
+  await expect(t.mutation(anyApi.models.installCandidates,{artifacts:[{...artifact,rho:.01}]})).rejects.toThrow('Immutable');
+  const rows=await t.run(ctx=>ctx.db.query('model_artifacts').collect());expect(rows).toHaveLength(1);expect(rows[0]).toMatchObject({approved:false,mode:'active',approvedMarkets:[]});
+ });
  it('rejects anonymous access to live files, admin actions and payment checkout', async () => {
   const t = create();
   await expect(t.query(anyApi.feed.meta, {})).rejects.toThrow('Sign in');

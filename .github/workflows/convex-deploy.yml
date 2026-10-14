@@ -46,7 +46,8 @@ jobs:
       - run: npm test
       - run: npm run test:backend
       - run: npm run check:backend
-      - name: Configure backend environment
+      - name: Configure backend environment when explicitly requested
+        if: ${{ vars.CONFIGURE_BACKEND_ENV == 'true' }}
         run: node scripts/configure-convex-env.mjs
       - name: Deploy schema, Better Auth component and functions
         run: npx convex deploy --typecheck enable

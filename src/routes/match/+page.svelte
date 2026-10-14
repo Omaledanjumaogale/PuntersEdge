@@ -15,6 +15,8 @@
 	import PickTicket from '#lib/components/PickTicket.svelte';
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import { ChevronLeft } from 'lucide-svelte';
+ import {fixtureOpportunity} from '#lib/engine/opportunities.js';
+ import OpportunityIndicator from '#lib/components/OpportunityIndicator.svelte';
 
 	let innerWidth = $state(1024);
 	const id = $derived(page.url.searchParams.get('id') ?? '');
@@ -24,6 +26,7 @@
 	const game = $derived(id ? app.gameById(id) : undefined);
 	const info = $derived(sportOf(p?.sport ?? game?.sport ?? 'football'));
 	const hasMarkets = $derived(Boolean(p && p.markets.some((g) => g.selections.length > 0)));
+ const opportunity=$derived(p?fixtureOpportunity(p):undefined);
 </script>
 
 <svelte:head><title>{p?.matchTitle ?? (game ? `${game.home} vs ${game.away}` : 'Match')} — PuntersEdge</title></svelte:head>
@@ -65,10 +68,11 @@
 		</section>
 	{:else}
 		<section class="surface mt-6 p-5">
-			<h2 class="text-xl font-bold text-chalk">✋ No prices to beat yet</h2>
+			<h2 class="text-xl font-bold text-chalk">{opportunity?'Estimated value · validation pending':'Market review'}</h2>
 			<p class="mt-1 text-haze">
-				{#if p.bookmakers.length === 0}We have the fixture and the model's numbers, but no bookmaker has posted prices we can read. Fair prices are below; check back closer to kickoff.{:else}No quoted selection meets all final-verdict rules. Review the market probabilities and value grades below.{/if}
+				{#if opportunity}The calculation identifies a favourable estimate, but its market evidence is not approved. Stake remains zero. Review the choice note below.{:else if p.bookmakers.length === 0}We have the fixture and the model's numbers, but no bookmaker has posted prices we can read. Fair prices are below; check back closer to kickoff.{:else}No quoted selection meets all final-verdict rules. Review the market probabilities and value grades below.{/if}
 			</p>
+   {#if opportunity}<OpportunityIndicator selection={opportunity}/>{/if}
 		</section>
 	{/if}
 
