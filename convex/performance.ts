@@ -4,8 +4,17 @@ import {requireAdmin} from './access';
 import {emptyCounters,addCounters,statsOf,MODEL_VERSION} from '../src/lib/feeds/performance.js';
 
 const score = v.object({home:v.number(),away:v.number(),regHome:v.optional(v.number()),regAway:v.optional(v.number())});
-export const record = internalMutation({args:{fixtureId:v.string(),sport:v.string(),family:v.string(),match:v.string(),league:v.string(),kickoff:v.number(),publishedAt:v.number(),modelVersion:v.string(),state:v.string(),finishedAt:v.optional(v.number()),score:v.optional(score),storageId:v.id('_storage'),fingerprint:v.string(),contributions:v.any(),recent:v.array(v.any())},handler:async(ctx,args)=>{
+export const publication=internalMutation({args:{fixtureId:v.string(),publishedAt:v.number(),modelVersion:v.string(),artifactVersion:v.optional(v.string()),storageId:v.id('_storage')},handler:async(ctx,args)=>{
+ const old=await ctx.db.query('forecast_publications').withIndex('by_fixture_publication',q=>q.eq('fixtureId',args.fixtureId).eq('publishedAt',args.publishedAt)).unique();
+ if(old){await ctx.storage.delete(args.storageId);return;}await ctx.db.insert('forecast_publications',args);
+}});
+export const publications=query({args:{fixtureId:v.string()},handler:async(ctx,args)=>{
+ await requireAdmin(ctx);const rows=await ctx.db.query('forecast_publications').withIndex('by_fixture_publication',q=>q.eq('fixtureId',args.fixtureId)).order('desc').take(200);
+ return Promise.all(rows.map(async row=>({...row,url:await ctx.storage.getUrl(row.storageId)})));
+}});
+export const record = internalMutation({args:{observedAt:v.optional(v.number()),fixtureId:v.string(),sport:v.string(),family:v.string(),match:v.string(),league:v.string(),kickoff:v.number(),publishedAt:v.number(),modelVersion:v.string(),state:v.string(),finishedAt:v.optional(v.number()),score:v.optional(score),storageId:v.id('_storage'),fingerprint:v.string(),contributions:v.any(),recent:v.array(v.any())},handler:async(ctx,args)=>{
  const old=await ctx.db.query('projection_snapshots').withIndex('by_fixture',q=>q.eq('fixtureId',args.fixtureId)).unique();
+ if(old && (args.observedAt??args.publishedAt)<=(old.observedAt??old.publishedAt) && old.fingerprint!==args.fingerprint){await ctx.storage.delete(args.storageId);return;}
  if(old?.fingerprint===args.fingerprint){await ctx.storage.delete(args.storageId);return;}
  if(old){await ctx.db.patch(old._id,args);await ctx.storage.delete(old.storageId);}else await ctx.db.insert('projection_snapshots',args);
  for(const sport of [args.sport,'all']){
@@ -43,5 +52,5 @@ export const dashboard = query({args:{sport:v.optional(v.string())},handler:asyn
  const recentRows=sport==='all'?await ctx.db.query('projection_snapshots').withIndex('by_state_kickoff',q=>q.eq('state','finished')).order('desc').take(60):await ctx.db.query('projection_snapshots').withIndex('by_sport_state',q=>q.eq('sport',sport).eq('state','finished')).order('desc').take(60);
  const breakdown=(name:string)=>Object.fromEntries(Object.entries(row?.groups??{}).filter(([key])=>key.startsWith(name+':')).map(([key,c])=>[key.slice(name.length+1),statsOf(c)]));
  const recent=recentRows.filter(p=>p.score).flatMap(p=>p.recent.map(s=>({...s,fixtureId:p.fixtureId,sport:p.sport,match:p.match,league:p.league,kickoff:p.kickoff,score:p.score,modelVersion:p.modelVersion,publishedAt:p.publishedAt}))).slice(0,100);
- return {summary:{...statsOf(row?.groups?.summary),fixtures:row?.fixtures??0,verdicts:row?.verdicts??0,settledFixtures:row?.settledFixtures??0},verdict:statsOf(row?.groups?.verdict),sports:Object.fromEntries(sportRows.filter(p=>p.sport!=='all').map(p=>[p.sport,statsOf(p.groups.summary)])),versions:breakdown('versions'),grades:breakdown('grades'),markets:breakdown('markets'),bands:breakdown('bands'),days:breakdown('days'),coverage,recent};
+ return {summary:{...statsOf(row?.groups?.summary),fixtures:row?.fixtures??0,verdicts:row?.verdicts??0,settledFixtures:row?.settledFixtures??0},verdict:statsOf(row?.groups?.verdict),sports:Object.fromEntries(sportRows.filter(p=>p.sport!=='all').map(p=>[p.sport,statsOf(p.groups.summary)])),versions:breakdown('versions'),artifacts:breakdown('artifacts'),grades:breakdown('grades'),markets:breakdown('markets'),bands:breakdown('bands'),days:breakdown('days'),coverage,recent};
 }});

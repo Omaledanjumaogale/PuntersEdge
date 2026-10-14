@@ -119,6 +119,9 @@ export function parseOddsApiEvents(body) {
             Object.assign(o, { spreadLine: Number(h.point), homeSpreadOdds: h.price, awaySpreadOdds: a.price });
           }
         }
+        const sourceAt=Date.parse(m.last_update??b.last_update??'');
+        const keys=m.key==='h2h'?(fam==='football'?['home','draw','away']:['homeMoneyline','awayMoneyline']):m.key==='totals'?(fam==='football'?['over25','under25']:['totalLine','overOdds','underOdds']):m.key==='spreads'?['spreadLine','homeSpreadOdds','awaySpreadOdds']:[];
+        if(Number.isFinite(sourceAt))for(const k of keys)if(o[k]!==undefined)o[`__source_${k}`]=sourceAt;
       }
       if (Object.keys(o).length) odds[name] = o;
     }

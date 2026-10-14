@@ -8,6 +8,7 @@
  */
 
 import { normalCdf, mulberry32, gaussian, hashString, fairOdds, round } from './math.js';
+import { normalOutcomes } from './outcomes.js';
 
 /**
  * @typedef {{ pace: number, offRtg: number, defRtg: number }} TeamRatings
@@ -25,9 +26,10 @@ export const LEAGUE_PROFILES = {
  * @param {TeamRatings} home
  * @param {TeamRatings} away
  * @param {LeagueProfile} [league]
- * @param {{ hcaPoints?: number }} [options]
+ * @param {{ hcaPoints?: number, fittedProjection?: { home:number,away:number,marginSd:number,totalSd:number } }} [options]
  */
 export function projectScores(home, away, league = LEAGUE_PROFILES.NBA, options = {}) {
+  if(options.fittedProjection){const f=options.fittedProjection;return {expectedPace:league.pace,home:f.home,away:f.away,total:f.home+f.away,margin:f.home-f.away,teamSd:Math.sqrt((f.marginSd**2+f.totalSd**2)/4),marginSd:f.marginSd,totalSd:f.totalSd};}
   const hca = options.hcaPoints ?? 2.8;
   const expectedPace = (home.pace * away.pace) / league.pace;
 
@@ -59,7 +61,7 @@ export function projectScores(home, away, league = LEAGUE_PROFILES.NBA, options 
  * @param {number} line
  */
 export function probabilityOver(proj, line) {
-  return 1 - normalCdf(line, proj.total, proj.totalSd);
+  return normalOutcomes(proj.total,proj.totalSd,line).conditional;
 }
 
 /**
@@ -68,7 +70,7 @@ export function probabilityOver(proj, line) {
  * @param {number} homeLine
  */
 export function probabilityHomeCovers(proj, homeLine) {
-  return 1 - normalCdf(-homeLine, proj.margin, proj.marginSd);
+  return normalOutcomes(proj.margin,proj.marginSd,-homeLine).conditional;
 }
 
 /**
@@ -112,7 +114,7 @@ export function simulateGame(proj, options = {}) {
  * @param {TeamRatings} home
  * @param {TeamRatings} away
  * @param {LeagueProfile} [leagueAverages]
- * @param {{ hcaPoints?: number, simulations?: number, seed?: number,
+ * @param {{ fittedProjection?: {home:number,away:number,marginSd:number,totalSd:number}, hcaPoints?: number, simulations?: number, seed?: number,
  *           totalLines?: number[], spreadLines?: number[] }} [options]
  */
 export function projectBasketballGame(home, away, leagueAverages = LEAGUE_PROFILES.NBA, options = {}) {

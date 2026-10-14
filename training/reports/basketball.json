@@ -1,0 +1,1252 @@
+{
+  "sport": "basketball",
+  "league": "EuroLeague",
+  "train": 394,
+  "calibration": 132,
+  "holdout": 133,
+  "skipped": 0,
+  "raw": {
+    "n": 133,
+    "strikeRate": 0.7293233082706767,
+    "brier": 0.3897414205132939,
+    "logLoss": 0.5758525688625709
+  },
+  "calibrated": {
+    "n": 133,
+    "strikeRate": 0.7293233082706767,
+    "brier": 0.4095278443299837,
+    "logLoss": 0.5991288778923873
+  },
+  "frequencyBaseline": {
+    "n": 133,
+    "strikeRate": 0.6466165413533834,
+    "brier": 0.4570184452560848,
+    "logLoss": 0.6495283604414624
+  },
+  "highProbability": {
+    "n": 12,
+    "strikeRate": 0.9166666666666666,
+    "brier": 0.2119491375504028,
+    "logLoss": 0.3809856967357357
+  },
+  "temperature": 1.546519219419226,
+  "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+  "limitations": [
+    "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+    "Static chronological score-only model; injury/lineup/pitcher data absent",
+    "Fetched retrospectively; outcome correction history unavailable"
+  ],
+  "predictions": [
+    {
+      "fixtureId": "403541",
+      "kickoff": 1737574200000,
+      "probabilities": [
+        0.5498683768722398,
+        0.4501316231277602
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403533",
+      "kickoff": 1737653400000,
+      "probabilities": [
+        0.6573129238377852,
+        0.3426870761622148
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403534",
+      "kickoff": 1737659100000,
+      "probabilities": [
+        0.6079690319214055,
+        0.39203096807859455
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403535",
+      "kickoff": 1737659700000,
+      "probabilities": [
+        0.6766867033247274,
+        0.32331329667527264
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403536",
+      "kickoff": 1737660600000,
+      "probabilities": [
+        0.4784142668216713,
+        0.5215857331783287
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403537",
+      "kickoff": 1737661500000,
+      "probabilities": [
+        0.6878320740371948,
+        0.3121679259628051
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403538",
+      "kickoff": 1737745200000,
+      "probabilities": [
+        0.4206148234370535,
+        0.5793851765629465
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403539",
+      "kickoff": 1737745200000,
+      "probabilities": [
+        0.43975324641915386,
+        0.5602467535808462
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403540",
+      "kickoff": 1737746100000,
+      "probabilities": [
+        0.6211254411776996,
+        0.3788745588223003
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403542",
+      "kickoff": 1738260000000,
+      "probabilities": [
+        0.6346893385302822,
+        0.36531066146971786
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403543",
+      "kickoff": 1738263900000,
+      "probabilities": [
+        0.7686713249664356,
+        0.23132867503356436
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403544",
+      "kickoff": 1738265400000,
+      "probabilities": [
+        0.5319089201203508,
+        0.46809107987964915
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403545",
+      "kickoff": 1738265400000,
+      "probabilities": [
+        0.43194446666570263,
+        0.5680555333342974
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403546",
+      "kickoff": 1738265400000,
+      "probabilities": [
+        0.7069942311169324,
+        0.29300576888306773
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403547",
+      "kickoff": 1738344600000,
+      "probabilities": [
+        0.7091653332015909,
+        0.29083466679840914
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403548",
+      "kickoff": 1738346400000,
+      "probabilities": [
+        0.5339620692718373,
+        0.46603793072816274
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403549",
+      "kickoff": 1738350900000,
+      "probabilities": [
+        0.6424821334056118,
+        0.3575178665943883
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403550",
+      "kickoff": 1738351800000,
+      "probabilities": [
+        0.5847436719021076,
+        0.41525632809789226
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403551",
+      "kickoff": 1738690200000,
+      "probabilities": [
+        0.5324041599897792,
+        0.4675958400102208
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403552",
+      "kickoff": 1738692000000,
+      "probabilities": [
+        0.7837552235701855,
+        0.21624477642981454
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403553",
+      "kickoff": 1738695600000,
+      "probabilities": [
+        0.6745714475241427,
+        0.3254285524758573
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403554",
+      "kickoff": 1738696500000,
+      "probabilities": [
+        0.6446553343415548,
+        0.3553446656584452
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403555",
+      "kickoff": 1738698300000,
+      "probabilities": [
+        0.5981987655517892,
+        0.401801234448211
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403556",
+      "kickoff": 1738778400000,
+      "probabilities": [
+        0.6379150002987708,
+        0.3620849997012292
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403557",
+      "kickoff": 1738783800000,
+      "probabilities": [
+        0.6196114829041183,
+        0.3803885170958818
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403558",
+      "kickoff": 1738783800000,
+      "probabilities": [
+        0.5123740101505994,
+        0.48762598984940053
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403559",
+      "kickoff": 1738783800000,
+      "probabilities": [
+        0.5338045364032413,
+        0.4661954635967586
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403560",
+      "kickoff": 1738863000000,
+      "probabilities": [
+        0.5544665479619064,
+        0.44553345203809364
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403561",
+      "kickoff": 1738864800000,
+      "probabilities": [
+        0.6461479858844018,
+        0.3538520141155982
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403562",
+      "kickoff": 1738864800000,
+      "probabilities": [
+        0.41166093326843284,
+        0.5883390667315671
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403563",
+      "kickoff": 1738869300000,
+      "probabilities": [
+        0.6656874195703134,
+        0.33431258042968653
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403564",
+      "kickoff": 1738870200000,
+      "probabilities": [
+        0.6660471865158869,
+        0.33395281348411315
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403565",
+      "kickoff": 1738951200000,
+      "probabilities": [
+        0.6404048184567597,
+        0.35959518154324044
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403566",
+      "kickoff": 1738956600000,
+      "probabilities": [
+        0.5329644023969462,
+        0.4670355976030538
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403567",
+      "kickoff": 1738956600000,
+      "probabilities": [
+        0.5656270937445288,
+        0.43437290625547115
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403568",
+      "kickoff": 1738956600000,
+      "probabilities": [
+        0.4968921702112631,
+        0.503107829788737
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403569",
+      "kickoff": 1740682800000,
+      "probabilities": [
+        0.5464272045754622,
+        0.45357279542453766
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403571",
+      "kickoff": 1740684600000,
+      "probabilities": [
+        0.6296782644783318,
+        0.37032173552166825
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403572",
+      "kickoff": 1740684600000,
+      "probabilities": [
+        0.5121790538552954,
+        0.4878209461447046
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403573",
+      "kickoff": 1740685500000,
+      "probabilities": [
+        0.6359366972856231,
+        0.3640633027143769
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403570",
+      "kickoff": 1740686400000,
+      "probabilities": [
+        0.5345207423724708,
+        0.4654792576275291
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403574",
+      "kickoff": 1740763800000,
+      "probabilities": [
+        0.7930973263163181,
+        0.2069026736836819
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403575",
+      "kickoff": 1740769200000,
+      "probabilities": [
+        0.42268559948132756,
+        0.5773144005186724
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403576",
+      "kickoff": 1740771000000,
+      "probabilities": [
+        0.5839026116650138,
+        0.4160973883349861
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403577",
+      "kickoff": 1740772800000,
+      "probabilities": [
+        0.3630564227973873,
+        0.6369435772026127
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403480",
+      "kickoff": 1741030200000,
+      "probabilities": [
+        0.5477467109906057,
+        0.4522532890093944
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403578",
+      "kickoff": 1741203000000,
+      "probabilities": [
+        0.5681939493591127,
+        0.43180605064088745
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403580",
+      "kickoff": 1741289400000,
+      "probabilities": [
+        0.4915958715325862,
+        0.5084041284674139
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403581",
+      "kickoff": 1741289400000,
+      "probabilities": [
+        0.5472766484608156,
+        0.45272335153918447
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403582",
+      "kickoff": 1741289400000,
+      "probabilities": [
+        0.5774986819482623,
+        0.42250131805173785
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403579",
+      "kickoff": 1741290300000,
+      "probabilities": [
+        0.6134466457711163,
+        0.3865533542288837
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403583",
+      "kickoff": 1741368600000,
+      "probabilities": [
+        0.6889310025630754,
+        0.3110689974369245
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403584",
+      "kickoff": 1741374000000,
+      "probabilities": [
+        0.4735046932437017,
+        0.5264953067562984
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403585",
+      "kickoff": 1741374900000,
+      "probabilities": [
+        0.6931057316347494,
+        0.3068942683652506
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403586",
+      "kickoff": 1741375800000,
+      "probabilities": [
+        0.3573921453901402,
+        0.6426078546098598
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403587",
+      "kickoff": 1741887900000,
+      "probabilities": [
+        0.7416412835036679,
+        0.258358716496332
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403588",
+      "kickoff": 1741888800000,
+      "probabilities": [
+        0.5915731591696537,
+        0.4084268408303463
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403592",
+      "kickoff": 1741888800000,
+      "probabilities": [
+        0.6070875615098155,
+        0.39291243849018453
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403589",
+      "kickoff": 1741892400000,
+      "probabilities": [
+        0.410821203614481,
+        0.589178796385519
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403590",
+      "kickoff": 1741892700000,
+      "probabilities": [
+        0.5550232080679863,
+        0.4449767919320136
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403591",
+      "kickoff": 1741895100000,
+      "probabilities": [
+        0.4257779700939548,
+        0.5742220299060452
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403593",
+      "kickoff": 1741979700000,
+      "probabilities": [
+        0.562312408984977,
+        0.4376875910150231
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403594",
+      "kickoff": 1741980600000,
+      "probabilities": [
+        0.5256743833153524,
+        0.4743256166846475
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403595",
+      "kickoff": 1741981500000,
+      "probabilities": [
+        0.642445179761692,
+        0.3575548202383081
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403596",
+      "kickoff": 1742326200000,
+      "probabilities": [
+        0.6411725229827916,
+        0.3588274770172084
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403597",
+      "kickoff": 1742493600000,
+      "probabilities": [
+        0.5661123106337879,
+        0.4338876893662122
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403599",
+      "kickoff": 1742493600000,
+      "probabilities": [
+        0.6915046873932458,
+        0.3084953126067541
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403598",
+      "kickoff": 1742498100000,
+      "probabilities": [
+        0.6607027565439485,
+        0.33929724345605156
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403600",
+      "kickoff": 1742499000000,
+      "probabilities": [
+        0.5962268747737278,
+        0.4037731252262722
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403601",
+      "kickoff": 1742499900000,
+      "probabilities": [
+        0.7690337487437665,
+        0.23096625125623335
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403602",
+      "kickoff": 1742584500000,
+      "probabilities": [
+        0.8527170645683434,
+        0.14728293543165658
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403603",
+      "kickoff": 1742585400000,
+      "probabilities": [
+        0.601601061714692,
+        0.39839893828530804
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403604",
+      "kickoff": 1742586300000,
+      "probabilities": [
+        0.533002888257545,
+        0.46699711174245495
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403605",
+      "kickoff": 1742924700000,
+      "probabilities": [
+        0.6246407156484209,
+        0.3753592843515791
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403606",
+      "kickoff": 1742925600000,
+      "probabilities": [
+        0.5995161238649,
+        0.40048387613509995
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403607",
+      "kickoff": 1742931000000,
+      "probabilities": [
+        0.6494626077565837,
+        0.3505373922434163
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403608",
+      "kickoff": 1742931900000,
+      "probabilities": [
+        0.7078468008592779,
+        0.2921531991407221
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403609",
+      "kickoff": 1742931900000,
+      "probabilities": [
+        0.7487166387010706,
+        0.2512833612989293
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403610",
+      "kickoff": 1742931900000,
+      "probabilities": [
+        0.38669092502000313,
+        0.6133090749799969
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403611",
+      "kickoff": 1743010200000,
+      "probabilities": [
+        0.6364140558294535,
+        0.36358594417054635
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403612",
+      "kickoff": 1743015600000,
+      "probabilities": [
+        0.6398053840132454,
+        0.3601946159867546
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403613",
+      "kickoff": 1743015900000,
+      "probabilities": [
+        0.47469970903240055,
+        0.5253002909675994
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403614",
+      "kickoff": 1743102000000,
+      "probabilities": [
+        0.4550845798141118,
+        0.5449154201858882
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403615",
+      "kickoff": 1743102900000,
+      "probabilities": [
+        0.6409855046144156,
+        0.3590144953855845
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403616",
+      "kickoff": 1743103800000,
+      "probabilities": [
+        0.5792175056104828,
+        0.4207824943895172
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403617",
+      "kickoff": 1743103800000,
+      "probabilities": [
+        0.5100515051690928,
+        0.48994849483090713
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403618",
+      "kickoff": 1743183000000,
+      "probabilities": [
+        0.6160258878401748,
+        0.38397411215982524
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403619",
+      "kickoff": 1743183900000,
+      "probabilities": [
+        0.6575671528930891,
+        0.34243284710691096
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403620",
+      "kickoff": 1743188400000,
+      "probabilities": [
+        0.4660260569719514,
+        0.5339739430280486
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403621",
+      "kickoff": 1743188400000,
+      "probabilities": [
+        0.48031057048283626,
+        0.5196894295171638
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403622",
+      "kickoff": 1743189300000,
+      "probabilities": [
+        0.6815283564769641,
+        0.318471643523036
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403623",
+      "kickoff": 1743615900000,
+      "probabilities": [
+        0.6045772725465459,
+        0.395422727453454
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403624",
+      "kickoff": 1743699600000,
+      "probabilities": [
+        0.5064437147185892,
+        0.49355628528141077
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403625",
+      "kickoff": 1743699600000,
+      "probabilities": [
+        0.6276066464876451,
+        0.37239335351235486
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403626",
+      "kickoff": 1743705000000,
+      "probabilities": [
+        0.6168182541767531,
+        0.38318174582324693
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403627",
+      "kickoff": 1743706800000,
+      "probabilities": [
+        0.6556412545768592,
+        0.3443587454231407
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403628",
+      "kickoff": 1743789600000,
+      "probabilities": [
+        0.30673817611160603,
+        0.693261823888394
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403629",
+      "kickoff": 1743789600000,
+      "probabilities": [
+        0.5347389816208585,
+        0.46526101837914136
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403630",
+      "kickoff": 1743791400000,
+      "probabilities": [
+        0.6753691396669814,
+        0.3246308603330185
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403631",
+      "kickoff": 1743791400000,
+      "probabilities": [
+        0.5530169828205997,
+        0.44698301717940025
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403632",
+      "kickoff": 1744308000000,
+      "probabilities": [
+        0.503539350651064,
+        0.496460649348936
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "423749",
+      "kickoff": 1744308000000,
+      "probabilities": [
+        0.44186664497061257,
+        0.5581333550293874
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403633",
+      "kickoff": 1744308900000,
+      "probabilities": [
+        0.6711195041808555,
+        0.32888049581914447
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403634",
+      "kickoff": 1744309800000,
+      "probabilities": [
+        0.5648300744085301,
+        0.4351699255914699
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "403635",
+      "kickoff": 1744309800000,
+      "probabilities": [
+        0.4785720113964749,
+        0.5214279886035251
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "403636",
+      "kickoff": 1744310700000,
+      "probabilities": [
+        0.7795555065797818,
+        0.22044449342021816
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "424963",
+      "kickoff": 1744392600000,
+      "probabilities": [
+        0.5979853357596432,
+        0.4020146642403569
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "424964",
+      "kickoff": 1744395300000,
+      "probabilities": [
+        0.7137273625298319,
+        0.2862726374701681
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "424965",
+      "kickoff": 1744396200000,
+      "probabilities": [
+        0.692331319088478,
+        0.30766868091152194
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447376",
+      "kickoff": 1744741800000,
+      "probabilities": [
+        0.5774986819482623,
+        0.42250131805173785
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447377",
+      "kickoff": 1744743600000,
+      "probabilities": [
+        0.6556412545768592,
+        0.3443587454231407
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "447571",
+      "kickoff": 1745001900000,
+      "probabilities": [
+        0.696971632238726,
+        0.303028367761274
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447572",
+      "kickoff": 1745343900000,
+      "probabilities": [
+        0.6246407156484209,
+        0.3753592843515791
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447427",
+      "kickoff": 1745346600000,
+      "probabilities": [
+        0.6656874195703134,
+        0.33431258042968653
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447428",
+      "kickoff": 1745427600000,
+      "probabilities": [
+        0.5843611161355518,
+        0.41563888386444814
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447768",
+      "kickoff": 1745433000000,
+      "probabilities": [
+        0.5895380128922978,
+        0.41046198710770215
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447573",
+      "kickoff": 1745516700000,
+      "probabilities": [
+        0.6246407156484209,
+        0.3753592843515791
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447429",
+      "kickoff": 1745519400000,
+      "probabilities": [
+        0.6656874195703134,
+        0.33431258042968653
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "447430",
+      "kickoff": 1745600400000,
+      "probabilities": [
+        0.5843611161355518,
+        0.41563888386444814
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447769",
+      "kickoff": 1745605800000,
+      "probabilities": [
+        0.5895380128922978,
+        0.41046198710770215
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447919",
+      "kickoff": 1745951400000,
+      "probabilities": [
+        0.5477467109906057,
+        0.4522532890093944
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "447920",
+      "kickoff": 1745953200000,
+      "probabilities": [
+        0.5833752331422818,
+        0.41662476685771804
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447921",
+      "kickoff": 1746032400000,
+      "probabilities": [
+        0.5885539483205484,
+        0.4114460516794516
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "447922",
+      "kickoff": 1746035100000,
+      "probabilities": [
+        0.5048825452636265,
+        0.4951174547363734
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "448419",
+      "kickoff": 1746126000000,
+      "probabilities": [
+        0.5833752331422818,
+        0.41662476685771804
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "448067",
+      "kickoff": 1746207000000,
+      "probabilities": [
+        0.5048825452636265,
+        0.4951174547363734
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "448458",
+      "kickoff": 1746211500000,
+      "probabilities": [
+        0.5885539483205484,
+        0.4114460516794516
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "448544",
+      "kickoff": 1746550800000,
+      "probabilities": [
+        0.5843611161355518,
+        0.41563888386444814
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "448545",
+      "kickoff": 1746557100000,
+      "probabilities": [
+        0.6656874195703134,
+        0.33431258042968653
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "448693",
+      "kickoff": 1748012400000,
+      "probabilities": [
+        0.5270158055597242,
+        0.47298419444027573
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "448692",
+      "kickoff": 1748023200000,
+      "probabilities": [
+        0.6409855046144156,
+        0.3590144953855845
+      ],
+      "actual": 1
+    },
+    {
+      "fixtureId": "449557",
+      "kickoff": 1748181600000,
+      "probabilities": [
+        0.562312408984977,
+        0.4376875910150231
+      ],
+      "actual": 0
+    },
+    {
+      "fixtureId": "449558",
+      "kickoff": 1748192400000,
+      "probabilities": [
+        0.5661123106337879,
+        0.4338876893662122
+      ],
+      "actual": 1
+    }
+  ],
+  "approved": false,
+  "proxyChampion": {
+    "n": 133,
+    "strikeRate": 0.7218045112781954,
+    "brier": 0.3977435481298764,
+    "logLoss": 0.5843938099441667
+  },
+  "challengerMatched": {
+    "n": 133,
+    "strikeRate": 0.7293233082706767,
+    "brier": 0.4095278443299838,
+    "logLoss": 0.5991288778923874
+  },
+  "championComparisonLimit": "Reconstructed fixed prior table/standings baseline, without historical odds or production settings; not a reproduction of live predictions."
+}

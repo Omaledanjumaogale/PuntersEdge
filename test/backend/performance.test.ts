@@ -4,6 +4,14 @@ import {anyApi} from 'convex/server';
 import schema from '../../convex/schema';
 import {contributionsFor} from '../../src/lib/feeds/performance.js';
 const modules=import.meta.glob('../../convex/**/*.ts');
+it('keeps original publication blobs immutable and rejects anonymous archive reads',async()=>{
+ const t=convexTest(schema,modules),storageId=await t.run(ctx=>ctx.storage.store(new Blob(['first'])));
+ const args={fixtureId:'published',publishedAt:1000,modelVersion:'v3',artifactVersion:'fitted-1',storageId};
+ await t.mutation(anyApi.performance.publication,args);
+ const replacement=await t.run(ctx=>ctx.storage.store(new Blob(['different'])));await t.mutation(anyApi.performance.publication,{...args,storageId:replacement});
+ const rows=await t.run(ctx=>ctx.db.query('forecast_publications').collect());expect(rows).toHaveLength(1);expect(rows[0].storageId).toBe(storageId);
+ await expect(t.query(anyApi.performance.publications,{fixtureId:'published'})).rejects.toThrow('Administrator');
+});
 it('keeps durable performance idempotent and replaces corrected results without double counting',async()=>{
  const t=convexTest(schema,modules);
  const base={fixtureId:'fixture-1',sport:'football',family:'football',match:'Home vs Away',league:'League',kickoff:Date.now(),publishedAt:Date.now()-60000,modelVersion:'test-version',state:'finished',score:{home:1,away:0}};
@@ -15,8 +23,9 @@ it('keeps durable performance idempotent and replaces corrected results without 
  let metric=await t.run(ctx=>ctx.db.query('performance_metrics').withIndex('by_sport',q=>q.eq('sport','football')).unique());
  expect(metric?.fixtures).toBe(1);expect(metric?.settledFixtures).toBe(1);expect(metric?.groups.summary.n).toBe(1);expect(metric?.groups.summary.won).toBe(1);
  const corrected=rows.map(row=>({...row,result:'lost',profit:-1}));
- await t.mutation(anyApi.performance.record,{...first,score:{home:0,away:1},storageId:await store(),fingerprint:'corrected',contributions:contributionsFor({kickoff:base.kickoff,selections:corrected}),recent:corrected});
+ await t.mutation(anyApi.performance.record,{...first,observedAt:base.publishedAt+1000,score:{home:0,away:1},storageId:await store(),fingerprint:'corrected',contributions:contributionsFor({kickoff:base.kickoff,selections:corrected}),recent:corrected});
  metric=await t.run(ctx=>ctx.db.query('performance_metrics').withIndex('by_sport',q=>q.eq('sport','football')).unique());
  expect(metric?.groups.summary.n).toBe(1);expect(metric?.groups.summary.won).toBe(0);expect(metric?.groups.summary.lost).toBe(1);expect(metric?.groups.summary.profit).toBe(-1);
+ await t.mutation(anyApi.performance.record,{...first,storageId:await store()});
  expect(await t.query(anyApi.performance.fixtureStates,{ids:['fixture-1']})).toMatchObject([{score:{home:0,away:1}}]);
 });

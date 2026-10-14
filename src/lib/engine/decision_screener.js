@@ -90,15 +90,15 @@ export function analyzeOddsMovement(openingOdds, currentOdds, publicBetPercent =
   if (publicBetPercent < 45 && move < -3.5) {
     signalType = 'REVERSE_LINE_MOVEMENT_SHARP_INFLOW';
     smartMoneyIndication = true;
-    explanation = `Price shortened ${Math.abs(move).toFixed(1)}% while only ${publicBetPercent}% of tickets backed it — money, not tickets, moved this line.`;
+    explanation = `Price shortened ${Math.abs(move).toFixed(1)}%; supplied ticket share is ${publicBetPercent}%. The cause of the movement is unverified.`;
   } else if (publicBetPercent > 65 && move > 3) {
     signalType = 'REVERSE_LINE_MOVEMENT_FADE_PUBLIC';
     smartMoneyIndication = true;
-    explanation = `Price drifted ${move.toFixed(1)}% despite ${publicBetPercent}% of tickets — books are happy to hold public liability here.`;
+    explanation = `Price drifted ${move.toFixed(1)}%; supplied ticket share is ${publicBetPercent}%. Bookmaker liability is unknown.`;
   } else if (move < -6) {
     signalType = 'STEAM_MOVE';
     smartMoneyIndication = true;
-    explanation = `Steam: price collapsed ${Math.abs(move).toFixed(1)}% from the open across the market.`;
+    explanation = `The supplied price shortened ${Math.abs(move).toFixed(1)}% from its recorded opening price. Cross-book agreement is not established.`;
   } else {
     explanation = `Normal fluctuation (${move >= 0 ? '+' : ''}${move.toFixed(1)}% from open).`;
   }
@@ -122,12 +122,13 @@ export function selectionDecision(selection) {
   const valueSupported = selection.pricing === 'quoted' && Number.isFinite(p) && p > 0 && p < 1
     && Number.isFinite(odds) && odds > 1 && push >= 0 && push < 1
     && ev > 0 && ev <= 25 && gap <= 0.15 && cushion > 0;
-  const eligible = valueSupported && probability >= 0.5;
+  const evidenceBlocked = /** @type {any} */(selection).eligibilityReasons?.length > 0;
+  const eligible = valueSupported && probability >= 0.5 && !evidenceBlocked;
   const decisionScore = valueSupported
     ? round(100 * (0.65 * probability + 0.25 * Math.min(ev / 25, 1) + 0.1 * Math.min(cushion / 0.15, 1)) * (1 - gap), 3)
     : 0;
   return { eligible, decisionScore, successProbability: probability,
-    grade: /** @type {'A+' | 'A' | 'B' | 'C' | 'PASS'} */ (!valueSupported ? 'PASS' : decisionScore >= 70 ? 'A+' : decisionScore >= 60 ? 'A' : decisionScore >= 50 ? 'B' : 'C') };
+    grade: /** @type {'A+' | 'A' | 'B' | 'C' | 'PASS'} */ (!valueSupported || evidenceBlocked ? 'PASS' : decisionScore >= 70 ? 'A+' : decisionScore >= 60 ? 'A' : decisionScore >= 50 ? 'B' : 'C') };
 }
 
 /** @template { {modelProb:number,marketProb:number,bestOdds:number,edgePercent:number,pushProb?:number,pricing?:string,grade?:string} } T

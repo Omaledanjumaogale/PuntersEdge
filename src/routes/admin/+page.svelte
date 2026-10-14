@@ -61,7 +61,7 @@
   <div class="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-pop/10 blur-3xl" aria-hidden="true"></div>
   <div class="relative flex flex-wrap items-start justify-between gap-4">
    <div><p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-model"><ShieldCheck class="h-4 w-4"/>Private administration</p><h1 class="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">The control room<span class="text-pop">.</span></h1><p class="mt-2 max-w-xl text-sm text-haze">Measured model performance, live source operations and all-access membership controls.</p></div>
-   {#if allowed}<a href="/board" class="btn-ghost text-sm">Open user view <ArrowUpRight class="h-4 w-4"/></a>{/if}
+   {#if allowed}<div class="flex flex-wrap gap-2"><a href="/admin/models" class="btn-ghost text-sm">Model registry</a><a href="/board" class="btn-ghost text-sm">Open user view <ArrowUpRight class="h-4 w-4"/></a></div>{/if}
   </div>
  </header>
  {#if error}<p role="alert" class="flex items-center gap-2 rounded-2xl bg-loss/10 p-4 text-sm text-loss ring-1 ring-loss/30"><CircleAlert class="h-4 w-4"/>{error}</p>{/if}

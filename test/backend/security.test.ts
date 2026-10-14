@@ -19,6 +19,15 @@ async function member(t: ReturnType<typeof create>, email = 'member@example.test
 }
 
 describe('backend access and subscription security', () => {
+ it('model registry rejects anonymous import and never approves a candidate on activation',async()=>{
+  const t=create();await expect(t.query(anyApi.models.list,{})).rejects.toThrow('Administrator');
+  const {signed,localId}=await member(t,'model-owner@example.test');vi.stubEnv('SUPER_ADMIN_USER_ID',localId);
+  const artifact={sport:'football',version:'test-candidate',league:'Test',trainedThrough:'2024-01-01T00:00:00Z',intercept:0,homeAdvantage:0,rho:0,teams:{a:{attack:0,defence:0},b:{attack:0,defence:0}},trainingCount:100};
+  const id=await signed.mutation(anyApi.models.register,{artifact});await signed.mutation(anyApi.models.shadowActivate,{id});
+  expect(await signed.query(anyApi.models.list,{})).toMatchObject([{mode:'active',approved:false,approvedMarkets:[]}]);
+  await expect(signed.mutation(anyApi.models.register,{artifact})).rejects.toThrow('immutable');
+  await signed.mutation(anyApi.models.retire,{id});expect(await signed.query(anyApi.models.list,{})).toMatchObject([{mode:'retired',approved:false}]);
+ });
  it('rejects anonymous access to live files, admin actions and payment checkout', async () => {
   const t = create();
   await expect(t.query(anyApi.feed.meta, {})).rejects.toThrow('Sign in');

@@ -65,7 +65,7 @@
 	{/if}
 
  <p class="text-xs text-haze">Basis: {p.ratingsSource === 'market' ? 'market consensus · no independent team ratings' : p.ratingsSource}.</p>
- <div class="flex items-center gap-3 text-xs text-haze" title="Agreement among analytical checks; not a measured historical strike rate"><span>Heuristic confidence</span><meter min="0" max="100" value={confidence*100} aria-label="Heuristic confidence" class="min-w-0 flex-1">{pct(confidence,1)}</meter><strong class="text-pop">{pct(confidence,1)}</strong></div>
+ {#if p.analysisEvidence}<p class="rounded-lg bg-raised p-2 text-xs text-haze">{p.confidenceStatus} · {p.analysisEvidence.modelVersion}. {#if !p.analysisEvidence.approved}Forecast shown for evaluation; no validated stake recommendation.{/if}</p>{:else}<p class="text-xs text-haze">Analytical agreement: {pct(confidence,1)} · not a calibrated confidence rating.</p>{/if}
 
 	{#if p.marketSteamAlert || p.absences.length > 0}
 		<ul class="flex flex-wrap gap-2 text-xs font-medium">

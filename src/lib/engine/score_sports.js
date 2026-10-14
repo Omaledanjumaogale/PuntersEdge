@@ -22,6 +22,7 @@ import { calculateKellyStake, gradeSelection, rankSelections } from './decision_
  * @property {number} dispersion negative-binomial r (ignored for Poisson)
  * @property {number} maxScore grid size per team
  * @property {number} extraHomeWin probability home wins extra play
+ * @property {boolean} [finalScoreModel] Fitted full-game baseball counts, conditioned on no final tie
  * @property {number[]} totalLines totals ladder
  * @property {number[]} teamLines team-total lines
  * @property {number[]} spreadLines home handicaps offered (both sides priced)
@@ -97,6 +98,7 @@ export function scoreDistribution(homeMean, awayMean, cfg) {
   const ap = scorePmf(awayMean, cfg);
   const N = cfg.maxScore;
   const w = cfg.extraHomeWin;
+  const tieMass = cfg.finalScoreModel ? hp.reduce((s,p,i)=>s+p*ap[i],0) : 0;
 
   /** @type {number[][]} */
   const matrix = [];
@@ -112,7 +114,7 @@ export function scoreDistribution(homeMean, awayMean, cfg) {
   for (let x = 0; x <= N; x++) {
     matrix[x] = [];
     for (let y = 0; y <= N; y++) {
-      const p = hp[x] * ap[y];
+      const p = cfg.finalScoreModel ? (x===y?0:hp[x]*ap[y]/(1-tieMass)) : hp[x]*ap[y];
       matrix[x][y] = p;
       if (x > y) regHome += p;
       else if (x < y) regAway += p;
@@ -145,6 +147,8 @@ export function scoreDistribution(homeMean, awayMean, cfg) {
   /** P(home covers handicap L) on the final margin; half-lines never push. */
   const cover = (/** @type {number} */ L) => sumWhere(margin, (d) => d + L > 0);
   const over = (/** @type {number} */ L) => sumWhere(total, (t) => t > L);
+  const totalPush = (/** @type {number} */ L) => sumWhere(total, (t) => t === L);
+  const conditionalOver = (/** @type {number} */ L) => over(L) / (1 - totalPush(L));
   const teamOver = (/** @type {number[]} */ dist, /** @type {number} */ L) => dist.reduce((a, p, k) => (k > L ? a + p : a), 0);
 
   const scorelines = [];
@@ -159,6 +163,8 @@ export function scoreDistribution(homeMean, awayMean, cfg) {
     moneyline: { home: regHome + regDraw * w, away: regAway + regDraw * (1 - w) },
     cover,
     over,
+    totalPush,
+    conditionalOver,
     teamOver: { home: (/** @type {number} */ L) => teamOver(homeFinal, L), away: (/** @type {number} */ L) => teamOver(awayFinal, L) },
     topScorelines: scorelines.slice(0, 8)
   };
@@ -228,7 +234,16 @@ function headline(h, a, cfg, line) {
       if (line !== undefined && x + y + (x === y ? 1 : 0) > line) over += p;
     }
   }
-  return { homeWin: home + draw * cfg.extraHomeWin, over };
+  let push = 0;
+  if (line !== undefined && Number.isInteger(line)) {
+    for (let x=0;x<=N;x++) for (let y=0;y<=N;y++) if (x+y+(x===y?1:0)===line) push+=hp[x]*ap[y];
+  }
+  if(cfg.finalScoreModel){
+    let totalMass=0,overMass=0,pushMass=0;
+    for(let x=0;x<=N;x++)for(let y=0;y<=N;y++)if(x!==y){const p=hp[x]*ap[y];totalMass+=p;if(line!==undefined&&x+y>line)overMass+=p;if(x+y===line)pushMass+=p;}
+    return {homeWin:home/(1-draw),over:overMass/(totalMass-pushMass)};
+  }
+  return { homeWin: home + draw * cfg.extraHomeWin, over: over / (1-push) };
 }
 
 const fmtLine = (/** @type {number} */ l) => (l > 0 ? `+${l}` : `${l}`);
@@ -246,6 +261,8 @@ const bookPrice = (/** @type {number} */ p, /** @type {number} */ margin) => Mat
  * @property {Record<string, { homeMoneyline?: number, awayMoneyline?: number, totalLine?: number, overOdds?: number, underOdds?: number, spreadLine?: number, homeSpreadOdds?: number, awaySpreadOdds?: number }>} odds
  * @property {{ state: 'scheduled' | 'live' | 'finished' | 'postponed', home?: number, away?: number, detail?: string }} [status]
  * @property {string} [ratingsSource]
+ * @property {any} [modelArtifact]
+ * @property {any} [scoreConfig]
  */
 
 /**
@@ -255,8 +272,8 @@ const bookPrice = (/** @type {number} */ p, /** @type {number} */ margin) => Mat
  * @param {{ modelWeight?: number, kellyFraction?: number, now?: Date | number, sport?: string }} [options]
  */
 export function buildScoreSportPrediction(input, family, options = {}) {
-  const cfg = SCORE_SPORTS[family];
-  const w = options.modelWeight ?? 0.6;
+  const cfg = {...SCORE_SPORTS[family],...(input.scoreConfig??{})};
+  const w = input.modelArtifact?.modelWeight ?? options.modelWeight ?? 0.6;
   const kf = options.kellyFraction ?? 0.25;
   const H = input.homeTeam;
   const A = input.awayTeam;
@@ -318,7 +335,9 @@ export function buildScoreSportPrediction(input, family, options = {}) {
       const marketProb = entries.reduce((a, [, q]) => a + q.prob, 0) / entries.length;
       const prob = w * c.model + (1 - w) * marketProb;
       const [bookmaker, best] = entries.reduce((a, b) => (b[1].odds > a[1].odds ? b : a));
-      const edge = prob * best.odds - 1;
+      const totalLine = /^[ou](-?\d+(?:\.\d+)?)$/.exec(c.key);
+      const pushProb = totalLine ? model.totalPush(Number(totalLine[1])) : 0;
+      const edge = (1-pushProb) * (prob * best.odds - 1);
       const edgePercent = round(edge * 100, 2);
       if (edgePercent > 25) return [];
       return [{
@@ -331,7 +350,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
         fairOdds: round(fairOdds(prob), 2),
         modelProb: prob,
         marketProb,
-        pushProb: 0,
+        pushProb,
         edgePercent,
         kellyStakePercent: edge > 0 ? calculateKellyStake(prob, best.odds, kf).recommendedStakePct : 0,
         grade: /** @type {'A+' | 'A' | 'B' | 'C' | 'PASS'} */ (edge > 0 ? gradeSelection(edgePercent, Math.abs(prob - marketProb) * 100) : 'PASS'),
@@ -348,7 +367,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
     ])
   });
 
-  if (family === 'hockey') {
+  if (family === 'hockey' && !cfg.finalScoreModel) {
     const reg = model.regulation;
     groups.push({
       key: 'reg', title: 'Regulation result', emoji: '🏆', blurb: '60 minutes only; a tie is a draw.',
@@ -388,10 +407,10 @@ export function buildScoreSportPrediction(input, family, options = {}) {
   for (const T of totalLines) {
     const isQuoted = (/** @type {typeof books[number]} */ b) => b.hasTotal && b.o.totalLine === T;
     totals.push(
-      cand(`o${T}`, cfg.labels.total, `Over ${T} ${cfg.unit}`, model.over(T), (b) =>
-        isQuoted(b) ? { odds: /** @type {number} */ (b.o.overOdds), prob: /** @type {number} */ (b.po), quoted: true } : { odds: bookPrice(b.d.over(T), b.mTot), prob: b.d.over(T), quoted: false }, books.some(isQuoted) ? 'quoted' : 'derived'),
-      cand(`u${T}`, cfg.labels.total, `Under ${T} ${cfg.unit}`, 1 - model.over(T), (b) =>
-        isQuoted(b) ? { odds: /** @type {number} */ (b.o.underOdds), prob: 1 - /** @type {number} */ (b.po), quoted: true } : { odds: bookPrice(1 - b.d.over(T), b.mTot), prob: 1 - b.d.over(T), quoted: false }, books.some(isQuoted) ? 'quoted' : 'derived')
+      cand(`o${T}`, cfg.labels.total, `Over ${T} ${cfg.unit}`, model.conditionalOver(T), (b) =>
+        isQuoted(b) ? { odds: /** @type {number} */ (b.o.overOdds), prob: /** @type {number} */ (b.po), quoted: true } : { odds: bookPrice(b.d.conditionalOver(T), b.mTot), prob: b.d.conditionalOver(T), quoted: false }, books.some(isQuoted) ? 'quoted' : 'derived'),
+      cand(`u${T}`, cfg.labels.total, `Under ${T} ${cfg.unit}`, 1 - model.conditionalOver(T), (b) =>
+        isQuoted(b) ? { odds: /** @type {number} */ (b.o.underOdds), prob: 1 - /** @type {number} */ (b.po), quoted: true } : { odds: bookPrice(1 - b.d.conditionalOver(T), b.mTot), prob: 1 - b.d.conditionalOver(T), quoted: false }, books.some(isQuoted) ? 'quoted' : 'derived')
     );
   }
   groups.push({ key: 'total', title: cfg.labels.total, emoji: '🎯', blurb: `${cfg.unit === 'goals' ? 'Goals' : 'Runs'} by both teams, ${cfg.labels.extra} included.`, selections: price(totals) });
@@ -421,7 +440,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
     overTotal: blend(modelProbs.overTotal, marketProbs.overTotal),
     underTotal: 1 - blend(modelProbs.overTotal, marketProbs.overTotal),
     spreadCoverHome: modelProbs.spreadCoverHome,
-    draw: family === 'hockey' ? model.regulation.draw : 0
+    draw: 0
   };
 
   const kickoffTime =
@@ -447,6 +466,8 @@ export function buildScoreSportPrediction(input, family, options = {}) {
     matrix: model.matrix.slice(0, 7).map((r) => r.slice(0, 7)),
     topScorelines: model.topScorelines,
     probabilities,
+    regulationProbabilities: model.regulation,
+    finalProbabilities: model.moneyline,
     modelProbabilities: modelProbs,
     marketProbabilities: marketProbs,
     odds: input.odds ?? {},
@@ -466,7 +487,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
           : 'Team strength from season scoring rates.',
     summary: {
       scoreline: `${top.home}–${top.away}`,
-      caption: `Most likely regulation score (expected ${round(model.homeMean, 1)}–${round(model.awayMean, 1)} ${cfg.unit})`,
+      caption: `Most likely ${cfg.finalScoreModel?'final':'regulation'} score (expected ${round(model.homeMean, 1)}–${round(model.awayMean, 1)} ${cfg.unit})`,
       unit: cfg.unit
     }
   };

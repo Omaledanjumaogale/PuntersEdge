@@ -1,0 +1,189 @@
+{
+  "sport": "nba",
+  "version": "nba-score-candidate-2026-10",
+  "league": "NBA",
+  "trainedThrough": "2025-06-25T00:00:00+00:00",
+  "intercept": 112.25417993655584,
+  "homeAdvantage": 2.0301379221142732,
+  "rho": 0.0,
+  "teams": {
+    "1": {
+      "attack": 4.5017105194560925,
+      "defence": 5.999741014558022
+    },
+    "10": {
+      "attack": 0.8059611339747238,
+      "defence": 0.23875618861752307
+    },
+    "11": {
+      "attack": 0.3278158390215672,
+      "defence": -3.2822834700078314
+    },
+    "14": {
+      "attack": 0.7499948726682973,
+      "defence": -3.112008421282764
+    },
+    "15": {
+      "attack": 4.565855463674925,
+      "defence": 0.8219880723383094
+    },
+    "16": {
+      "attack": -0.5950432878840566,
+      "defence": -4.966721481391389
+    },
+    "165": {
+      "attack": -0.3912132970416287,
+      "defence": 0.7554551892252723
+    },
+    "168": {
+      "attack": -2.7166485783657754,
+      "defence": -0.010884544333324794
+    },
+    "169": {
+      "attack": -0.45330733421126684,
+      "defence": 0.027233138797478015
+    },
+    "17": {
+      "attack": 0.31250657136005605,
+      "defence": -0.7276408293992389
+    },
+    "19": {
+      "attack": 4.061107884070704,
+      "defence": 2.5397609435553634
+    },
+    "2": {
+      "attack": 1.9326336836963103,
+      "defence": -6.285250234723298
+    },
+    "20": {
+      "attack": -3.51381719081418,
+      "defence": -3.268923528616752
+    },
+    "21": {
+      "attack": 1.7492636927209144,
+      "defence": -0.07780731526948632
+    },
+    "22": {
+      "attack": 0.574311129590984,
+      "defence": -5.081859341245585
+    },
+    "23": {
+      "attack": -2.2408042790768112,
+      "defence": 3.236735472145031
+    },
+    "24": {
+      "attack": 0.4509835292064771,
+      "defence": -2.7575637484168074
+    },
+    "25": {
+      "attack": 4.770895442382604,
+      "defence": -5.7376194322419956
+    },
+    "26": {
+      "attack": -7.0199737687082955,
+      "defence": -7.248058085021509
+    },
+    "27": {
+      "attack": -2.349315926109744,
+      "defence": 1.861030643478134
+    },
+    "28": {
+      "attack": 0.8115129597593957,
+      "defence": 2.1595323086632416
+    },
+    "29": {
+      "attack": -2.742975702564373,
+      "defence": -0.260362531274695
+    },
+    "30": {
+      "attack": 1.714938873239038,
+      "defence": 1.3640183526118805
+    },
+    "31": {
+      "attack": 0.8204520146090923,
+      "defence": 3.537716676326838
+    },
+    "38": {
+      "attack": -1.9246343539818014,
+      "defence": 2.2130950303268144
+    },
+    "4": {
+      "attack": -6.6850859755968255,
+      "defence": -0.9860865655649051
+    },
+    "40": {
+      "attack": -0.188958865845787,
+      "defence": 6.830475416511891
+    },
+    "41": {
+      "attack": -3.757402857558896,
+      "defence": 6.649221919486643
+    },
+    "5": {
+      "attack": -7.25446971666714,
+      "defence": 1.1243182242185064
+    },
+    "6": {
+      "attack": 3.2513474133094187,
+      "defence": 4.311254214784486
+    },
+    "7": {
+      "attack": 5.385048336729089,
+      "defence": -1.3682622173416947
+    },
+    "8": {
+      "attack": 0.7704263440928585,
+      "defence": 0.7156685033045821
+    },
+    "9": {
+      "attack": 4.276885430864034,
+      "defence": 0.785330437181258
+    }
+  },
+  "trainingCount": 2778,
+  "modelWeight": 1,
+  "validated": false,
+  "calibrated": false,
+  "marginSd": 14.454435463954303,
+  "totalSd": 19.009281942769924,
+  "benchmark": {
+    "sport": "nba",
+    "league": "NBA",
+    "train": 1649,
+    "calibration": 540,
+    "holdout": 556,
+    "skipped": 0,
+    "raw": {
+      "n": 556,
+      "strikeRate": 0.6546762589928058,
+      "brier": 0.4337347147162528,
+      "logLoss": 0.6217793717962193
+    },
+    "calibrated": {
+      "n": 556,
+      "strikeRate": 0.6546762589928058,
+      "brier": 0.43632577775589937,
+      "logLoss": 0.6255586533565933
+    },
+    "frequencyBaseline": {
+      "n": 556,
+      "strikeRate": 0.5467625899280576,
+      "brier": 0.49582134445866094,
+      "logLoss": 0.6889643742899493
+    },
+    "highProbability": {
+      "n": 95,
+      "strikeRate": 0.8421052631578947,
+      "brier": 0.27640579392961623,
+      "logLoss": 0.4502186098611156
+    },
+    "temperature": 1.2043398612989642,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "sport": "basketball",
+  "version": "basketball-score-candidate-2026-10",
+  "league": "EuroLeague",
+  "trainedThrough": "2025-05-27T17:00:00+00:00",
+  "intercept": 81.71388848088716,
+  "homeAdvantage": 3.3064552021620637,
+  "rho": 0.0,
+  "teams": {
+    "1065": {
+      "attack": -0.4658867539522077,
+      "defence": -1.0409967549141241
+    },
+    "1068": {
+      "attack": -1.4733717434078677,
+      "defence": -2.273735136994353
+    },
+    "108": {
+      "attack": 2.278502417910519,
+      "defence": 1.9180073729575444
+    },
+    "1263": {
+      "attack": 2.1006431634112817,
+      "defence": -1.2896643270562655
+    },
+    "1270": {
+      "attack": 0.6895551753880488,
+      "defence": -2.587624114257764
+    },
+    "1542": {
+      "attack": 0.6590699723448762,
+      "defence": -2.9067848635776135
+    },
+    "16": {
+      "attack": 1.3000573682289895,
+      "defence": -1.3940426952707399
+    },
+    "2329": {
+      "attack": 2.7495327376647687,
+      "defence": 0.16472600921787073
+    },
+    "2331": {
+      "attack": 0.5134306388702332,
+      "defence": 1.3087477224739592
+    },
+    "2338": {
+      "attack": 1.2533692587444605,
+      "defence": -1.2474200390753025
+    },
+    "2341": {
+      "attack": -3.3220817578186774,
+      "defence": -1.4933934759563874
+    },
+    "26": {
+      "attack": -2.263455217396721,
+      "defence": 1.3611021728421009
+    },
+    "519": {
+      "attack": -3.9794731342086727,
+      "defence": 5.45030449555535
+    },
+    "522": {
+      "attack": 1.8477498813510473,
+      "defence": 3.115294728658607
+    },
+    "614": {
+      "attack": 2.6391721931995797,
+      "defence": -1.216145851610662
+    },
+    "687": {
+      "attack": 3.023260960228201,
+      "defence": 4.672832109471763
+    },
+    "722": {
+      "attack": 0.5695108257877205,
+      "defence": 1.426539155267592
+    },
+    "732": {
+      "attack": -3.540688702915523,
+      "defence": -0.49072935429715514
+    },
+    "796": {
+      "attack": -4.578897283430059,
+      "defence": -3.4770171534344194
+    }
+  },
+  "trainingCount": 661,
+  "modelWeight": 1,
+  "validated": false,
+  "calibrated": false,
+  "marginSd": 11.331782655091194,
+  "totalSd": 16.405034360349987,
+  "benchmark": {
+    "sport": "basketball",
+    "league": "EuroLeague",
+    "train": 394,
+    "calibration": 132,
+    "holdout": 133,
+    "skipped": 0,
+    "raw": {
+      "n": 133,
+      "strikeRate": 0.7293233082706767,
+      "brier": 0.3897414205132939,
+      "logLoss": 0.5758525688625709
+    },
+    "calibrated": {
+      "n": 133,
+      "strikeRate": 0.7293233082706767,
+      "brier": 0.4095278443299837,
+      "logLoss": 0.5991288778923873
+    },
+    "frequencyBaseline": {
+      "n": 133,
+      "strikeRate": 0.6466165413533834,
+      "brier": 0.4570184452560848,
+      "logLoss": 0.6495283604414624
+    },
+    "highProbability": {
+      "n": 12,
+      "strikeRate": 0.9166666666666666,
+      "brier": 0.2119491375504028,
+      "logLoss": 0.3809856967357357
+    },
+    "temperature": 1.546519219419226,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false
+  }
+}
