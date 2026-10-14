@@ -37,3 +37,12 @@ test('public FPL aliases preserve existing licensed identity and standings, with
  const rows=store.tables['football:39:2026'].rows;assert.equal(rows.find(r=>r.teamId===65).for,2);assert.equal(rows.find(r=>r.teamId===57).against,2);
  assert.equal(calls,6);await refreshPublicSports(store,now+1000,fetcher);assert.equal(calls,6);
 });
+test('odds-discovered football fixtures receive missing public IDs without contaminating other Premier Leagues',async()=>{
+ const store=emptyStore(),base={sport:'football',league:'Premier League',kickoff:now+3600000,status:{state:'scheduled'},odds:{},updated:now};
+ store.games.g={...base,uid:'g',home:'Everton FC',away:'Chelsea FC',ext:{op:'odds-only'}};
+ store.games.foreign={...base,uid:'foreign',home:'URA',away:'Entebbe',homeId:12459,awayId:26700,leagueId:585,season:2026,ext:{as:'foreign'}};
+ const fetcher=async url=>url.includes('bootstrap')?{teams:[{id:1,name:'Everton'},{id:2,name:'Chelsea'}]}:url.includes('fantasy')?[{id:1,team_h:1,team_a:2,kickoff_time:new Date(now+3600000).toISOString(),finished:false},{id:2,team_h:1,team_a:2,kickoff_time:new Date(now-3600000).toISOString(),finished:true,team_h_score:2,team_a_score:1}]:{};
+ await refreshPublicSports(store,now,fetcher);assert.equal(store.games.g.homeId,45);assert.equal(store.games.g.awayId,49);assert.equal(store.games.g.leagueId,'public-pl');
+ assert.equal(store.tables['football:public-pl:2026'].rows.find(r=>r.teamId===45).played,1);assert.equal(store.tables['football:585:2026'],undefined);
+ assert.match(inputFor(store,store.games.g,now).ratingsSource,/table/);
+});
