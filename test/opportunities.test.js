@@ -20,3 +20,13 @@ test('stale, in-play, price-free and probability-sensitive markets cannot earn g
  for(const change of [p=>p.status.state='live',p=>p.markets[0].selections[0].pricing='derived',p=>{const s=p.markets[0].selections[0];s.bestOdds=1.6;s.edgePercent=4;}]){const p=fixture();change(p);applyEvidence(p,input(true),now);assert.equal(fixtureOpportunity(p),undefined);assert.equal(p.bestValue,undefined);}
  const p=fixture(),i=input(true);i.quoteSourceAt.Book.homeMoneyline=now-3600000;applyEvidence(p,i,now);assert.equal(fixtureOpportunity(p),undefined);
 });
+
+test('OddsPapi keeps per-price change provenance and excludes suspended quotes',async()=>{
+ const {parseOddspapiOdds}=await import('../src/lib/feeds/oddspapi.js');
+ const at=new Date(now).toISOString(),defs={m:{kind:'ml',line:0,outcomes:{h:'home',a:'away'}}};
+ const f={fixtureId:1,sportId:11,tournamentId:1,participant1Id:1,participant2Id:2,startTime:new Date(now+3600000).toISOString(),bookmakerOdds:{book:{markets:{m:{outcomes:{h:{players:{'0':{price:1.8,active:true,bookmakerChangedAt:at}}},a:{players:{'0':{price:2.1,active:true,changedAt:at}}}}}}}}};
+ const parse=()=>parseOddspapiOdds([f],defs,{book:'Book'},()=> 'basketball')[0].odds;
+ assert.equal(parse().Book.__source_homeMoneyline,now);assert.equal(parse().Book.__source_awayMoneyline,now);
+ f.bookmakerOdds.book.suspended=true;assert.deepEqual(parse(),{});
+ f.bookmakerOdds.book.suspended=false;f.bookmakerOdds.book.markets.m.marketActive=false;assert.deepEqual(parse(),{});
+});
