@@ -20,7 +20,8 @@ export function applyEvidence(p,input,now) {
  for(const s of rows){
   const reasons=[];
   const key=s.id.slice(p.fixtureId.length+1), keys=quoteKeys(key);
-  const times=keys.map(k=>input.quoteSourceAt?.[s.bookmaker]?.[k]);
+  // A recent retrieval cannot overrule an explicitly old provider timestamp.
+  const times=keys.map(k=>{const fetched=input.quoteFetchedAt?.[s.bookmaker]?.[k],source=input.quoteSourceAt?.[s.bookmaker]?.[k];return Number.isFinite(source)?Number.isFinite(fetched)?Math.min(source,fetched):source:fetched;});
   if(!evidence.approved || !evidence.approvedMarkets?.includes(s.market))reasons.push('No validated model for this market');
   if(evidence.independent!==true)reasons.push('No independent team-strength evidence');
   if(p.status.state!=='scheduled'||Date.parse(p.kickoffTime)<=now)reasons.push('Pre-match forecast only');

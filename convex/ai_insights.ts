@@ -5,6 +5,7 @@ import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { gunzipSync } from "node:zlib";
 import {explainFacts} from '../src/lib/engine/explanation.js';
+import {predict} from '../src/lib/feeds/build.js';
 
 /** Models never receive browser supplied predictions, credentials or account details. */
 export const explain = action({
@@ -14,7 +15,7 @@ export const explain = action({
     const meta = await ctx.runQuery(makeFunctionReference<"query">("feed:storageMeta"), {});
     if (!meta?.url) throw new Error("Live fixture data is not available yet.");
     const requestedProvider = args.provider ?? "agnes";
-    const cacheKey = `${process.env.ALLOW_GENERATIVE_EXPLANATIONS==='true'?'generated':'facts-v3'}:${args.provider ?? "agnes"}:${args.sport}:${args.fixtureId}:${meta.version}`;
+    const cacheKey = `${process.env.ALLOW_GENERATIVE_EXPLANATIONS==='true'?'generated':'facts-v4'}:${args.provider ?? "agnes"}:${args.sport}:${args.fixtureId}:${meta.version}`;
     const reserved = await ctx.runMutation(makeFunctionReference<"mutation">("ai_usage:reserve"), { userId: String(userId), cacheKey, provider: requestedProvider });
     if (reserved.result) return reserved.result;
     const response = await fetch(meta.url, { signal: AbortSignal.timeout(10_000) });
@@ -26,7 +27,8 @@ export const explain = action({
     // Default to reproducible facts. An LLM instruction alone cannot guarantee
     // factual output, and provider access must never manufacture numeric support.
     if(process.env.ALLOW_GENERATIVE_EXPLANATIONS!== 'true') {
-      const result={text:explainFacts(fixture,meta.generatedAt),provider:'Verified feed explanation',generatedAt:Date.now()};
+      const projection=fixture.fixtureId?predict(args.sport,fixture,{now:Date.now()}):undefined;
+      const result={text:explainFacts(fixture,meta.generatedAt,projection),provider:'Verified feed and model explanation',generatedAt:Date.now()};
       await ctx.runMutation(makeFunctionReference<'mutation'>('ai_usage:save'),{userId:String(userId),cacheKey,result});return result;
     }
     const key = args.provider === "aihubmix" ? process.env.AIHUBMIX_API_KEY : undefined;

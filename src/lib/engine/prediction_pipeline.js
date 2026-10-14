@@ -358,7 +358,9 @@ export function buildBasketballPrediction(input, options = {}) {
   const matchTitle = `${input.homeTeam} vs ${input.awayTeam}`;
 
   // Absences: 60% of a player's net-rating value is lost on offence, 40% on defence.
-  const ratings = { home: { ...input.ratings.home }, away: { ...input.ratings.away } };
+  if(!input.ratings&&!input.fittedProjection)throw new Error('Team ratings or fitted score projection required');
+  const baseline=input.ratings??{home:{pace:league.pace,offRtg:100*(input.fittedProjection?.home??0)/league.pace,defRtg:league.offRtg},away:{pace:league.pace,offRtg:100*(input.fittedProjection?.away??0)/league.pace,defRtg:league.offRtg}};
+  const ratings = { home: { ...baseline.home }, away: { ...baseline.away } };
   for (const a of input.absences ?? []) {
     const r = ratings[a.team];
     r.offRtg -= a.netRtgImpact * 0.6;
@@ -462,6 +464,8 @@ export function buildBasketballPrediction(input, options = {}) {
     ratings,
     leagueProfile: league,
     hcaPoints: input.hcaPoints ?? 2.8,
+    scoreDispersion:sim.dispersion,
+    paceBasis:input.fittedProjection?'League pace prior; inferred score efficiency':'Supplied team pace and efficiency',
     paceMetrics: {
       possessionsPer48: sim.expectedPace,
       homeOffRating: ratings.home.offRtg,

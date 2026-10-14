@@ -70,7 +70,7 @@
 		<div class="flex-1 overflow-y-auto px-5 pb-4">
 			<MarketList groups={p.markets.filter((g) => g.selections.length > 0)} {valueOnly} />
 			<p class="mt-4 text-xs text-haze">
-				Green means estimated favourable value at a current quoted price. Screening grades describe the estimate; a validated recommendation additionally requires evidence approval. Derived prices are theoretical.
+				Green marks a model projection lean or estimated value, as labelled on each choice. Projection grades reflect model likelihood, not a verified win rate. Validated value also requires fresh quoted prices and approved evidence. Fair prices are estimates.
 				Confirm the price at the bookmaker before you bet.
 			</p>
 		</div>

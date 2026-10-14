@@ -31,6 +31,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: (process.env.SITE_URL ?? 'http://localhost:5173').split(',').map((url) => url.trim()),
   database: authComponent.adapter(ctx),
+  session: {expiresIn:60*60*24*365,updateAge:60*60*24},
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,

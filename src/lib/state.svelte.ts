@@ -95,7 +95,7 @@ class AppState {
 
 	/** Engine inputs per sport: the live feed when present, an empty board otherwise. */
 	#inputs(sport: SportKey): any[] {
-		return feed.data ? (feed.data.inputs?.[sport] ?? []) : [];
+		const ids=new Set((feed.data?.projections??[]).map(p=>p.fixtureId));return feed.data?(feed.data.inputs?.[sport]??[]).filter(i=>ids.has(i.fixtureId)):[];
 	}
 
 	#build(sport: SportKey, input: any): Prediction | null {
@@ -144,7 +144,7 @@ class AppState {
 	/** Schedule and results: every game the feed knows about (empty until the provider feed arrives). */
 	games = $derived<FeedGame[]>(
 		feed.data
-			? feed.data.games
+			? feed.data.games.filter(g=>(feed.data?.projections??[]).some(p=>p.fixtureId===g.id))
 			: this.all.map((p) => ({
 					id: p.fixtureId,
 					sport: p.sport as SportKey,
@@ -175,7 +175,7 @@ class AppState {
 		if (!archived) return undefined;
         const opts = {modelWeight:0.6,kellyFraction:0.25,now:archived.publishedAt};
         try {
-            const prediction = withModelOnlyMarkets(archived.sport==='football' ? buildFootballPrediction(archived.input,opts) : archived.sport==='basketball'||archived.sport==='nba' ? buildBasketballPrediction(archived.input,{...opts,sport:archived.sport}) : buildScoreSportPrediction(archived.input,archived.sport,{...opts,sport:archived.sport}));
+            const prediction = withModelOnlyMarkets(archived.sport==='football' ? buildFootballPrediction(archived.input,opts) : archived.sport==='basketball'||archived.sport==='nba' ? buildBasketballPrediction(archived.input,{...opts,sport:archived.sport}) : buildScoreSportPrediction(archived.input,archived.sport,{...opts,sport:archived.sport}),archived.input.quoteObservedAt,archived.input,archived.publishedAt);
             if(archived.frozenGrades) for(const group of prediction.markets) for(const selection of group.selections) {
                 const grade=archived.frozenGrades[selection.id.slice(id.length+1)];if(grade)selection.grade=grade;
             }

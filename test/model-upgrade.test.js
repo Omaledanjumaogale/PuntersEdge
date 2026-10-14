@@ -35,7 +35,7 @@ test('quote ingestion retains source age and removes stale timestamp on untimed 
  assert.equal(Object.values(parsed[0].odds)[0].__source_homeMoneyline,now-3600000);
 });
 test('facts explanation cannot infer fitness or a probability from missing evidence',()=>{
- const text=explainFacts({home:'A',away:'B',league:'L'},'2026-10-14T10:00:00Z');assert.match(text,/unavailable/);assert.match(text,/No approved calibrated model/);assert.doesNotMatch(text,/healthy|full strength/);
+ const text=explainFacts({home:'A',away:'B',league:'L'},'2026-10-14T10:00:00Z');assert.match(text,/unavailable/);assert.match(text,/Market validation is pending/);assert.match(text,/No pre-match projection lean/);assert.doesNotMatch(text,/healthy|full strength|\d+%/);
 });
 test('whole line win/push/loss agree with normal rounding and half lines have no push',()=>{
  const d=normalOutcomes(228,18,228);assert.ok(d.push>0);assert.equal(d.conditional,.5);assert.ok(Math.abs(d.win+d.lose+d.push-1)<1e-12);

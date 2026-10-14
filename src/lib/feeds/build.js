@@ -31,7 +31,7 @@ const DAY = 24 * H;
 /** Books shown first (Nigerian favourites, then the sharp anchor); the rest by name. */
 const BOOK_ORDER = ['SportyBet', '1xBet', '22Bet', 'Pinnacle', 'Bet365', 'Betway', 'Betfair', 'William Hill', 'Unibet', 'Marathonbet'];
 /** Keep feeds small and on-device pricing fast. */
-const MAX_BOOKS = 6;
+const MAX_BOOKS = 12;
 
 /** Strip fetch timestamps; keep prices only, for the most relevant books. */
 function pricesOf(/** @type {StoredGame} */ g) {
@@ -66,6 +66,7 @@ export function inputFor(store, g, now=Date.now()) {
     status: g.status,
     odds,
     quoteObservedAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,price.at])),
+    quoteFetchedAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,Object.fromEntries(Object.entries(price).filter(([key])=>key.startsWith('__observed_')).map(([key,time])=>[key.slice(11),time]))])),
     quoteSourceAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,Object.fromEntries(Object.entries(price).filter(([key])=>key.startsWith('__source_')).map(([key,time])=>[key.slice(9),time]))]))
   };
   /** @type {any} */
@@ -94,9 +95,9 @@ export function inputFor(store, g, now=Date.now()) {
     }
   }
   if (!ratings) ratings = marketRatings(def.family, odds, g.league);
-  if (!ratings) return null;
   const input={ ...base, ratings, ratingsSource: source,analysisEvidence:{approved:false,independent:source!=='market',domainSupported:false,approvedMarkets:[],modelVersion:'heuristic-baseline'} };
-  return fittedInput(input,g,/** @type {any} */(store).modelArtifacts??[],now);
+  const fitted=fittedInput(input,g,/** @type {any} */(store).modelArtifacts??[],now);
+  return fitted.ratings||fitted.fittedProjection?fitted:null;
 }
 
 /**
@@ -123,7 +124,7 @@ export function updateRecord(store, now) {
   const changed = [];
   for (const g of Object.values(store.games)) {
     let snapshot = store.projections[g.uid];
-    if (!snapshot && g.status.state === 'scheduled' && g.kickoff > now && g.kickoff < now + 4 * DAY) {
+    if (!snapshot && g.status.state === 'scheduled' && g.kickoff > now && g.kickoff < now + 7 * DAY) {
       const input = inputFor(store,g,now);
       if(input) try {
         snapshot = snapshotOf(g,input,predict(g.sport,input,{now}),now);
@@ -207,7 +208,7 @@ export function buildFeed(store, now, usage) {
   const inputs = Object.fromEntries(SPORT_KEYS.map((s) => [s, []]));
   const games = [];
   for (const g of Object.values(store.games).sort((a, b) => a.kickoff - b.kickoff)) {
-    const inWindow = g.kickoff > now - 3 * DAY && g.kickoff < now + 4 * DAY;
+    const inWindow = g.kickoff > now - 3 * DAY && g.kickoff < now + 7 * DAY;
     if (!inWindow) continue;
     const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
     const snapshot = store.projections[g.uid];

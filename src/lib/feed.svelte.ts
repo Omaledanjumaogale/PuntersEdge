@@ -107,6 +107,7 @@ class FeedState {
 	#previewTimer:ReturnType<typeof setInterval>|undefined;
 	#generation = 0;
 	#requestId = 0;
+ #accessKey: string|null=null;
 
 
 	/** Hours since the feed was built (Infinity while unavailable). */
@@ -121,22 +122,25 @@ class FeedState {
 		// Never hydrate another user's premium data from a shared browser cache.
 		this.#dispose = $effect.root(() => {
 			$effect(() => {
+    const viewer=auth.viewer;const allowed=!!(viewer?.activeSubscription||viewer?.superAdmin);const nextKey=`${viewer?.id??'guest'}:${allowed}`;const nextClient=allowed?auth.client:null;
+    if(this.#accessKey===nextKey&&this.#client===nextClient)return;
+    this.#accessKey=nextKey;
 				this.#unsubscribe?.();
 				clearInterval(this.#previewTimer);
 				this.#unsubscribe = undefined;
 				this.#generation++;
 				const client = auth.client;
-				this.#client = auth.viewer?.activeSubscription ? client : null;
+				this.#client = nextClient;
 				this.data = null; this.version = null; this.mode = 'unavailable'; this.usage = null;
-				try { localStorage.removeItem(CACHE_KEY); } catch { /* blocked storage */ }
+    try {localStorage.removeItem(CACHE_KEY);if(allowed&&nextClient&&viewer?.id){const cached=JSON.parse(localStorage.getItem(CACHE_KEY+':'+viewer.id)??'null');if(cached?.owner===viewer.id&&cached?.data?.v===1){this.data=cached.data;this.version=cached.version;this.mode='live';}}}catch{/* Optional owner-scoped cache unavailable. */}
 				if (!this.#client) { void this.#loadPreview(); this.#previewTimer=setInterval(()=>void this.#loadPreview(),120000); return; }
 				this.status = 'checking';
 				this.#unsubscribe = client!.onUpdate(api.feed.meta, {}, (meta) => {
 					void this.#accept(meta);
-				}, () => {
-					this.#generation++;
-					this.data = null; this.version = null; this.mode = 'unavailable';
-					this.error = 'Live feeds require an active subscription and a working backend connection.';
+				}, (error) => {
+     const denied=/Sign in|active.*subscription|unauthenticated|unauthorized/i.test(String(error));
+     if(denied){this.#generation++;this.data=null;this.version=null;this.mode='unavailable';}
+					this.error = denied?'Live feed access has expired. Sign in or renew membership.':'Connection interrupted. Your last verified analysis is retained while reconnecting.';
 					this.status = 'error';
 				});
 			});
@@ -158,6 +162,7 @@ class FeedState {
 				if (data?.v !== 1 || !data.inputs || !Array.isArray(data.games)) throw new Error('Unexpected feed format');
 				if (generation !== this.#generation || requestId !== this.#requestId) return;
 				data.usage = meta.usage; this.data = data; this.version = meta.version; this.mode = 'live';
+    try{if(auth.viewer?.id)localStorage.setItem(CACHE_KEY+':'+auth.viewer.id,JSON.stringify({owner:auth.viewer.id,version:meta.version,data}));}catch{/* Quota or storage policy; live data remains available. */}
 			}
 			this.error = null; this.status = 'ready';
 		} catch (err) {
@@ -182,7 +187,7 @@ class FeedState {
 		this.#generation++;
 		clearInterval(this.#previewTimer);
 		this.#unsubscribe?.(); this.#dispose?.(); this.#client = null;
-		this.#unsubscribe = undefined; this.#dispose = undefined; this.#started = false;
+		this.#unsubscribe = undefined; this.#dispose = undefined; this.#accessKey=null;this.#started = false;
 	}
 }
 

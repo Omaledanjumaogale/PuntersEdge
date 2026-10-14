@@ -275,3 +275,10 @@ html body {
 @utility tint-pop {
 	background-color: color-mix(in oklab, var(--color-pop) 16%, var(--color-deep));
 }
+
+/* Mobile app shell: grid/flex children must be allowed to shrink. */
+html,body {max-width:100%;overflow-x:clip;}
+#main {min-width:0;}
+#main > *,[role="dialog"] {min-width:0;max-width:100%;}
+[role="dialog"] p,[role="dialog"] summary {overflow-wrap:anywhere;}
+@media(max-width:639px){[role="dialog"] {max-height:calc(100dvh - env(safe-area-inset-top) - 8px);}input,select,textarea{font-size:16px;}button{touch-action:manipulation;}}

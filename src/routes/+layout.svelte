@@ -43,7 +43,8 @@
 		document.documentElement.dataset.motion = app.settings.motion ? 'on' : 'off';
 	});
 
-	$effect(()=>{if(auth.status!=='loading'&&!auth.viewer?.activeSubscription&&premiumPath(page.url.pathname))void goto('/board?upgrade=1',{replaceState:true});});
+	const entitled = $derived(!!(auth.viewer?.activeSubscription || auth.viewer?.superAdmin));
+	$effect(()=>{if(auth.status!=='loading'&&!entitled&&premiumPath(page.url.pathname))void goto('/board?upgrade=1',{replaceState:true});});
 
 	// Cross-fade between routes where the View Transitions API exists.
 	onNavigate((navigation) => {
@@ -65,7 +66,7 @@
 {#if page.url.pathname === '/'}<EcosystemBanner />{/if}
 <main id="main" class="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 md:pb-12">
 	{#if ['/bet-machine','/board','/value-bets','/football','/nba','/basketball','/hockey','/baseball','/results'].includes(page.url.pathname)}<AccessNotice />{/if}
-	{#if !premiumPath(page.url.pathname)||auth.viewer?.activeSubscription}{@render children()}{:else}<p class="surface p-8 text-haze" role="status">Checking VIP membership…</p>{/if}
+	{#if !premiumPath(page.url.pathname)||entitled}{@render children()}{:else}<p class="surface p-8 text-haze" role="status">Checking VIP membership…</p>{/if}
 </main>
 <BottomNav />
 <SlipSheet />

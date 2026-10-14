@@ -27,6 +27,7 @@ import { notificationCounts } from "../src/lib/notification-events.js";
 import { buildBoardPreview } from "../src/lib/feeds/preview.js";
 import { buildFeed, updateRecord, predict } from "../src/lib/feeds/build.js";
 import { usageSummary } from "../src/lib/feeds/budget.js";
+import {refreshPublicSports} from '../src/lib/feeds/public_sports.js';
 
 /** Hosts this action may call. */
 const ALLOWED = new Set([
@@ -122,6 +123,7 @@ export const tick = internalAction({
       (store as any).modelArtifacts = await ctx.runQuery(makeFunctionReference<'query'>('models:serving'),{});
       const lookups = (await readGz(ctx, state.lookupsId)) ?? {};
       const previousGames=structuredClone(store.games);
+      const publicChanged=await refreshPublicSports(store,now,async(url)=>{if(!['api-web.nhle.com','statsapi.mlb.com','fantasy.premierleague.com'].includes(new URL(url).host))throw new Error('Public source host not allowed');const response=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!response.ok)throw new Error(`Public source unavailable (${response.status})`);return response.json();});
 
       const r = await runTick({
         store,
@@ -146,7 +148,7 @@ export const tick = internalAction({
       const version = createHash("sha1").update(JSON.stringify(content)).digest("hex").slice(0, 16);
 
       // Writes happen only when something changed.
-      const storeId = r.storeChanged || projectionChanges.length || !state.storeId ? await ctx.storage.store(gz(store)) : undefined;
+      const storeId = publicChanged || r.storeChanged || projectionChanges.length || !state.storeId ? await ctx.storage.store(gz(store)) : undefined;
       const lookupsId = r.lookupsChanged ? await ctx.storage.store(gz(lookups)) : undefined;
       let feedArg;
       if (version !== state.feedVersion) {

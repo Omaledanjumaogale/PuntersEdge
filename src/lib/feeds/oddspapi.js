@@ -155,12 +155,14 @@ export function parseOddspapiOdds(body, markets, bookNames, familyOf) {
     /** @type {Record<string, Record<string, number>>} */
     const odds = {};
     for (const [slug, b] of Object.entries(f.bookmakerOdds ?? {})) {
-      if (/** @type {any} */ (b)?.bookmakerIsActive === false || /** @type {any} */(b)?.suspended === true) continue;
+      if (/** @type {any} */ (b)?.bookmakerIsActive === false || /** @type {any} */(b)?.suspended === true){odds[bookNames[slug]??slug]={__inactive:1};continue;}
       /** @type {Array<{ def: MarketDef, prices: Record<string, number>, times:Record<string,number>, main: boolean }>} */
       const found = [];
+      const inactive=new Set();
       for (const [mid, m] of Object.entries(/** @type {any} */ (b)?.markets ?? {})) {
         const def = markets[mid];
-        if (!def || /** @type {any} */(m)?.marketActive===false) continue;
+        if (!def)continue;
+        if(/** @type {any} */(m)?.marketActive===false){inactive.add(def.kind);continue;}
         /** @type {Record<string, number>} */
         const prices = {};
         /** @type {Record<string,number>} */ const times={};
@@ -168,7 +170,8 @@ export function parseOddspapiOdds(body, markets, bookNames, familyOf) {
         for (const [oid, oc] of Object.entries(/** @type {any} */ (m)?.outcomes ?? {})) {
           const role = def.outcomes[oid];
           const p = /** @type {any} */ (oc)?.players?.['0'];
-          if (!role || !p || p.active === false) continue;
+          if(!role||!p)continue;
+          if(p.active===false){inactive.add(def.kind);continue;}
           const price = Number(p.price);
           if (price > 1){prices[role] = price;const at=Date.parse(p.bookmakerChangedAt??p.changedAt);if(Number.isFinite(at))times[role]=at;}
           if (p.mainLine || /** @type {any} */ (oc)?.mainLine) main = true;
@@ -187,7 +190,7 @@ export function parseOddspapiOdds(body, markets, bookNames, familyOf) {
       };
       if (fam === 'football') {
         const x = found.find((m) => m.def.kind === '1x2' && m.prices.home > 1 && m.prices.draw > 1 && m.prices.away > 1);
-        if (!x) continue;
+        if(!x){if(inactive.has('1x2'))odds[bookNames[slug]??slug]={__inactive:1};continue;}
         Object.assign(o, { home: x.prices.home, draw: x.prices.draw, away: x.prices.away });sources(x,{home:'home',draw:'draw',away:'away'});
         const t = pickLine('total', ['over', 'under'], 2.5);
         if (t){Object.assign(o, { over25: t.prices.over, under25: t.prices.under });sources(t,{over25:'over',under25:'under'});}
@@ -195,13 +198,16 @@ export function parseOddspapiOdds(body, markets, bookNames, familyOf) {
         if (bt){Object.assign(o, { bttsYes: bt.prices.yes, bttsNo: bt.prices.no });sources(bt,{bttsYes:'yes',bttsNo:'no'});}
       } else {
         const ml = found.find((m) => m.def.kind === 'ml' && m.prices.home > 1 && m.prices.away > 1);
-        if (!ml) continue;
+        if(!ml){if(inactive.has('ml'))odds[bookNames[slug]??slug]={__inactive:1};continue;}
         Object.assign(o, { homeMoneyline: ml.prices.home, awayMoneyline: ml.prices.away });sources(ml,{homeMoneyline:'home',awayMoneyline:'away'});
         const t = pickLine('total', ['over', 'under'], undefined);
         if (t){Object.assign(o, { totalLine: t.def.line, overOdds: t.prices.over, underOdds: t.prices.under });sources(t,{overOdds:'over',underOdds:'under'});lineSource(t,'totalLine',['over','under']);}
         const s = pickLine('spread', ['home', 'away'], undefined);
         if (s){Object.assign(o, { spreadLine: s.def.line, homeSpreadOdds: s.prices.home, awaySpreadOdds: s.prices.away });sources(s,{homeSpreadOdds:'home',awaySpreadOdds:'away'});lineSource(s,'spreadLine',['home','away']);}
       }
+      if(inactive.has('total')&&!found.some(x=>x.def.kind==='total'&&x.prices.over>1&&x.prices.under>1))Object.assign(o,fam==='football'?{over25:0,under25:0}:{totalLine:0,overOdds:0,underOdds:0});
+      if(inactive.has('spread')&&!found.some(x=>x.def.kind==='spread'&&x.prices.home>1&&x.prices.away>1))Object.assign(o,{spreadLine:0,homeSpreadOdds:0,awaySpreadOdds:0});
+      if(inactive.has('btts')&&!found.some(x=>x.def.kind==='btts'&&x.prices.yes>1&&x.prices.no>1))Object.assign(o,{bttsYes:0,bttsNo:0});
       odds[bookNames[slug] ?? slug] = o;
     }
     const status = Number(f.statusId);

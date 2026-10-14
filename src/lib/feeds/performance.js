@@ -23,7 +23,7 @@ export function settleSnapshot(snapshot, game, now) {
  snapshot.score = {home:game.status.home,away:game.status.away,...(game.status.regHome !== undefined ? {regHome:game.status.regHome} : {}),...(game.status.regAway !== undefined ? {regAway:game.status.regAway} : {})};
  snapshot.periodScores=structuredClone(game.status.periodScores??{});
  for(const s of snapshot.selections) {
-  s.result = (s.key.startsWith('period:')?settlePeriod(s.key,snapshot.periodScores):settle(snapshot.family,s.key,snapshot.score)) ?? 'ungraded';
+  s.result = (s.key.startsWith('forecast:full:')?settlePeriod(s.key.replace('forecast:','period:'),{full:snapshot.family==='football'?{home:snapshot.score.regHome??snapshot.score.home,away:snapshot.score.regAway??snapshot.score.away}:snapshot.score}):s.key.startsWith('period:')?settlePeriod(s.key,snapshot.periodScores):settle(snapshot.family,s.key,snapshot.score)) ?? 'ungraded';
   s.profit = s.result === 'ungraded' ? null : profitFor(s.result,s.odds);
  }
 }

@@ -1,19 +1,18 @@
 {
 	"id": "/?source=pwa",
-	"name": "PuntersEdge — Sports Value Bets",
+	"name": "PuntersEdge Sports Projections",
 	"short_name": "PuntersEdge",
 	"description": "Live fixtures, fair prices, value bets and stake sizes for football, NBA, basketball, ice hockey and baseball, checked against SportyBet, 1xBet, 22Bet and more.",
 	"lang": "en-NG",
 	"dir": "ltr",
-	"start_url": "/?source=pwa",
+	"start_url": "/board?source=pwa",
 	"scope": "/",
 	"display": "standalone",
 	"display_override": [
-		"window-controls-overlay",
 		"standalone",
 		"minimal-ui"
 	],
-	"orientation": "any",
+	"orientation": "portrait-primary",
 	"background_color": "#0b0f26",
 	"theme_color": "#7c4dff",
 	"categories": [

@@ -24,7 +24,7 @@ class AuthState {
   #started = false;
   #unsubscribe: (() => void) | null = null;
   #restoreFlight: Promise<void> | null = null;
-  #onFocus = () => { void this.#restore(); };
+  #onFocus = () => { if(this.status!=='signedIn')void this.#restore(); };
   get signedIn() { return this.status === 'signedIn'; }
   get displayName() { return this.viewer?.name || this.viewer?.email?.split('@')[0] || 'Player'; }
   get initial() { return this.displayName.slice(0,1).toUpperCase(); }
@@ -50,7 +50,7 @@ class AuthState {
       const session = await authClient.getSession();
       if (!session.data?.session) { this.#clear(); return; }
       await this.#connect();
-    } catch { this.#clear(); }
+    } catch { if(this.status!=='signedIn')this.status='signedOut'; }
   }
   async #connect() {
     if (!this.#client) this.#client = new ConvexClient(convexUrl!);
@@ -83,7 +83,7 @@ class AuthState {
     if (result.error) throw new Error(result.error.message || 'Email or password is incorrect.');
     this.status = 'loading'; await this.#connect();
   }
-  async logOut() { const { pwa } = await import('#lib/pwa.svelte.ts'); if (pwa.pushEnabled) await pwa.disableNotifications(); await authClient.signOut(); this.#clear(); }
+  async logOut() { const { pwa } = await import('#lib/pwa.svelte.ts'); if (pwa.pushEnabled) await pwa.disableNotifications(); await authClient.signOut();try{if(this.viewer?.id)localStorage.removeItem('pe:feed:v1:'+this.viewer.id);}catch{}this.#clear(); }
   async updateName(name: string) {
     const clean = name.trim().slice(0,40);
     const result = await authClient.updateUser({ name: clean });

@@ -68,9 +68,9 @@
 		</section>
 	{:else}
 		<section class="surface mt-6 p-5">
-			<h2 class="text-xl font-bold text-chalk">{opportunity?'Estimated value · validation pending':'Market review'}</h2>
+			<h2 class="text-xl font-bold text-chalk">{opportunity?(opportunity.opportunity?.kind==='projection'?'Projection choices':'Estimated value · validation pending'):'Market review'}</h2>
 			<p class="mt-1 text-haze">
-				{#if opportunity}The calculation identifies a favourable estimate, but its market evidence is not approved. Stake remains zero. Review the choice note below.{:else if p.bookmakers.length === 0}We have the fixture and the model's numbers, but no bookmaker has posted prices we can read. Fair prices are below; check back closer to kickoff.{:else}No quoted selection meets all final-verdict rules. Review the market probabilities and value grades below.{/if}
+				{#if opportunity}Compare the graded model choices below. Projection grades describe estimated likelihood; quoted value needs separate market validation. No automatic stake is recommended.{:else if p.bookmakers.length === 0}We have the fixture and the model's numbers, but no bookmaker has posted prices we can read. Fair prices are below; check back closer to kickoff.{:else}No quoted selection meets all final-verdict rules. Review the market probabilities and value grades below.{/if}
 			</p>
    {#if opportunity}<OpportunityIndicator selection={opportunity}/>{/if}
 		</section>
@@ -79,7 +79,7 @@
 	{#if p.family === 'basketball'}
 		<section class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 			<div class="surface p-4"><p class="text-sm text-haze">Projected score</p><p class="font-display text-3xl font-semibold">{Math.round(p.projectedScore.home)}–{Math.round(p.projectedScore.away)}</p></div>
-			<div class="surface p-4"><p class="text-sm text-haze">Possessions</p><p class="font-display text-3xl font-semibold">{p.paceMetrics.possessionsPer48}</p></div>
+			<div class="surface p-4"><p class="text-sm text-haze">Pace estimate</p><p class="font-display text-3xl font-semibold">{p.paceMetrics.possessionsPer48}</p></div>
 			<div class="surface p-4"><p class="text-sm text-haze">Total vs line</p><p class="font-display text-3xl font-semibold">{p.projectedScore.total} <span class="text-lg text-book">{p.marketLines.total}</span></p></div>
 			<div class="surface p-4"><p class="text-sm text-haze">{p.homeTeam.split(' ').at(-1)} win</p><p class="font-display text-3xl font-semibold text-model">{pct(p.probabilities.homeWin)}</p></div>
 		</section>

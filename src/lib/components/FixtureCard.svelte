@@ -84,7 +84,7 @@
 
 	{#if !pick}
 		<div class="grid grid-cols-[1fr_auto] items-center gap-2 text-sm">
-			<p class="text-haze">{p.status.state === 'live' ? '🔴 In play. Pre-match analysis is on the match page.' : opportunity ? 'Favourable estimate; validation pending, no stake recommendation.' : p.bookmakers.length === 0 ? '⏳ Waiting for bookmaker prices.' : 'No validated recommendation. Review the choice notes.'}</p>
+			<p class="text-haze">{p.status.state === 'live' ? '🔴 In play. Pre-match analysis is on the match page.' : opportunity ? 'Model lean available. Open markets to compare projections and prices.' : p.bookmakers.length === 0 ? '⏳ Waiting for bookmaker prices.' : 'No validated recommendation. Review the choice notes.'}</p>
 			{#if marketCount > 0}
 				<button onclick={() => (app.pickerFixture = p.fixtureId)} class="rounded-xl px-3 py-2 font-semibold text-chalk ring-1 ring-line hover:ring-pop" aria-label="All markets for {p.matchTitle}">🎯 {marketCount} markets</button>
 			{/if}

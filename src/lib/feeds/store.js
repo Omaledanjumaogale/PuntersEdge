@@ -92,12 +92,14 @@ export function note(/** @type {Store} */ store, /** @type {string} */ source, /
 function mergeOdds(/** @type {StoredGame} */ g, /** @type {Record<string, Record<string, number>>} */ odds, /** @type {number} */ now) {
   for (const [book, o] of Object.entries(odds ?? {})) {
     if (!o || !Object.keys(o).length) continue;
+    if(o.__inactive===1){delete g.odds[book];continue;}
     const previous={...(g.odds[book]??{})};
     // Replace complete market groups atomically: an old price must never be
     // attached to a newly supplied line or one side of a refreshed market.
     const groups=[['home','draw','away'],['homeMoneyline','awayMoneyline'],['over25','under25'],['bttsYes','bttsNo'],['totalLine','overOdds','underOdds'],['spreadLine','homeSpreadOdds','awaySpreadOdds']];
-    for(const group of groups)if(group.some(k=>o[k]!==undefined))for(const k of group){delete previous[k];delete previous[`__source_${k}`];}
-    g.odds[book] = { ...previous,...o, at: now };
+    for(const group of groups)if(group.some(k=>o[k]!==undefined))for(const k of group){delete previous[k];delete previous[`__source_${k}`];delete previous[`__observed_${k}`];}
+    const observed=Object.fromEntries(Object.keys(o).filter(k=>!k.startsWith('__')&&k!=='at').map(k=>['__observed_'+k,now]));
+    g.odds[book] = { ...previous,...o,...observed, at: now };
   }
 }
 

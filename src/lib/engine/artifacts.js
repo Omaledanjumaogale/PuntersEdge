@@ -1,3 +1,4 @@
+import {LEAGUE_PROFILES} from './basketball_model.js';
 /** Versioned, administrator-reviewed artifacts. Import never implies approval. */
 /** @param {any} a */
 export function validateArtifact(a) {
@@ -40,6 +41,7 @@ export function fittedInput(input,game,records,now) {
   home=a.intercept+a.homeAdvantage+h.attack+w.defence;away=a.intercept+w.attack+h.defence;
   if(home<=0||away<=0)return input;
   input.fittedProjection={home,away,marginSd:a.marginSd,totalSd:a.totalSd};
+  if(!input.ratings){const league=a.sport==='nba'?LEAGUE_PROFILES.NBA:LEAGUE_PROFILES.EuroLeague;input.ratings={home:{pace:league.pace,offRtg:100*home/league.pace,defRtg:league.offRtg},away:{pace:league.pace,offRtg:100*away/league.pace,defRtg:league.offRtg}};input.paceBasis='League prior; scoring rates inferred from fitted score means';}
  }
  input.ratingsSource=`Fitted ${a.version} · ${a.trainingCount} completed games`;
  input.modelArtifact=a;
