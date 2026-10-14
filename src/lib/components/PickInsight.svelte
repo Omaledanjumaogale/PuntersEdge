@@ -145,8 +145,8 @@
 				{gradeMeaning[v.grade]}{#if positive}, stake <span class="font-semibold text-chalk">{ngn(app.stakeFor(v.kellyStakePercent))}</span> ({v.kellyStakePercent}%){/if}
 			</span>
 			<span class="flex items-center gap-1.5 text-haze" title="How strongly the four checks agree">
-				Confidence
-				<span class="text-xs font-semibold text-pop">{pct(confidence,1)} confidence</span>
+        Analytical agreement
+        <span class="text-xs font-semibold text-pop">{pct(confidence,1)} · uncalibrated</span>
 				<span class="flex gap-0.5" aria-label="Confidence {pct(confidence,1)} · {dots} of 5">
 					{#each Array(5) as _, i}
 						<span class="h-2 w-2 rounded-full {i < dots ? 'bg-pop' : 'bg-line'}"></span>

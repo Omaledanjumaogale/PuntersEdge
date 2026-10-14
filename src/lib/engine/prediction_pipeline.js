@@ -17,6 +17,7 @@ import { calculateExpectedValue, calculateKellyStake, gradeSelection, analyzeOdd
 import { projectBasketballGame, LEAGUE_PROFILES, probabilityOver, probabilityHomeCovers } from './basketball_model.js';
 import { round, fairOdds } from './math.js';
 import { buildFootballMarkets, buildBasketballMarkets } from './market_book.js';
+import {addAsianQuarterMarkets} from './asian_lines.js';
 
 /**
  * League profile for any basketball competition: NBA rules (48 min, fast) or
@@ -177,6 +178,7 @@ function kickoffFrom(now, offsetHours) {
  * @property {number} [kickoffOffsetHours]
  * @property {string} [kickoffTime] ISO time (overrides offset)
  * @property {{ lambdaHome: number, muAway: number, rho?: number }} ratings
+ * @property {any} [modelArtifact]
  * @property {{ home?: import('./lineup_impact.js').Absence[], away?: import('./lineup_impact.js').Absence[] }} [absences]
  * @property {Record<string, Record<string, number>>} odds keys: home, draw, away, over25, under25, bttsYes, bttsNo
  * @property {{ home: number, away: number }} [openingOdds]
@@ -191,7 +193,7 @@ function kickoffFrom(now, offsetHours) {
  * @param {{ modelWeight?: number, kellyFraction?: number, now?: Date | number }} [options]
  */
 export function buildFootballPrediction(input, options = {}) {
-  const w = options.modelWeight ?? DEFAULT_MODEL_WEIGHT;
+  const w = input.modelArtifact?.modelWeight ?? options.modelWeight ?? DEFAULT_MODEL_WEIGHT;
   const rho = input.ratings.rho ?? -0.06;
   const matchTitle = `${input.homeTeam} vs ${input.awayTeam}`;
 
@@ -228,7 +230,7 @@ export function buildFootballPrediction(input, options = {}) {
   );
 
   const ctx = { fixtureId: input.fixtureId, sport: /** @type {const} */ ('football'), matchTitle, league: input.league };
-  const valueBets = scanMarkets(
+  let valueBets = scanMarkets(
     ctx,
     [
       { market: 'Match Result (1X2)', selection: `${input.homeTeam} Win`, key: 'home', prob: probabilities.homeWin, marketProb: marketProbs.homeWin },
@@ -252,6 +254,7 @@ export function buildFootballPrediction(input, options = {}) {
 
   const top = mp.topPredictedScores[0];
   const markets = buildFootballMarkets(input, mp, model.rho, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 });
+  addAsianQuarterMarkets({...input,fullScoreMatrix:model.matrix},{fixtureId:input.fixtureId,family:'football',homeTeam:input.homeTeam,awayTeam:input.awayTeam,matchTitle,league:input.league,markets});
   return {
     sport: /** @type {const} */ ('football'),
     family: /** @type {const} */ ('football'),
@@ -311,7 +314,7 @@ export function buildFootballPrediction(input, options = {}) {
  * @param {string} away
  */
 function describeAbsences(absences, delta, home, away) {
-  if (absences.length === 0) return 'No significant absences. Both sides at full strength.';
+  if (absences.length === 0) return 'No verified absence or lineup information supplied; availability is unknown.';
   const parts = [];
   if (delta.homeAttackChangePct || delta.homeDefenseChangePct) {
     parts.push(`${home} attack ${delta.homeAttackChangePct.toFixed(1)}%, defence weakened ${delta.homeDefenseChangePct.toFixed(1)}%`);
@@ -339,7 +342,9 @@ function describeAbsences(absences, delta, home, away) {
  * @property {{ home: number, away: number }} [openingOdds]
  * @property {{ home?: number }} [publicPct]
  * @property {GameStatus} [status]
+ * @property {any} [modelArtifact]
  * @property {string} [ratingsSource]
+ * @property {{home:number,away:number,marginSd:number,totalSd:number}} [fittedProjection]
  */
 
 /**
@@ -348,7 +353,7 @@ function describeAbsences(absences, delta, home, away) {
  * @param {{ modelWeight?: number, kellyFraction?: number, now?: Date | number, sport?: 'basketball' | 'nba' }} [options]
  */
 export function buildBasketballPrediction(input, options = {}) {
-  const w = options.modelWeight ?? DEFAULT_MODEL_WEIGHT;
+  const w = input.modelArtifact?.modelWeight ?? options.modelWeight ?? DEFAULT_MODEL_WEIGHT;
   const league = leagueProfile(input.league);
   const matchTitle = `${input.homeTeam} vs ${input.awayTeam}`;
 
@@ -364,14 +369,15 @@ export function buildBasketballPrediction(input, options = {}) {
   const half = (/** @type {number} */ x) => Math.round(x * 2) / 2;
   const avgLine = (/** @type {'totalLine' | 'spreadLine'} */ k) => {
     const xs = books.map((o) => o[k]).filter((x) => typeof x === 'number' && Number.isFinite(x));
-    return xs.length ? xs.reduce((a, x) => a + x, 0) / xs.length : undefined;
+    return xs.length ? half(xs.reduce((a, x) => a + x, 0) / xs.length) : undefined;
   };
-  const pre = projectBasketballGame(ratings.home, ratings.away, league, { hcaPoints: input.hcaPoints }).projection;
+  const pre = projectBasketballGame(ratings.home, ratings.away, league, { hcaPoints: input.hcaPoints, fittedProjection: input.fittedProjection }).projection;
   const consensusTotal = avgLine('totalLine') ?? half(pre.total);
   const consensusSpread = avgLine('spreadLine') ?? half(-pre.margin);
 
   const sim = projectBasketballGame(ratings.home, ratings.away, league, {
     hcaPoints: input.hcaPoints,
+    fittedProjection: input.fittedProjection,
     totalLines: [consensusTotal],
     spreadLines: [consensusSpread]
   });
@@ -418,7 +424,7 @@ export function buildBasketballPrediction(input, options = {}) {
 
   const fmtLine = (/** @type {number} */ l) => (l > 0 ? `+${l}` : `${l}`);
   const ctx = { fixtureId: input.fixtureId, sport: /** @type {any} */ (options.sport ?? 'basketball'), matchTitle, league: input.league };
-  const valueBets = scanMarkets(
+  let valueBets = scanMarkets(
     ctx,
     [
       { market: 'Moneyline', selection: `${input.homeTeam} ML`, key: 'homeMl', prob: probabilities.homeWin, marketProb: marketProbs.homeWin },
@@ -439,6 +445,8 @@ export function buildBasketballPrediction(input, options = {}) {
   const absences = (input.absences ?? []).map((a) => ({ ...a, teamName: a.team === 'home' ? input.homeTeam : input.awayTeam }));
 
   const markets = buildBasketballMarkets({ ...input, sport: options.sport }, proj, { modelWeight: w, kellyFraction: options.kellyFraction ?? 0.25 });
+  // Canonical exact-line selections; never pair an averaged line with another book's odds.
+  valueBets = rankSelections(markets.flatMap(g=>g.selections).filter(s=>s.pricing==='quoted'));
   return {
     sport: /** @type {'basketball' | 'nba'} */ (options.sport ?? 'basketball'),
     family: /** @type {const} */ ('basketball'),
@@ -484,7 +492,7 @@ export function buildBasketballPrediction(input, options = {}) {
     absences,
     lineupAlert:
       absences.length === 0
-        ? 'Both rotations healthy. No rating adjustments applied.'
+        ? 'No verified rotation or injury information supplied; availability is unknown.'
         : `Out: ${absences.map((a) => `${a.name} (${a.teamName}, −${a.netRtgImpact} net rtg)`).join(', ')}.`
   };
 }

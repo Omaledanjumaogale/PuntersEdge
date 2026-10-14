@@ -1,5 +1,7 @@
 # PuntersEdge
 
+Model upgrade: [evidence-gated integration](docs/MODEL-UPGRADE.md) and [real-data results](docs/TRAINING-RESULTS.md). Fitted candidates remain in shadow evaluation; no bookmaker advantage or guaranteed strike-rate improvement is claimed.
+
 Live fixtures, fair prices, value bets and stake sizes for **football, NBA, basketball, ice hockey and baseball** — an installable, offline-capable PWA that prices every game on-device and checks the result against SportyBet, 1xBet, 22Bet and more.
 
 ![PuntersEdge on mobile](static/screenshots/board-mobile.png)
@@ -129,3 +131,5 @@ The advanced bet machine lives at `/bet-machine`. Premium file downloads and sav
 
 
 Free visitors see the landing page and a limited board of real fixtures. Fixture clicks display a closable VIP invitation; full analysis and all analytical tools require Exclusive VIP (₦10,000/month), with super-admin-only console access. The bet machine chooses its own ticket size within the requested combined-odds range and shows every qualifying option. Notifications are opt-in per device, with category preferences saved in Settings. See the integration guide for preview sanitization, route enforcement, notification delivery and device-testing limitations.
+
+See [multi-market and period backtests](docs/MARKET-BACKTESTS.md) for totals, team totals and handicap evaluations.

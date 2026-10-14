@@ -6,7 +6,7 @@
 
 	let { pick, showMatch = false }: { pick: ValueBet; showMatch?: boolean } = $props();
 	const selected = $derived(app.inSlip(pick.id));
-	const positive = $derived(pick.edgePercent > 0 && pick.pricing === 'quoted');
+	const positive = $derived((pick as any).eligible===true && pick.grade!=='PASS' && pick.edgePercent > 0 && pick.pricing === 'quoted');
 </script>
 
 <div class="ticket flex min-w-0 items-stretch">

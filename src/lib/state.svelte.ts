@@ -12,12 +12,13 @@ import { buildScoreSportPrediction } from '#lib/engine/score_sports.js';
 import { evaluateAccumulator } from '#lib/engine/bookmaker_engine.js';
 import { feed, type FeedGame } from '#lib/feed.svelte.ts';
 import { withModelOnlyMarkets } from '#lib/engine/model-only.js';
+import {applyEvidence} from '#lib/engine/evidence.js';
 import { SPORT_ORDER, type SportKey } from '#lib/sports.ts';
 
 export type FootballPrediction = ReturnType<typeof buildFootballPrediction>;
 export type BasketballPrediction = ReturnType<typeof buildBasketballPrediction>;
 export type ScorePrediction = ReturnType<typeof buildScoreSportPrediction>;
-export type Prediction = FootballPrediction | BasketballPrediction | ScorePrediction;
+export type Prediction = (FootballPrediction | BasketballPrediction | ScorePrediction) & {analysisEvidence?:{approved:boolean;modelVersion:string};confidenceStatus?:string};
 export type { ValueBet, SportKey };
 
 export interface Settings {
@@ -100,9 +101,9 @@ class AppState {
 	#build(sport: SportKey, input: any): Prediction | null {
 		const opts = { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
 		try {
-			if (sport === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt);
-			if (sport === 'basketball' || sport === 'nba') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport }),input.quoteObservedAt);
-			return withModelOnlyMarkets(buildScoreSportPrediction(input, sport, { ...opts, sport }),input.quoteObservedAt);
+      if (sport === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt,input,this.now);
+      if (sport === 'basketball' || sport === 'nba') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport }),input.quoteObservedAt,input,this.now);
+      return withModelOnlyMarkets(buildScoreSportPrediction(input, sport, { ...opts, sport }),input.quoteObservedAt,input,this.now);
 		} catch (err) {
 			// One malformed game must never take the board down.
 			console.warn(`Skipped ${input?.fixtureId}:`, err);
@@ -180,7 +181,9 @@ class AppState {
             }
             if(archived.frozenVerdictKey!==undefined)prediction.bestValue=archived.frozenVerdictKey===null?undefined:prediction.markets.flatMap((g:any)=>g.selections).find((s:any)=>s.id===`${id}:${archived.frozenVerdictKey}`);
             else if(prediction.bestValue&&archived.frozenGrades)prediction.bestValue.grade=archived.frozenGrades[prediction.bestValue.id.slice(id.length+1)]??prediction.bestValue.grade;
-            return prediction;
+            // Historical grades are evidence of an old publication, never an
+            // executable current stake. Reapply current freshness/provenance gates.
+            return applyEvidence(prediction,archived.input,this.now);
         } catch {return undefined;}
 	}
 	byId(id: string): Prediction | undefined {

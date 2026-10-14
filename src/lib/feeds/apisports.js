@@ -8,10 +8,31 @@
  */
 
 import { SPORTS, competitionFor, API_SPORTS_BOOKS, displayBook } from './catalog.js';
+/** Explicit observed period scores. Missing quarters/innings never become zero.
+ * @param {string} sport @param {any} row */
+export function periodScores(sport,row) {
+ /** @type {Record<string,{home:number,away:number}>} */const out={};
+ const put=(/** @type {string} */scope,/** @type {unknown} */h,/** @type {unknown} */a)=>{if(typeof h==='number'&&typeof a==='number'&&Number.isFinite(h)&&Number.isFinite(a)&&h>=0&&a>=0)out[scope]={home:h,away:a};};
+ const sum=(/** @type {unknown[]} */xs)=>xs.length&&xs.every(x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x)))?xs.reduce((s,x)=>Number(s)+Number(x),0):undefined;
+ if(sport==='football')put('first_half',row.score?.halftime?.home,row.score?.halftime?.away);
+ if(sport==='nba'){
+  const h=row.scores?.home?.linescore??[],a=row.scores?.visitors?.linescore??[];
+  if(h.length>=1&&a.length>=1)put('first_quarter',sum(h.slice(0,1)),sum(a.slice(0,1)));
+  if(h.length>=2&&a.length>=2)put('first_half',sum(h.slice(0,2)),sum(a.slice(0,2)));
+ }
+ if(sport==='basketball'){const h=row.scores?.home,a=row.scores?.away;put('first_quarter',h?.quarter_1,a?.quarter_1);put('first_half',sum([h?.quarter_1,h?.quarter_2]),sum([a?.quarter_1,a?.quarter_2]));}
+ if(sport==='hockey'){
+  const pairs=['first','second','third'].map(k=>/^(\d+)\s*-\s*(\d+)$/.exec(String(row.periods?.[k]??'')));
+  if(pairs[0])put('first_period',Number(pairs[0][1]),Number(pairs[0][2]));
+  if(pairs.every(Boolean))put('regulation',pairs.reduce((s,p)=>s+Number(p?.[1]),0),pairs.reduce((s,p)=>s+Number(p?.[2]),0));
+ }
+ if(sport==='baseball')for(const [scope,n]of /** @type {Array<[string,number]>} */([['first_inning',1],['first_five',5]])){const keys=Array.from({length:n},(_,i)=>String(i+1));put(scope,sum(keys.map(k=>row.scores?.home?.innings?.[k])),sum(keys.map(k=>row.scores?.away?.innings?.[k])));}
+ return out;
+}
 
 /**
  * @typedef {import('./catalog.js').SportKey} SportKey
- * @typedef {{ state: 'scheduled' | 'live' | 'finished' | 'postponed', home?: number, away?: number, regHome?: number, regAway?: number, detail?: string }} GameStatus
+ * @typedef {{ state: 'scheduled' | 'live' | 'finished' | 'postponed', home?: number, away?: number, regHome?: number, regAway?: number, detail?: string, periodScores?:Record<string,{home:number,away:number}> }} GameStatus
  * @typedef {Object} NGame normalised game
  * @property {SportKey} sport
  * @property {string} id provider id
@@ -95,6 +116,7 @@ export function parseGames(sport, body) {
             away: num(r.goals?.away),
             regHome: num(r.score?.fulltime?.home),
             regAway: num(r.score?.fulltime?.away),
+            periodScores: periodScores(sport,r),
             detail: state === 'live' ? `${r.fixture.status.elapsed ?? ''}'`.trim() : short
           }
         });
@@ -119,6 +141,7 @@ export function parseGames(sport, body) {
             state,
             home: num(r.scores?.home?.points),
             away: num(r.scores?.visitors?.points),
+            periodScores: periodScores(sport,r),
             detail: state === 'live' ? `Q${r.periods?.current ?? ''} ${r.status?.clock ?? ''}`.trim() : r.status?.long
           }
         });
@@ -129,7 +152,7 @@ export function parseGames(sport, body) {
         const state = stateFromShort(short);
         const total = (/** @type {any} */ side) => (typeof side === 'object' && side !== null ? num(side.total) : num(side));
         /** @type {GameStatus} */
-        const status = { state, home: total(r.scores?.home), away: total(r.scores?.away), detail: short };
+        const status = { state, home: total(r.scores?.home), away: total(r.scores?.away), detail: short,periodScores:periodScores(sport,r) };
         if (sport === 'hockey' && r.periods) {
           // Regulation = three periods; "1-0" strings per period.
           let h = 0, a = 0, ok = true;
@@ -305,6 +328,8 @@ export function parseOdds(sport, body) {
         }
         if (best) Object.assign(o, { spreadLine: best.L, homeSpreadOdds: best.home, awaySpreadOdds: best.away });
       }
+      const sourceAt=Date.parse(r.update??'');
+      if(Number.isFinite(sourceAt))for(const k of Object.keys(o))o[`__source_${k}`]=sourceAt;
       (out[gameId] ??= {})[displayBook(b.name)] = o;
     }
   }

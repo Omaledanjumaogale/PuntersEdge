@@ -214,7 +214,10 @@ test('runner: a simulated month never exceeds any quota, and every day gets fres
   assert.ok(world.calls['the-odds-api'] > 400, `The Odds API used ${world.calls['the-odds-api']}`);
   assert.ok(world.calls.oddspapi > 180, `OddsPapi used ${world.calls.oddspapi}`);
   // The pick ledger settled games along the way.
-  assert.ok(store.record.settled.length > 0);
+  // Unvalidated production inputs still settle their forecast archive, but may
+  // not manufacture an official betting verdict from synthetic provider prices.
+  assert.ok(Object.values(store.projections).some(p=>p.state==='finished'&&p.selections.some(s=>s.result)));
+  assert.equal(store.record.settled.length,0);
   for (const p of store.record.settled) assert.ok(['won', 'lost', 'push', 'half-won', 'half-lost'].includes(/** @type {string} */ (p.result)));
 });
 

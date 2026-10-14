@@ -20,6 +20,9 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+training/private/
+training/**/__pycache__/
+training/**/*.pyc
 
 # Logs and cache
 npm-debug.log*

@@ -119,6 +119,7 @@ export const tick = internalAction({
     let ledgers: unknown = undefined;
     try {
       const store = reviveStore(await readGz(ctx, state.storeId));
+      (store as any).modelArtifacts = await ctx.runQuery(makeFunctionReference<'query'>('models:serving'),{});
       const lookups = (await readGz(ctx, state.lookupsId)) ?? {};
       const previousGames=structuredClone(store.games);
 
@@ -159,7 +160,10 @@ export const tick = internalAction({
       const preview=previewVersion!==state.previewVersion?{storageId:await ctx.storage.store(gz(previewFeed)),version:previewVersion}:undefined;
       await ctx.runMutation(internal.feed.commit, { now, ledgers: r.ledgers, lastRun: r.lastRun, log: r.log, storeId, lookupsId, preview, feed: feedArg, usage, coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter((g:any)=>!g.priced).length,pending:Object.values(store.record.pending).length,modelVersion:MODEL_VERSION} });
       // Archive only snapshots that have now been committed to the subscriber feed.
-      for(let offset=0;offset<projectionChanges.length;offset+=10) await ctx.scheduler.runAfter(0,makeFunctionReference<'action'>('performanceArchive:storeBatch'),{snapshots:projectionChanges.slice(offset,offset+10).map((p:any)=>JSON.stringify(p))});
+      for(let offset=0;offset<projectionChanges.length;offset+=10) {
+        const storageIds=[];for(const p of projectionChanges.slice(offset,offset+10))storageIds.push(await ctx.storage.store(gz(p)));
+        await ctx.scheduler.runAfter(0,makeFunctionReference<'action'>('performanceArchive:storeBatch'),{storageIds});
+      }
       const events=notificationCounts(previousGames,store.games,now);
       for(const [event,count] of Object.entries(events))if(count>0)await ctx.scheduler.runAfter(0,makeFunctionReference<'action'>('notifications:deliver'),{event,count,batchId:`${now}:${event}`});
       return { ran: r.ran, skipped: r.skipped.length, log: r.log, feedUpdated: Boolean(feedArg) };

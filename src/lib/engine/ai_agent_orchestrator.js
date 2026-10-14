@@ -49,7 +49,7 @@ export class PuntersEdgeAIAgentHub {
       role: 'Price discovery & line movement',
       stance: p.movement?.smartMoneyIndication ? 'bullish' : 'neutral',
       confidence: p.movement?.smartMoneyIndication ? 0.7 : 0.5,
-      headline: p.movement?.smartMoneyIndication ? 'Informed money is moving this market' : 'Market is quiet and efficiently priced',
+      headline: p.movement?.smartMoneyIndication ? 'Observed price movement; its cause is unverified' : 'No verified price-movement signal supplied',
       findings
     };
   }

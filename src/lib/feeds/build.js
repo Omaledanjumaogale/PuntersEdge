@@ -17,6 +17,7 @@ import { footballRatings, basketballRatings, scoreSportRatings, marketRatings } 
 import { buildFootballPrediction, buildBasketballPrediction } from '../engine/prediction_pipeline.js';
 import { buildScoreSportPrediction } from '../engine/score_sports.js';
 import { snapshotOf, settleSnapshot, REVIEW_MS } from './performance.js';
+import { fittedInput } from '../engine/artifacts.js';
 
 const H = 3600_000;
 const DAY = 24 * H;
@@ -41,8 +42,7 @@ function pricesOf(/** @type {StoredGame} */ g) {
   /** @type {Record<string, Record<string, number>>} */
   const out = {};
   for (const [book, o] of Object.entries(g.odds).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0])).slice(0, MAX_BOOKS)) {
-    const { at, ...rest } = o;
-    out[book] = rest;
+    out[book] = Object.fromEntries(Object.entries(o).filter(([key])=>key!=='at'&&!key.startsWith('__')));
   }
   return out;
 }
@@ -53,7 +53,7 @@ function pricesOf(/** @type {StoredGame} */ g) {
  * @param {Store} store
  * @param {StoredGame} g
  */
-export function inputFor(store, g) {
+export function inputFor(store, g, now=Date.now()) {
   const def = SPORTS[g.sport];
   const odds = pricesOf(g);
   const table = g.leagueId !== undefined ? store.tables[`${g.sport}:${g.leagueId}:${g.season}`]?.rows : undefined;
@@ -65,7 +65,8 @@ export function inputFor(store, g) {
     kickoffTime: new Date(g.kickoff).toISOString(),
     status: g.status,
     odds,
-    quoteObservedAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,price.at]))
+    quoteObservedAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,price.at])),
+    quoteSourceAt:Object.fromEntries(Object.entries(g.odds).map(([book,price])=>[book,Object.fromEntries(Object.entries(price).filter(([key])=>key.startsWith('__source_')).map(([key,time])=>[key.slice(9),time]))]))
   };
   /** @type {any} */
   let ratings = null;
@@ -94,7 +95,8 @@ export function inputFor(store, g) {
   }
   if (!ratings) ratings = marketRatings(def.family, odds, g.league);
   if (!ratings) return null;
-  return { ...base, ratings, ratingsSource: source };
+  const input={ ...base, ratings, ratingsSource: source,analysisEvidence:{approved:false,independent:source!=='market',domainSupported:false,approvedMarkets:[],modelVersion:'heuristic-baseline'} };
+  return fittedInput(input,g,/** @type {any} */(store).modelArtifacts??[],now);
 }
 
 /**
@@ -106,9 +108,9 @@ export function inputFor(store, g) {
  */
 export function predict(sport, input, opts = {}) {
   const fam = SPORTS[sport].family;
-  if (fam === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt);
-  if (fam === 'basketball') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport: /** @type {'basketball' | 'nba'} */ (sport) }),input.quoteObservedAt);
-  return withModelOnlyMarkets(buildScoreSportPrediction(input, fam, { ...opts, sport }),input.quoteObservedAt);
+  if (fam === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt,input,opts.now);
+  if (fam === 'basketball') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport: /** @type {'basketball' | 'nba'} */ (sport) }),input.quoteObservedAt,input,opts.now);
+  return withModelOnlyMarkets(buildScoreSportPrediction(input, fam, { ...opts, sport }),input.quoteObservedAt,input,opts.now);
 }
 
 /**
@@ -122,7 +124,7 @@ export function updateRecord(store, now) {
   for (const g of Object.values(store.games)) {
     let snapshot = store.projections[g.uid];
     if (!snapshot && g.status.state === 'scheduled' && g.kickoff > now && g.kickoff < now + 4 * DAY) {
-      const input = inputFor(store,g);
+      const input = inputFor(store,g,now);
       if(input) try {
         snapshot = snapshotOf(g,input,predict(g.sport,input,{now}),now);
         store.projections[g.uid] = snapshot;
@@ -131,7 +133,17 @@ export function updateRecord(store, now) {
     }
     if (!snapshot) continue;
     if(g.status.state === 'scheduled' && g.kickoff > now) {
-      const latestInput=inputFor(store,g);
+      const latestInput=inputFor(store,g,now);
+      // v3 evaluates the last actually published pre-kickoff snapshot. Retain
+      // each previous forecast's prices/probabilities rather than silently rewriting it.
+      if(latestInput && snapshot.modelVersion=== '2026.10.evidence-gated.3' && now-snapshot.publishedAt>=30*60_000) {
+        try {
+          const next=/** @type {any} */(snapshotOf(g,latestInput,predict(g.sport,latestInput,{now}),now));
+          next.priorPublication={publishedAt:snapshot.publishedAt,modelVersion:snapshot.modelVersion,artifactVersion:snapshot.artifactVersion??null,input:snapshot.input,forecast:snapshot.forecast,selections:snapshot.selections};
+          next.publicationHistory=[...(snapshot.publicationHistory??[]),{publishedAt:snapshot.publishedAt,modelVersion:snapshot.modelVersion,artifactVersion:snapshot.artifactVersion??null}].slice(-200);
+          snapshot=next;store.projections[g.uid]=snapshot;if(!changed.includes(snapshot))changed.push(snapshot);
+        } catch { /* Preserve a valid previous publication on malformed refreshes. */ }
+      }
       if(latestInput) try {
         const latest=predict(g.sport,latestInput,{now});
         const previous=snapshot.latestGrades ?? Object.fromEntries(snapshot.selections.map((/** @type {any} */ s)=>[s.key,s.grade]));
@@ -148,10 +160,11 @@ export function updateRecord(store, now) {
         if(updated){snapshot.gradeHistory=snapshot.gradeHistory.slice(-100);if(!changed.includes(snapshot))changed.push(snapshot);}
       } catch { /* Keep the previously published snapshot. */ }
     }
-    const before = JSON.stringify({state:snapshot.state,score:snapshot.score});
+    const before = JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,results:snapshot.selections.map((/** @type {any} */s)=>s.result)});
     settleSnapshot(snapshot,g,now);
-    if(before !== JSON.stringify({state:snapshot.state,score:snapshot.score}) && !changed.includes(snapshot)) changed.push(snapshot);
+    if(before !== JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,results:snapshot.selections.map((/** @type {any} */s)=>s.result)}) && !changed.includes(snapshot)) changed.push(snapshot);
   }
+  for(const snapshot of changed)snapshot.observedAt=now;
   // Only versioned, published pre-match verdicts contribute to the public record.
   store.record.pending = {};
   const settled = new Map(store.record.settled.filter(p=>p.publishedAt).map(p=>[p.uid,p]));
@@ -199,7 +212,7 @@ export function buildFeed(store, now, usage) {
     const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
     const snapshot = store.projections[g.uid];
     const reviewable = snapshot?.finishedAt && now < snapshot.finishedAt + REVIEW_MS;
-    const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g) : null;
+    const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now) : null;
     if (input) inputs[g.sport].push(input);
     games.push({
       id: g.uid,

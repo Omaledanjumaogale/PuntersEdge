@@ -92,7 +92,12 @@ export function note(/** @type {Store} */ store, /** @type {string} */ source, /
 function mergeOdds(/** @type {StoredGame} */ g, /** @type {Record<string, Record<string, number>>} */ odds, /** @type {number} */ now) {
   for (const [book, o] of Object.entries(odds ?? {})) {
     if (!o || !Object.keys(o).length) continue;
-    g.odds[book] = { ...o, at: now };
+    const previous={...(g.odds[book]??{})};
+    // Replace complete market groups atomically: an old price must never be
+    // attached to a newly supplied line or one side of a refreshed market.
+    const groups=[['home','draw','away'],['homeMoneyline','awayMoneyline'],['over25','under25'],['bttsYes','bttsNo'],['totalLine','overOdds','underOdds'],['spreadLine','homeSpreadOdds','awaySpreadOdds']];
+    for(const group of groups)if(group.some(k=>o[k]!==undefined))for(const k of group){delete previous[k];delete previous[`__source_${k}`];}
+    g.odds[book] = { ...previous,...o, at: now };
   }
 }
 
@@ -201,7 +206,7 @@ export function prune(store, now) {
   for (const [uid, g] of Object.entries(store.games)) {
     const age = now - g.kickoff;
     const oddsOnly = !g.ext.as;
-    if (age > 3 * 24 * H || (oddsOnly && age > 6 * H) || (g.status.state === 'postponed' && age > 12 * H)) {
+    if (age > (store.projections[uid]?7:3) * 24 * H || (oddsOnly && age > 6 * H && !store.projections[uid]) || (g.status.state === 'postponed' && age > 12 * H && !store.projections[uid])) {
       delete store.games[uid];
       continue;
     }
@@ -210,6 +215,7 @@ export function prune(store, now) {
   }
   for (const [k, t] of Object.entries(store.tables)) if (now - t.at > 10 * 24 * H) delete store.tables[k];
   for (const [uid, p] of Object.entries(store.record.pending)) if (now - p.kickoff > 4 * 24 * H) delete store.record.pending[uid];
-  for(const [id,p] of Object.entries(store.projections)) if(p.finishedAt && now >= p.finishedAt + 12 * H) delete store.projections[id];
+  // Keep a correction window separate from the twelve-hour UI review window.
+  for(const [id,p] of Object.entries(store.projections)) if(p.finishedAt && now >= p.finishedAt + 7 * 24 * H) delete store.projections[id];
   store.record.settled = store.record.settled.slice(-300);
 }

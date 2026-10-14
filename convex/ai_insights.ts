@@ -4,6 +4,7 @@ import { api } from "./_generated/api";
 import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { gunzipSync } from "node:zlib";
+import {explainFacts} from '../src/lib/engine/explanation.js';
 
 /** Models never receive browser supplied predictions, credentials or account details. */
 export const explain = action({
@@ -13,7 +14,7 @@ export const explain = action({
     const meta = await ctx.runQuery(makeFunctionReference<"query">("feed:storageMeta"), {});
     if (!meta?.url) throw new Error("Live fixture data is not available yet.");
     const requestedProvider = args.provider ?? "agnes";
-    const cacheKey = `${args.provider ?? "agnes"}:${args.sport}:${args.fixtureId}:${meta.version}`;
+    const cacheKey = `${process.env.ALLOW_GENERATIVE_EXPLANATIONS==='true'?'generated':'facts-v3'}:${args.provider ?? "agnes"}:${args.sport}:${args.fixtureId}:${meta.version}`;
     const reserved = await ctx.runMutation(makeFunctionReference<"mutation">("ai_usage:reserve"), { userId: String(userId), cacheKey, provider: requestedProvider });
     if (reserved.result) return reserved.result;
     const response = await fetch(meta.url, { signal: AbortSignal.timeout(10_000) });
@@ -22,6 +23,12 @@ export const explain = action({
     const feed = JSON.parse(meta.encoding === "gzip" ? gunzipSync(bytes, { maxOutputLength: 8 * 1024 * 1024 }).toString("utf8") : bytes.toString("utf8"));
     const fixture = feed.inputs?.[args.sport]?.find((entry: { fixtureId?: string }) => entry.fixtureId === args.fixtureId) ?? feed.games?.find((entry: {id: string; sport: string}) => entry.id === args.fixtureId && entry.sport === args.sport);
     if (!fixture) throw new Error("This fixture is absent from the live feed; sample games cannot receive live AI analysis.");
+    // Default to reproducible facts. An LLM instruction alone cannot guarantee
+    // factual output, and provider access must never manufacture numeric support.
+    if(process.env.ALLOW_GENERATIVE_EXPLANATIONS!== 'true') {
+      const result={text:explainFacts(fixture,meta.generatedAt),provider:'Verified feed explanation',generatedAt:Date.now()};
+      await ctx.runMutation(makeFunctionReference<'mutation'>('ai_usage:save'),{userId:String(userId),cacheKey,result});return result;
+    }
     const key = args.provider === "aihubmix" ? process.env.AIHUBMIX_API_KEY : undefined;
     const configuredBase = process.env.AIHUBMIX_BASE_URL || "https://api.inferera.com";
     const hub = new URL(configuredBase);

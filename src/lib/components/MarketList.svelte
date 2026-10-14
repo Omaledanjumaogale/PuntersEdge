@@ -6,12 +6,13 @@
 	import type { MarketGroup } from '#lib/engine/market_book.js';
 	import { odds, pct, signed, gradeTone, gradeEmoji, gradeMeaning } from '#lib/format.ts';
 	import { Plus, Check } from 'lucide-svelte';
+ import OpportunityIndicator from './OpportunityIndicator.svelte';
 
 	let { groups, valueOnly = false }: { groups: MarketGroup[]; valueOnly?: boolean } = $props();
 
 	const shown = $derived(
 		groups
-			.map((g) => ({ ...g, selections: valueOnly ? g.selections.filter((s) => s.edgePercent > 0) : g.selections }))
+			.map((g) => ({ ...g, selections: valueOnly ? g.selections.filter((s) => (s as any).opportunity?.green) : g.selections }))
 			.filter((g) => g.selections.length > 0)
 	);
 </script>
@@ -41,6 +42,7 @@
 							<p class="mt-0.5 text-xs text-haze">
 								Likelihood {likelihoodGrade(s.modelProb*(1-(s.pushProb??0)))} · Model {pct(s.modelProb,1)}, fair <span class="font-semibold text-model">{odds(s.fairOdds)}</span>{#if s.pushProb > 0.005}, refund {pct(s.pushProb)}{/if}{#if s.pricing === 'derived'}<span title="Derived from this bookmaker's headline prices">, derived</span>{/if}
 							</p>
+						<OpportunityIndicator selection={s} />
 						{#each (feed.data?.gradeHistory?.[s.fixtureId]??[]).filter(change=>change.key===s.id.slice(s.fixtureId.length+1)).slice(-3) as change}<p class="mt-1 text-[11px] text-haze">Value {change.from} → {change.to} · {new Date(change.at).toLocaleTimeString('en-NG',{timeZone:'Africa/Lagos',hour:'2-digit',minute:'2-digit'})} WAT</p>{/each}
 						</div>
 						<div class="shrink-0 text-right">
@@ -49,7 +51,7 @@
 							<p class="text-xs font-semibold {s.edgePercent > 0 ? 'text-model' : 'text-loss'}">{s.pricing==='quoted'?`${signed(s.edgePercent,1)}% EV`:'Theoretical'}</p>
 						</div>
 						<button
-							disabled={s.pricing!=='quoted' || app.gameById(s.fixtureId)?.status.state!=='scheduled'}
+							disabled={!(s as any).eligible || s.grade==='PASS' || s.pricing!=='quoted' || app.gameById(s.fixtureId)?.status.state!=='scheduled'}
 							onclick={() => app.toggle(s)}
 							aria-pressed={inSlip}
 							aria-label={inSlip ? `Remove ${s.selection} from slip` : `Add ${s.selection} to slip`}

@@ -206,6 +206,12 @@ test('market book: football ladders are consistent with headline markets', () =>
     // DNB carries the draw as push probability.
     assert.ok(close(find('dnbh').pushProb, p.modelProbabilities.draw, 1e-9));
     for (const s of p.markets.flatMap((g) => g.selections)) {
+      if(s.settlementProbabilities){
+        const q=s.settlementProbabilities;
+        assert.ok(close(q.win+q.halfWin+q.push+q.halfLose+q.lose,1,1e-9));
+        assert.ok(close(s.fairOdds,1+(q.lose+.5*q.halfLose)/(q.win+.5*q.halfWin),1e-9));
+        assert.equal(s.bestOdds,0);assert.equal(s.grade,'PASS');continue;
+      }
       assert.ok(s.bestOdds > 1 && Number.isFinite(s.bestOdds), s.selection);
       assert.ok(close(s.edgePercent, Math.round((1 - s.pushProb) * (s.modelProb * s.bestOdds - 1) * 10000) / 100, 1e-9), s.selection);
       if (s.edgePercent <= 0) assert.equal(s.grade, 'PASS');

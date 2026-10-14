@@ -1,0 +1,343 @@
+[
+  {
+    "sport": "baseball",
+    "league": "MLB",
+    "train": 3449,
+    "calibration": 1125,
+    "holdout": 1156,
+    "skipped": 0,
+    "raw": {
+      "n": 1156,
+      "strikeRate": 0.5432525951557093,
+      "brier": 0.49281052652408613,
+      "logLoss": 0.6859202523011807
+    },
+    "calibrated": {
+      "n": 1156,
+      "strikeRate": 0.5432525951557093,
+      "brier": 0.49226676803371194,
+      "logLoss": 0.6853463898229615
+    },
+    "frequencyBaseline": {
+      "n": 1156,
+      "strikeRate": 0.513840830449827,
+      "brier": 0.4997859945709622,
+      "logLoss": 0.6929333996630646
+    },
+    "highProbability": {
+      "n": 6,
+      "strikeRate": 0.6666666666666666,
+      "brier": 0.44707574280742163,
+      "logLoss": 0.6395967948922241
+    },
+    "temperature": 1.1152304032809242,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false,
+    "proxyChampion": {
+      "n": 1156,
+      "strikeRate": 0.5337370242214533,
+      "brier": 0.4932019542161168,
+      "logLoss": 0.6863688163991314
+    },
+    "challengerMatched": {
+      "n": 1156,
+      "strikeRate": 0.5432525951557093,
+      "brier": 0.49226676803371067,
+      "logLoss": 0.6853463898229625
+    },
+    "championComparisonLimit": "Reconstructed fixed prior table/standings baseline, without historical odds or production settings; not a reproduction of live predictions."
+  },
+  {
+    "sport": "basketball",
+    "league": "EuroLeague",
+    "train": 394,
+    "calibration": 132,
+    "holdout": 133,
+    "skipped": 0,
+    "raw": {
+      "n": 133,
+      "strikeRate": 0.7293233082706767,
+      "brier": 0.3897414205132939,
+      "logLoss": 0.5758525688625709
+    },
+    "calibrated": {
+      "n": 133,
+      "strikeRate": 0.7293233082706767,
+      "brier": 0.4095278443299837,
+      "logLoss": 0.5991288778923873
+    },
+    "frequencyBaseline": {
+      "n": 133,
+      "strikeRate": 0.6466165413533834,
+      "brier": 0.4570184452560848,
+      "logLoss": 0.6495283604414624
+    },
+    "highProbability": {
+      "n": 12,
+      "strikeRate": 0.9166666666666666,
+      "brier": 0.2119491375504028,
+      "logLoss": 0.3809856967357357
+    },
+    "temperature": 1.546519219419226,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false,
+    "proxyChampion": {
+      "n": 133,
+      "strikeRate": 0.7218045112781954,
+      "brier": 0.3977435481298764,
+      "logLoss": 0.5843938099441667
+    },
+    "challengerMatched": {
+      "n": 133,
+      "strikeRate": 0.7293233082706767,
+      "brier": 0.4095278443299838,
+      "logLoss": 0.5991288778923874
+    },
+    "championComparisonLimit": "Reconstructed fixed prior table/standings baseline, without historical odds or production settings; not a reproduction of live predictions."
+  },
+  {
+    "sport": "football",
+    "league": "Premier League",
+    "train": 681,
+    "calibration": 210,
+    "holdout": 231,
+    "skipped": 23,
+    "raw": {
+      "n": 208,
+      "strikeRate": 0.4567307692307692,
+      "brier": 0.6269268602844529,
+      "logLoss": 1.038585255087257
+    },
+    "calibrated": {
+      "n": 208,
+      "strikeRate": 0.4567307692307692,
+      "brier": 0.6350390752955893,
+      "logLoss": 1.050458905036678
+    },
+    "frequencyBaseline": {
+      "n": 208,
+      "strikeRate": 0.39903846153846156,
+      "brier": 0.661901886971139,
+      "logLoss": 1.0884301498429778
+    },
+    "highProbability": {
+      "n": 31,
+      "strikeRate": 0.6129032258064516,
+      "brier": 0.5808677835837975,
+      "logLoss": 0.968149451360246
+    },
+    "temperature": 0.8432749432905787,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false,
+    "proxyChampion": {
+      "n": 208,
+      "strikeRate": 0.4807692307692308,
+      "brier": 0.632304412179807,
+      "logLoss": 1.0505151907521528
+    },
+    "challengerMatched": {
+      "n": 208,
+      "strikeRate": 0.4567307692307692,
+      "brier": 0.6350390752955895,
+      "logLoss": 1.0504589050366773
+    },
+    "championComparisonLimit": "Reconstructed fixed prior table/standings baseline, without historical odds or production settings; not a reproduction of live predictions."
+  },
+  {
+    "sport": "hockey",
+    "league": "NHL",
+    "train": 1799,
+    "calibration": 592,
+    "holdout": 604,
+    "skipped": 0,
+    "raw": {
+      "n": 604,
+      "strikeRate": 0.5695364238410596,
+      "brier": 0.47456106816125937,
+      "logLoss": 0.6663309070146551
+    },
+    "calibrated": {
+      "n": 604,
+      "strikeRate": 0.5695364238410596,
+      "brier": 0.4746302556243668,
+      "logLoss": 0.6670561116414266
+    },
+    "frequencyBaseline": {
+      "n": 604,
+      "strikeRate": 0.5844370860927153,
+      "brier": 0.4885560637964081,
+      "logLoss": 0.6816759835373166
+    },
+    "highProbability": {
+      "n": 11,
+      "strikeRate": 0.9090909090909091,
+      "brier": 0.23413566613524253,
+      "logLoss": 0.4105828759355331
+    },
+    "temperature": 1.759489435652446,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false
+  },
+  {
+    "sport": "nba",
+    "league": "NBA",
+    "train": 1649,
+    "calibration": 540,
+    "holdout": 556,
+    "skipped": 0,
+    "raw": {
+      "n": 556,
+      "strikeRate": 0.6546762589928058,
+      "brier": 0.4337347147162528,
+      "logLoss": 0.6217793717962193
+    },
+    "calibrated": {
+      "n": 556,
+      "strikeRate": 0.6546762589928058,
+      "brier": 0.43632577775589937,
+      "logLoss": 0.6255586533565933
+    },
+    "frequencyBaseline": {
+      "n": 556,
+      "strikeRate": 0.5467625899280576,
+      "brier": 0.49582134445866094,
+      "logLoss": 0.6889643742899493
+    },
+    "highProbability": {
+      "n": 95,
+      "strikeRate": 0.8421052631578947,
+      "brier": 0.27640579392961623,
+      "logLoss": 0.4502186098611156
+    },
+    "temperature": 1.2043398612989642,
+    "availabilityAssumption": "kickoff + 48h; historical publication times unavailable",
+    "limitations": [
+      "No historical bookmaker quotes; no market-relative skill, executable ROI or CLV claim",
+      "Static chronological score-only model; injury/lineup/pitcher data absent",
+      "Fetched retrospectively; outcome correction history unavailable"
+    ],
+    "approved": false,
+    "proxyChampion": {
+      "n": 556,
+      "strikeRate": 0.6384892086330936,
+      "brier": 0.44851954929279936,
+      "logLoss": 0.6388678897020598
+    },
+    "challengerMatched": {
+      "n": 556,
+      "strikeRate": 0.6546762589928058,
+      "brier": 0.43632577775589915,
+      "logLoss": 0.6255586533565933
+    },
+    "championComparisonLimit": "Reconstructed fixed prior table/standings baseline, without historical odds or production settings; not a reproduction of live predictions."
+  },
+  {
+    "exportedAt": "2026-10-14T19:16:03.129Z",
+    "scope": "Same frozen original verdicts, mapped by exact provider team names; candidate fit excludes these outcomes. No claim of new selection strike rate or executable candidate ROI.",
+    "results": {
+      "football": {
+        "n": 0,
+        "skipped": 5,
+        "championBrier": null,
+        "challengerBrier": null,
+        "rows": []
+      },
+      "nba": {
+        "n": 0,
+        "skipped": 0,
+        "championBrier": null,
+        "challengerBrier": null,
+        "rows": []
+      },
+      "basketball": {
+        "n": 1,
+        "skipped": 0,
+        "championBrier": 0.15386489315041746,
+        "challengerBrier": 0.18007660765409153,
+        "rows": [
+          {
+            "fixtureId": "basketball-as-508628",
+            "selection": "awayMl",
+            "result": "won",
+            "champion": 0.6077438424314827,
+            "challenger": 0.5756456579059294,
+            "championBrier": 0.15386489315041746,
+            "challengerBrier": 0.18007660765409153
+          }
+        ]
+      },
+      "hockey": {
+        "n": 3,
+        "skipped": 2,
+        "championBrier": 0.32994955801118825,
+        "challengerBrier": 0.37535969193330593,
+        "rows": [
+          {
+            "fixtureId": "hockey-as-444699",
+            "selection": "homeMl",
+            "result": "won",
+            "champion": 0.5952028530407592,
+            "challenger": 0.4895846509382149,
+            "championBrier": 0.16386073018634123,
+            "challengerBrier": 0.26052382855786393
+          },
+          {
+            "fixtureId": "hockey-as-444686",
+            "selection": "spa1.5",
+            "result": "lost",
+            "champion": 0.7218319338738803,
+            "challenger": 0.7572296148910526,
+            "championBrier": 0.521041340760106,
+            "challengerBrier": 0.5733966896680518
+          },
+          {
+            "fixtureId": "hockey-as-444685",
+            "selection": "homeMl",
+            "result": "lost",
+            "champion": 0.5522197054498486,
+            "challenger": 0.5405169355108145,
+            "championBrier": 0.3049466030871175,
+            "challengerBrier": 0.292158557574002
+          }
+        ]
+      },
+      "baseball": {
+        "n": 1,
+        "skipped": 0,
+        "championBrier": 0.15580291613075642,
+        "challengerBrier": 0.18672521394737124,
+        "rows": [
+          {
+            "fixtureId": "baseball-as-190162",
+            "selection": "sph1.5",
+            "result": "won",
+            "champion": 0.6052812189282648,
+            "challenger": 0.5678828701065286,
+            "championBrier": 0.15580291613075642,
+            "challengerBrier": 0.18672521394737124
+          }
+        ]
+      }
+    }
+  }
+]

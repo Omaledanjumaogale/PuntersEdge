@@ -7,6 +7,8 @@
 	import StatusPill from './StatusPill.svelte';
 	import PickTicket from './PickTicket.svelte';
 	import PickInsight from './PickInsight.svelte';
+ import OpportunityIndicator from './OpportunityIndicator.svelte';
+ import {fixtureOpportunity} from '#lib/engine/opportunities.js';
 	import { slide } from 'svelte/transition';
 	import { ChevronDown } from 'lucide-svelte';
 
@@ -17,6 +19,7 @@
 	const insightId = $derived(`insight-${p.fixtureId}`);
 	const confidence = $derived(new PuntersEdgeAIAgentHub().analyze(p).consensusConfidence);
 	const marketCount = $derived(p.markets.reduce((a, g) => a + g.selections.length, 0));
+ const opportunity=$derived(fixtureOpportunity(p));
 </script>
 
 <article
@@ -47,6 +50,7 @@
 		</p>
 	</a>
 
+ {#if opportunity}<OpportunityIndicator selection={opportunity} />{/if}
 	{#if p.family === 'football'}
 		<ProbBar
 			segments={[
@@ -65,7 +69,7 @@
 	{/if}
 
  <p class="text-xs text-haze">Basis: {p.ratingsSource === 'market' ? 'market consensus · no independent team ratings' : p.ratingsSource}.</p>
- <div class="flex items-center gap-3 text-xs text-haze" title="Agreement among analytical checks; not a measured historical strike rate"><span>Heuristic confidence</span><meter min="0" max="100" value={confidence*100} aria-label="Heuristic confidence" class="min-w-0 flex-1">{pct(confidence,1)}</meter><strong class="text-pop">{pct(confidence,1)}</strong></div>
+ {#if p.analysisEvidence}<p class="rounded-lg bg-raised p-2 text-xs text-haze">{p.confidenceStatus} · {p.analysisEvidence.modelVersion}. {#if !p.analysisEvidence.approved}Forecast shown for evaluation; no validated stake recommendation.{/if}</p>{:else}<p class="text-xs text-haze">Analytical agreement: {pct(confidence,1)} · not a calibrated confidence rating.</p>{/if}
 
 	{#if p.marketSteamAlert || p.absences.length > 0}
 		<ul class="flex flex-wrap gap-2 text-xs font-medium">
@@ -80,7 +84,7 @@
 
 	{#if !pick}
 		<div class="grid grid-cols-[1fr_auto] items-center gap-2 text-sm">
-			<p class="text-haze">{p.status.state === 'live' ? '🔴 In play. Pre-match analysis is on the match page.' : p.bookmakers.length === 0 ? '⏳ Waiting for bookmaker prices.' : '✋ No price beats fair value yet.'}</p>
+			<p class="text-haze">{p.status.state === 'live' ? '🔴 In play. Pre-match analysis is on the match page.' : opportunity ? 'Favourable estimate; validation pending, no stake recommendation.' : p.bookmakers.length === 0 ? '⏳ Waiting for bookmaker prices.' : 'No validated recommendation. Review the choice notes.'}</p>
 			{#if marketCount > 0}
 				<button onclick={() => (app.pickerFixture = p.fixtureId)} class="rounded-xl px-3 py-2 font-semibold text-chalk ring-1 ring-line hover:ring-pop" aria-label="All markets for {p.matchTitle}">🎯 {marketCount} markets</button>
 			{/if}

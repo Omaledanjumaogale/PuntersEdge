@@ -1,0 +1,114 @@
+[
+  {
+    "sport": "football",
+    "scope": "full",
+    "train": 681,
+    "holdout": 231,
+    "skipped": 23,
+    "marketGroups": 58
+  },
+  {
+    "sport": "football",
+    "scope": "first_half",
+    "train": 681,
+    "holdout": 231,
+    "skipped": 23,
+    "marketGroups": 58
+  },
+  {
+    "sport": "nba",
+    "scope": "full",
+    "train": 1649,
+    "holdout": 556,
+    "skipped": 0,
+    "marketGroups": 40
+  },
+  {
+    "sport": "nba",
+    "scope": "first_half",
+    "train": 1649,
+    "holdout": 556,
+    "skipped": 0,
+    "marketGroups": 40
+  },
+  {
+    "sport": "nba",
+    "scope": "first_quarter",
+    "train": 1649,
+    "holdout": 556,
+    "skipped": 0,
+    "marketGroups": 40
+  },
+  {
+    "sport": "basketball",
+    "scope": "full",
+    "train": 394,
+    "holdout": 133,
+    "skipped": 0,
+    "marketGroups": 40
+  },
+  {
+    "sport": "basketball",
+    "scope": "first_half",
+    "train": 394,
+    "holdout": 133,
+    "skipped": 0,
+    "marketGroups": 40
+  },
+  {
+    "sport": "basketball",
+    "scope": "first_quarter",
+    "train": 394,
+    "holdout": 133,
+    "skipped": 0,
+    "marketGroups": 40
+  },
+  {
+    "sport": "hockey",
+    "scope": "full",
+    "train": 1799,
+    "holdout": 604,
+    "skipped": 0,
+    "marketGroups": 56
+  },
+  {
+    "sport": "hockey",
+    "scope": "first_period",
+    "train": 1805,
+    "holdout": 603,
+    "skipped": 0,
+    "marketGroups": 56
+  },
+  {
+    "sport": "hockey",
+    "scope": "regulation",
+    "train": 1803,
+    "holdout": 603,
+    "skipped": 0,
+    "marketGroups": 56
+  },
+  {
+    "sport": "baseball",
+    "scope": "full",
+    "train": 3449,
+    "holdout": 1156,
+    "skipped": 0,
+    "marketGroups": 56
+  },
+  {
+    "sport": "baseball",
+    "scope": "first_five",
+    "train": 3488,
+    "holdout": 1172,
+    "skipped": 0,
+    "marketGroups": 56
+  },
+  {
+    "sport": "baseball",
+    "scope": "first_inning",
+    "train": 3488,
+    "holdout": 1172,
+    "skipped": 0,
+    "marketGroups": 56
+  }
+]
