@@ -68,7 +68,7 @@
  {#if !leagues.length}<p class="mt-3 text-sm text-haze">Competition names appear when the provider fixture feed is available.</p>{:else if !visibleLeagues.length}<p class="mt-3 text-sm text-haze">No competitions match your search.</p>{/if}
 </Accordion>
 
-	<Accordion title="Live now" count={live.length + liveUnpriced.length} open>
+	<Accordion title="Live now" count={live.length + liveUnpriced.length}>
 		{#if !live.length&&!liveUnpriced.length}<p class="mb-3 text-sm text-haze">No live fixtures in this selection.</p>{/if}
 		<h2 id="live-{sport}" class="flex items-center gap-2 text-2xl font-bold text-chalk"><span class="h-2.5 w-2.5 animate-pulse rounded-full bg-loss" aria-hidden="true"></span> Live now</h2>
 		<div class="mt-4 grid gap-4 md:grid-cols-2">
@@ -79,7 +79,7 @@
 		{/if}
 	</Accordion>
 
-<Accordion title="Upcoming" count={upcoming.length} open>
+<Accordion title="Upcoming" count={upcoming.length}>
 	<h2 id="up-{sport}" class="text-2xl font-bold text-chalk">📅 Upcoming</h2>
 	{#if upcoming.length}
 		<div class="mt-4 grid gap-4 md:grid-cols-2">

@@ -62,10 +62,10 @@
 <section class="space-y-6">
  <header class="relative overflow-hidden rounded-[var(--radius-card)] bg-deep p-5 ring-1 ring-line sm:p-7">
   <div class="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-pop/10 blur-3xl" aria-hidden="true"></div>
-  <div class="relative flex flex-wrap items-start justify-between gap-4">
-   <div class="min-w-0 flex-1"><p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-model"><ShieldCheck class="h-4 w-4"/>Intelligence workspace</p><h1 class="mt-3 font-display text-3xl font-bold tracking-tight sm:text-5xl">{tab==='operations'?'Data operations':tab==='memberships'?'Members & payments':'Platform overview'}</h1><p class="mt-3 max-w-xl text-sm leading-relaxed text-haze">{tab==='operations'?'Monitor source health, protect provider budgets and manage the live data pipeline.':tab==='memberships'?'Manage verified access, review billing records and keep membership changes accountable.':'A clear view of forecast quality, published coverage and the systems behind every market choice.'}</p></div>
+  <div class="admin-hero-layout relative">
+   <div class="admin-hero-copy min-w-0"><p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-model"><ShieldCheck class="h-4 w-4"/>Intelligence workspace</p><h1 class="mt-3 font-display text-3xl font-bold tracking-tight sm:text-5xl">{tab==='operations'?'Data operations':tab==='memberships'?'Members & payments':'Platform overview'}</h1><p class="mt-3 max-w-xl text-sm leading-relaxed text-haze">{tab==='operations'?'Monitor source health, protect provider budgets and manage the live data pipeline.':tab==='memberships'?'Manage verified access, review billing records and keep membership changes accountable.':'A clear view of forecast quality, published coverage and the systems behind every market choice.'}</p></div>
    <div class="hidden lg:block"><ConsoleIllustration/></div>
-   {#if allowed}<div class="flex flex-wrap gap-2"><a href="/admin/models" class="btn-ghost text-sm">Model registry</a><a href="/board" class="btn-ghost text-sm">Open user view <ArrowUpRight class="h-4 w-4"/></a></div>{/if}
+   {#if allowed}<div class="admin-hero-actions flex flex-wrap gap-2"><a href="/admin/models" class="btn-ghost text-sm">Model registry</a><a href="/board" class="btn-ghost text-sm">Open user view <ArrowUpRight class="h-4 w-4"/></a></div>{/if}
   </div>
  </header>
  {#if error}<p role="alert" class="flex items-center gap-2 rounded-2xl bg-loss/10 p-4 text-sm text-loss ring-1 ring-loss/30"><CircleAlert class="h-4 w-4"/>{error}</p>{/if}

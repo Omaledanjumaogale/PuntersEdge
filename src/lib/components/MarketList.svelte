@@ -1,72 +1,26 @@
 <script lang="ts">
-	/** Every priced market for a fixture, grouped, with add-to-slip toggles. */
-	import { feed } from '#lib/feed.svelte.ts';
-	import { likelihoodGrade } from '#lib/engine/decision_screener.js';
-	import { app } from '#lib/state.svelte.ts';
-	import type { MarketGroup } from '#lib/engine/market_book.js';
-	import { odds, pct, signed, gradeTone, gradeEmoji, gradeMeaning } from '#lib/format.ts';
-	import { Plus, Check } from 'lucide-svelte';
- import OpportunityIndicator from './OpportunityIndicator.svelte';
-
-	let { groups, valueOnly = false }: { groups: MarketGroup[]; valueOnly?: boolean } = $props();
-
-	const shown = $derived(
-		groups
-			.map((g) => ({ ...g, selections: [...(valueOnly ? g.selections.filter((s) => (s as any).opportunity?.green) : g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id)) }))
-			.filter((g) => g.selections.length > 0)
-	);
+ import {app} from '#lib/state.svelte.ts';
+ import type {MarketGroup} from '#lib/engine/market_book.js';
+ import {odds,pct,signed} from '#lib/format.ts';
+ let {groups,valueOnly=false}:{groups:MarketGroup[];valueOnly?:boolean}=$props();
+ const shown=$derived(groups.map(g=>({...g,selections:[...(valueOnly?g.selections.filter(s=>(s as any).opportunity?.green):g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id))})).filter(g=>g.selections.length));
 </script>
-
-{#if shown.length === 0}
-	<p class="rounded-2xl bg-raised p-5 text-center text-chalk ring-1 ring-line">✋ No market here beats fair value right now.</p>
-{/if}
-
-<div class="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-4">
-	{#each shown as g, index (g.key)}
-		<details class="market-accordion min-w-0 max-w-full" open={index===0}>
-			<summary class="market-summary">
-				<div class="min-w-0 flex-1">
-				<h3 id="mk-{g.key}" class="text-base font-bold text-chalk"><span aria-hidden="true">{g.emoji}</span> {g.title}</h3>
-				<p class="mt-1 text-xs text-haze">{g.selections.length} options · Highest model % first</p>
-				</div><span class="accordion-chevron" aria-hidden="true">⌄</span>
-			</summary>
-			<p class="px-4 pb-3 text-xs text-haze">{g.blurb}</p>
-			<ul class="overflow-hidden rounded-2xl ring-1 ring-line">
-				{#each g.selections as s (s.id)}
-					{@const inSlip = app.inSlip(s.id)}
-					<li class="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_4.5rem_2.75rem] items-center gap-2 border-t border-line px-3 py-2.5 first:border-t-0 {inSlip ? 'tint-pop' : 'bg-deep'}">
-						<div class="col-span-3 min-w-0 sm:col-span-1">
-							<p class="flex min-w-0 flex-wrap items-center gap-1.5 font-semibold text-chalk">
-                                <span class="shrink-0 rounded px-1 text-[11px] font-semibold text-model">Projection {(s as any).projectionGrade??'—'}</span>
-                                {#if s.pricing==='quoted'}<span class="text-[11px] text-haze">{s.grade==='PASS'?'Observed price':`Value ${s.grade}`}</span>{/if}
-								<span class="w-full break-words">{s.selection}</span>
-							</p>
-							<p class="mt-0.5 text-xs text-haze">
-									Likelihood {likelihoodGrade(s.modelProb*(1-(s.pushProb??0)))} · Model {pct(s.modelProb,1)}, fair <span class="font-semibold text-model">{odds(s.fairOdds)}</span>{#if s.pushProb > 0.005}, refund {pct(s.pushProb)}{/if}{#if s.pricing === 'derived'}<span>, estimated price</span>{/if}
-							</p>
-						<OpportunityIndicator selection={s} />
-						{#each (feed.data?.gradeHistory?.[s.fixtureId]??[]).filter(change=>change.key===s.id.slice(s.fixtureId.length+1)).slice(-3) as change}<p class="mt-1 text-[11px] text-haze">Value {change.from} → {change.to} · {new Date(change.at).toLocaleTimeString('en-NG',{timeZone:'Africa/Lagos',hour:'2-digit',minute:'2-digit'})} WAT</p>{/each}
-						</div>
-						<div class="col-span-2 min-w-0 break-words text-right sm:col-span-1">
-							<p class="font-display text-base font-bold leading-none text-book break-all">{odds(s.pricing==='quoted'?s.bestOdds:s.fairOdds)}</p>
-							<p class="mt-0.5 break-words text-[11px] text-haze">{s.pricing==='quoted'?s.bookmaker:'Estimated fair price'}</p>
-							<p class="text-xs font-semibold {s.edgePercent > 0 ? 'text-model' : 'text-loss'}">{s.pricing==='quoted'?`${signed(s.edgePercent,1)}% estimated EV`:'Quote unavailable'}</p>
-						</div>
-						<button
-							disabled={s.pricing!=='quoted' || Date.parse(app.gameById(s.fixtureId)?.kickoff??'')<=app.now || app.gameById(s.fixtureId)?.status.state!=='scheduled'}
-							onclick={() => app.toggle(s)}
-							aria-pressed={inSlip}
-							aria-label={inSlip ? `Remove ${s.selection} from slip` : `Add ${s.selection} to slip`}
-							class="disabled:opacity-30 grid h-11 w-11 shrink-0 place-items-center rounded-full transition-all active:scale-90 {inSlip ? 'bg-model text-ink' : 'bg-raised text-chalk ring-1 ring-line hover:ring-pop'}"
-						>
-							{#if inSlip}<Check class="h-4 w-4" strokeWidth={3} />{:else}<Plus class="h-4 w-4" strokeWidth={3} />{/if}
-						</button>
-					</li>
-				{/each}
-			</ul>
-		</details>
-	{/each}
+{#if !shown.length}<p class="surface p-4 text-sm text-haze">No choices match this market filter.</p>{/if}
+<div class="market-groups">
+ {#each shown as g(g.key)}<details class="market-accordion"><summary class="market-summary"><span class="min-w-0"><strong><span aria-hidden="true">{g.emoji}</span> {g.title}</strong><small>{g.selections.length} options · Model % high to low</small></span><span class="accordion-chevron" aria-hidden="true">⌄</span></summary>
+ <p class="px-3 pb-3 text-xs text-haze">{g.blurb}</p>
+ <ul class="market-tiles">{#each g.selections as s(s.id)}
+ {@const inSlip=app.inSlip(s.id)}{@const selectable=s.pricing==='quoted'&&app.gameById(s.fixtureId)?.status.state==='scheduled'&&Date.parse(app.gameById(s.fixtureId)?.kickoff??'')>app.now}{@const opportunity=(s as any).opportunity}
+ <li class:selected={inSlip}>
+ <button class="market-choice" disabled={!selectable&&!inSlip} aria-pressed={inSlip} aria-label={inSlip?`Remove ${s.selection} from slip`:`${selectable?'Add':'Projection only:'} ${s.selection}${selectable?' to slip':''}`} onclick={()=>app.toggle(s)}>
+ <span class="choice-name">{#if opportunity?.green}<span class="choice-light" aria-hidden="true"></span>{/if}{s.selection}</span>
+ <span class="choice-prob">{pct(s.modelProb,1)}<small>Model</small></span>
+ <span class="choice-meta">Projection {(s as any).projectionGrade??'—'} · {s.pricing==='quoted'?s.bookmaker:'Fair estimate'}<span class="choice-price">{odds(s.pricing==='quoted'?s.bestOdds:s.fairOdds)}</span></span>
+ <span class="choice-add" aria-hidden="true">{inSlip?'✓':selectable?'+':'◇'}</span>
+ </button>
+ <details class="choice-note"><summary>Analysis <span>{s.pricing==='quoted'?`${signed(s.edgePercent,1)}% EV`:'Quote unavailable'}{#if s.pushProb>.005} · {pct(s.pushProb)} refund{/if}</span></summary><div><p>{opportunity?.note??'No market choice note is available.'}</p><p class="mt-2">{opportunity?.gradeBasis??'Model probabilities are estimates, not measured accuracy.'}</p><p class="mt-2">Fair price {odds(s.fairOdds)}. {s.pricing==='quoted'?`Value grade ${s.grade}. Confirm current bookmaker price.`:'Estimated prices cannot be added as executable bookmaker offers.'}</p></div></details>
+ </li>{/each}</ul></details>{/each}
 </div>
 <style>
- .market-accordion{border:1px solid var(--color-line);border-radius:18px;background:var(--color-deep);overflow:hidden}.market-summary{display:flex;align-items:center;gap:12px;padding:16px;min-height:64px;cursor:pointer;list-style:none}.market-summary::-webkit-details-marker{display:none}.market-summary:hover{background:var(--color-raised)}.accordion-chevron{font-size:24px;transition:transform .2s;flex-shrink:0}.market-accordion[open] .accordion-chevron{transform:rotate(180deg)}.market-accordion ul{border-radius:0;box-shadow:none}.market-accordion h3{overflow-wrap:anywhere}@media(prefers-reduced-motion:reduce){.accordion-chevron{transition:none}}
+ .market-groups{display:grid;min-width:0;gap:12px;grid-template-columns:minmax(0,1fr)}.market-accordion{min-width:0;max-width:100%;border:1px solid var(--color-line);border-radius:16px;background:var(--color-deep);overflow:hidden}.market-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;min-height:58px;cursor:pointer;list-style:none}.market-summary::-webkit-details-marker{display:none}.market-summary strong{font-size:14px;overflow-wrap:anywhere}.market-summary small{display:block;margin-top:3px;font-size:11px;color:var(--color-haze)}.accordion-chevron{flex-shrink:0;font-size:22px}.market-accordion[open] .accordion-chevron{transform:rotate(180deg)}.market-tiles{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:0 10px 10px}.market-tiles li{min-width:0;border:1px solid var(--color-line);border-radius:12px;background:var(--color-ink);overflow:hidden}.market-tiles li.selected{border-color:var(--color-model);background:var(--color-raised)}.market-choice{display:grid;width:100%;grid-template-columns:minmax(0,1fr) 58px 28px;gap:5px 8px;align-items:center;padding:10px 12px;text-align:left;min-height:74px}.market-choice:not(:disabled):hover{background:var(--color-raised)}.market-choice:disabled{cursor:default;opacity:1}.choice-name{font-size:14px;font-weight:650;line-height:1.35;overflow-wrap:anywhere}.choice-light{display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;margin-right:6px}.choice-prob{text-align:right;font-size:17px;line-height:1.15;font-weight:700;color:var(--color-model);grid-column:2;grid-row:1/3}.choice-prob small{display:block;font-size:10px;font-weight:500;color:var(--color-haze);margin-top:3px}.choice-meta{grid-column:1;min-width:0;font-size:11px;color:var(--color-haze);overflow-wrap:anywhere}.choice-price{margin-left:8px;font-weight:700;color:var(--color-book)}.choice-add{grid-column:3;grid-row:1/3;text-align:center;font-size:22px;color:var(--color-model)}.choice-note{border-top:1px solid var(--color-line);font-size:11px;color:var(--color-haze)}.choice-note summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;padding:7px 12px;cursor:pointer;min-height:32px}.choice-note div{padding:4px 12px 12px;line-height:1.6;overflow-wrap:anywhere}
 </style>

@@ -7,6 +7,7 @@
 	import { signed, gradeEmoji, odds, pct } from '#lib/format.ts';
 	import Glossary from '#lib/components/Glossary.svelte';
 	import Logo from '#lib/components/Logo.svelte';
+ import SportsPhotography from '#lib/components/SportsPhotography.svelte';
 	import DataBadge from '#lib/components/DataBadge.svelte';
 	import { feed } from '#lib/feed.svelte.ts';
 	import { SPORTS, SPORT_ORDER } from '#lib/sports.ts';
@@ -49,7 +50,7 @@
 			Bet smarter,<br /><span class="brand-text">not harder.</span>
 		</h1>
 		<p class="mt-5 max-w-xl text-lg leading-relaxed text-chalk">
-			PuntersEdge prices every game across five sports, compares SportyBet, 1xBet, 22Bet and more, and shows you where the odds are wrong. Then it tells you why, and how much to stake.
+			Compare available bookmaker prices with sport-specific model projections. Explore the numbers behind each market, save your rules and track published results.
 		</p>
 		<div class="mt-6 flex flex-wrap gap-3">
 			<a href="/board" class="btn-primary text-base">🔥 See today's picks</a>
@@ -99,6 +100,7 @@
 		</div>
 	</div>
 </section>
+<SportsPhotography/>
 
 <!-- Sports -->
 <section class="mt-8" aria-labelledby="sports-title">

@@ -1,0 +1,40 @@
+name: Daily model retraining
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: model-retraining
+  cancel-in-progress: false
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      PUBLIC_CONVEX_URL: https://reliable-duck-539.eu-west-1.convex.cloud
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --legacy-peer-deps
+      - run: pip install -r training/requirements.txt
+      - run: python -m unittest discover -s training -p test_continuous.py
+      - name: Collect retained actual results without provider calls
+        run: node scripts/continuous-training.mjs collect
+      - name: Refit and compare on unseen chronological results
+        run: python training/continuous.py training/private/continuous-dataset.json training/private/continuous-result.json
+      - name: Publish evaluation and only qualified unapproved serving updates
+        run: node scripts/continuous-training.mjs publish
+      - name: Record a failed run without changing serving models
+        if: failure()
+        run: node scripts/continuous-training.mjs failed

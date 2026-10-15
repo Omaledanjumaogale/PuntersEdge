@@ -21,7 +21,7 @@
 	--color-pop: #b39dff;
 	--color-glow: #232c74;
 
-	--font-display: 'Bricolage Grotesque Variable', 'Instrument Sans Variable', system-ui, sans-serif;
+	--font-display: 'Instrument Sans Variable', system-ui, sans-serif;
 	--font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
 	--radius-sheet: 1.75rem;
@@ -312,3 +312,11 @@ input,select,textarea {max-width:100%;min-width:0;}
 .workspace-state {padding:32px;border:1px dashed var(--color-line);border-radius:20px;background:var(--color-deep);}.workspace-state h2 {font-size:20px;font-weight:700;}.workspace-state p {margin-top:8px;max-width:64ch;color:var(--color-haze);font-size:14px;}
 @media(max-width:1023px){.admin-shell{grid-template-columns:minmax(0,1fr);gap:0}.admin-rail{display:none}.mobile-workspaces{display:flex;gap:8px;max-width:100%;overflow-x:auto;padding:2px 2px 18px;overscroll-behavior-inline:contain}.mobile-workspaces a{display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:48px;padding:10px 14px;border:1px solid var(--color-line);border-radius:14px;font-size:13px}.workspace-bar{padding-bottom:8px}.admin-content .metric{padding:20px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+/* Hero content must never share a narrow flex row with its actions. */
+.admin-hero-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}.admin-hero-copy{width:100%}.admin-hero-actions{width:100%}.admin-hero-copy h1{font-size:clamp(1.75rem,4vw,3rem);line-height:1.12;overflow-wrap:normal}.admin-hero-copy p{overflow-wrap:normal;word-break:normal}.admin-hero-actions a{flex:1 1 140px;text-align:center;justify-content:center}
+@media(min-width:1280px){.admin-hero-layout{grid-template-columns:minmax(0,1fr) 220px}.admin-hero-actions{grid-column:1/-1;justify-content:flex-start}.admin-hero-actions a{flex:0 1 auto}}
+@media(max-width:639px){.mobile-workspaces{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.mobile-workspaces a{min-width:0;white-space:normal;font-size:12px;padding:10px;gap:6px}.workspace-bar>span{width:100%}.workspace-bar a{min-height:36px}h1{font-size:clamp(1.75rem,7vw,2.5rem)}.surface,.panel{max-width:100%}label{min-width:0}nav{min-width:0}.btn-primary,.btn-ghost,.btn-secondary{max-width:100%;white-space:normal;overflow-wrap:anywhere}}
+
+/* Readable professional type at every viewport, without squeezed text columns. */
+body{font-family:var(--font-sans);font-size:16px;line-height:1.55}button,input,select,textarea{font:inherit}h1,h2,h3{font-family:var(--font-display);font-weight:650}p,li,label{overflow-wrap:break-word}.admin-hero-copy p{max-width:68ch}.admin-hero-actions{min-width:0}.btn-secondary{min-height:44px}
+@media(max-width:400px){#main{padding-left:12px;padding-right:12px}.safe-top>div{gap:8px;padding-left:12px;padding-right:12px}.safe-top img{width:30px;height:30px}.safe-top .font-display{font-size:15px}.safe-top .ml-auto{gap:6px}}

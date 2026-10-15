@@ -189,6 +189,7 @@ export default defineSchema({
   performance_metrics: defineTable({sport:v.string(),groups:v.any(),fixtures:v.number(),settledFixtures:v.number(),verdicts:v.number(),updatedAt:v.number()}).index('by_sport',['sport']),
   forecast_publications: defineTable({fixtureId:v.string(),publishedAt:v.number(),modelVersion:v.string(),artifactVersion:v.optional(v.string()),storageId:v.id('_storage')}).index('by_fixture_publication',['fixtureId','publishedAt']),
   model_artifacts: defineTable({version:v.string(),sport:v.string(),league:v.string(),artifact:v.any(),mode:v.union(v.literal('shadow'),v.literal('active'),v.literal('retired')),approved:v.boolean(),approvedMarkets:v.array(v.string()),createdAt:v.number(),updatedAt:v.number(),actorId:v.id('users')}).index('by_version',['version']).index('by_mode',['mode']),
+  ticket_rules:defineTable({userId:v.id('users'),name:v.string(),rules:v.any(),updatedAt:v.number()}).index('by_user',['userId']),
   // Live-data ingest. Two tiny documents only: "ingest" (quota ledgers,
   // job timestamps, lock, file ids) and "feed" (what clients read). All bulky
   // data lives gzipped in file storage, so database storage and I/O stay

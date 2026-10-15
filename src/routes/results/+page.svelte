@@ -127,13 +127,13 @@
 	{/if}
 </Accordion>
 
-<Accordion title="Live fixtures" count={live.length} open>
+<Accordion title="Live fixtures" count={live.length}>
  {#if live.length}<div class="grid gap-2 md:grid-cols-2">{#each live.slice(0, visible) as g (g.id)}<GameRow {g} showSport />{/each}</div>{:else}<p class="text-sm text-haze">No live fixtures match your filters.</p>{/if}
 </Accordion>
 <Accordion title="Upcoming fixtures" count={upcoming.length}>
  {#if upcoming.length}<div class="grid gap-2 md:grid-cols-2">{#each upcoming.slice(0, visible) as g (g.id)}<GameRow {g} showSport />{/each}</div>{:else}<p class="text-sm text-haze">No upcoming fixtures match your filters.</p>{/if}
 </Accordion>
-<Accordion title="Finished fixtures & latest scores" count={finished.length} open>
+<Accordion title="Finished fixtures & latest scores" count={finished.length}>
  {#if finished.length}<div class="grid gap-2 md:grid-cols-2">{#each finished.slice(0, visible) as g (g.id)}<GameRow {g} showSport />{/each}</div>{:else}<p class="text-sm text-haze">No finished fixtures match your filters.</p>{/if}
 </Accordion>
 {#if Math.max(live.length, upcoming.length, finished.length, filteredProjections.length) > visible}

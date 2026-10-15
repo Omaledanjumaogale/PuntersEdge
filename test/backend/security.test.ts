@@ -19,6 +19,32 @@ async function member(t: ReturnType<typeof create>, email = 'member@example.test
 }
 
 describe('backend access and subscription security', () => {
+ it('saved ticket rules are owner scoped, entitlement gated and reusable without sharing records',async()=>{
+  const t=create(),a=await member(t,'rules-a@example.test'),b=await member(t,'rules-b@example.test');
+  const rules={sports:['football'],markets:[],direction:'all',window:'12',minOdds:1.15,maxOdds:4,minTotal:2,maxTotal:25,minProbability:55,positiveValue:false,dateFrom:'',dateTo:''};
+  await expect(a.signed.mutation(anyApi.ticketRules.save,{name:'Morning',rules})).rejects.toThrow('subscription');
+  await t.run(async ctx=>{for(const userId of [a.localId,b.localId])await ctx.db.insert('subscriptions',{userId,expiresAt:Date.now()+3600000,updatedAt:Date.now()});});
+  const id=await a.signed.mutation(anyApi.ticketRules.save,{name:'Morning',rules});
+  expect(await b.signed.query(anyApi.ticketRules.list,{})).toEqual([]);
+  await expect(b.signed.mutation(anyApi.ticketRules.remove,{id})).rejects.toThrow('not found');
+  await a.signed.mutation(anyApi.ticketRules.save,{name:'Morning',rules:{...rules,minProbability:70}});
+  expect(await a.signed.query(anyApi.ticketRules.list,{})).toMatchObject([{_id:id,name:'Morning',rules:{minProbability:70}}]);
+  await a.signed.mutation(anyApi.ticketRules.remove,{id});expect(await a.signed.query(anyApi.ticketRules.list,{})).toEqual([]);
+ });
+ it('continuous learning reports are private and non-improving candidates cannot replace a serving model',async()=>{
+  const t=create();await expect(t.query(anyApi.learning.summary,{})).rejects.toThrow('Administrator');
+  const {signed,localId}=await member(t,'learning-owner@example.test');vi.stubEnv('SUPER_ADMIN_USER_ID',localId);
+  const artifact={sport:'football',scope:'full',version:'incumbent',league:'Test',trainedThrough:'2024-01-01',intercept:0,homeAdvantage:0,rho:0,teams:{a:{attack:0,defence:0},b:{attack:0,defence:0}},trainingCount:100};
+  const id=await signed.mutation(anyApi.models.register,{artifact});await signed.mutation(anyApi.models.shadowActivate,{id});
+  await t.mutation(anyApi.learning.patch,{data:{fingerprint:'test-data'}});
+  const bad={artifact:{...artifact,version:'bad-candidate'},incumbentVersion:'incumbent',evaluation:{n:50,newTrainingRows:30,candidateBrier:.5,incumbentBrier:.2,candidateLogLoss:.6,incumbentLogLoss:.4,candidateMae:1,incumbentMae:1,candidateCutoff:1,incumbentCutoff:1,testStart:2}};
+  await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[bad],fingerprint:'test-data'});
+  expect(await signed.query(anyApi.models.list,{})).toMatchObject([{version:'incumbent',mode:'active'}]);
+  const better={...bad,artifact:{...artifact,version:'better-candidate'},evaluation:{...bad.evaluation,candidateBrier:.15,candidateLogLoss:.3}};
+  await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[better],fingerprint:'test-data'});
+  expect(await signed.query(anyApi.models.list,{})).toEqual(expect.arrayContaining([expect.objectContaining({version:'better-candidate',mode:'active',approved:false,approvedMarkets:[]}),expect.objectContaining({version:'incumbent',mode:'retired'})]));
+  await expect(t.mutation(anyApi.learning.finish,{report:{},candidates:[],fingerprint:'different-data'})).rejects.toThrow('changed');
+ });
  it('model registry rejects anonymous import and never approves a candidate on activation',async()=>{
   const t=create();await expect(t.query(anyApi.models.list,{})).rejects.toThrow('Administrator');
   const {signed,localId}=await member(t,'model-owner@example.test');vi.stubEnv('SUPER_ADMIN_USER_ID',localId);
