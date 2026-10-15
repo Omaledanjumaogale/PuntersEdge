@@ -5,6 +5,7 @@
 	import { auth } from '#lib/auth.svelte.ts';
 	import { theme } from '#lib/theme.svelte.ts';
 	import Logo from './Logo.svelte';
+	import ProfileAvatar from './ProfileAvatar.svelte';
 	import { Menu, ReceiptText } from 'lucide-svelte';
 
 	let isSuperAdmin = $state(false);
@@ -37,17 +38,17 @@
 
 			{#if auth.signedIn}
 				<a href="/account" class="hidden h-10 items-center gap-2 rounded-full bg-raised pl-1 pr-3 ring-1 ring-line hover:ring-pop sm:inline-flex" aria-label="Your account">
-					<span class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-pop to-model font-display font-bold text-ink">{auth.initial}</span>
+					<ProfileAvatar size={32}/>
 					<span class="max-w-[8rem] truncate text-sm font-medium text-chalk">{auth.displayName}</span>
 				</a>
 			{:else if auth.status === 'signedOut'}
 				<a href="/login" class="hidden h-10 items-center rounded-full px-4 text-sm font-semibold text-chalk ring-1 ring-line hover:ring-pop sm:inline-flex">Log in</a>
 			{/if}
 
-			<button onclick={() => (app.slipOpen = true)} class="hidden h-10 items-center gap-2 rounded-full bg-chalk px-4 text-sm font-semibold text-ink md:inline-flex">
+			{#if !page.url.pathname.startsWith('/admin')}<button onclick={() => (app.slipOpen = true)} class="hidden h-10 items-center gap-2 rounded-full bg-chalk px-4 text-sm font-semibold text-ink md:inline-flex">
 				<ReceiptText class="h-4 w-4" /> Slip
 				{#if app.slip.length}<span class="grid h-5 min-w-5 place-items-center rounded-full bg-ink px-1 text-xs text-chalk">{app.slip.length}</span>{/if}
-			</button>
+			</button>{/if}
 
 			<button
 				onclick={() => (app.menuOpen = true)}

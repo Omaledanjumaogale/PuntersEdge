@@ -2,7 +2,7 @@
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { toast } from '#lib/toast.svelte.ts';
-	import { downloadSlipPdf, whatsappSlip } from '#lib/slip-export.ts';
+	import { downloadSlipPdf } from '#lib/slip-export.ts';
 	import { api } from '../../../convex/_generated/api.js';
 	import { odds, pct, ngn, signed } from '#lib/format.ts';
 	import { fly, fade } from 'svelte/transition';
@@ -160,7 +160,7 @@
 					<label class="grid gap-1 text-sm text-haze">Name this slip<input class="rounded-xl bg-ink px-3 py-2 text-chalk ring-1 ring-line" maxlength="80" bind:value={slipName} placeholder="Weekend picks" /></label>
 					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
 				{/if}
-				<div class="grid grid-cols-2 gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button><a class="btn-secondary text-center" href={whatsappSlip(exportSlip)} target="_blank" rel="noopener noreferrer">WhatsApp</a></div>
+				<div class="grid gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button></div>
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">
 					{#if copied}<Check class="h-4 w-4" /> Copied{:else}<Copy class="h-4 w-4" /> Copy slip for your bookmaker{/if}
 				</button>

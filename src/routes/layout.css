@@ -282,3 +282,33 @@ html,body {max-width:100%;overflow-x:clip;}
 #main > *,[role="dialog"] {min-width:0;max-width:100%;}
 [role="dialog"] p,[role="dialog"] summary {overflow-wrap:anywhere;}
 @media(max-width:639px){[role="dialog"] {max-height:calc(100dvh - env(safe-area-inset-top) - 8px);}input,select,textarea{font-size:16px;}button{touch-action:manipulation;}}
+
+/* Shared workspace system: consistent actions, readable density and local scrolling. */
+.btn-primary,.btn-ghost {min-height:44px;gap:.5rem;}
+button,a,input,select,textarea {touch-action:manipulation;}
+input,select,textarea {max-width:100%;min-width:0;}
+.surface {min-width:0;}
+.surface > h2,.panel > h2 {line-height:1.25;}
+.admin-main {max-width:1536px!important;}
+.admin-shell {display:grid;grid-template-columns:248px minmax(0,1fr);gap:32px;align-items:start;}
+.admin-rail {position:sticky;top:88px;border:1px solid var(--color-line);border-radius:24px;background:var(--color-deep);padding:16px;}
+.rail-brand {display:flex;gap:12px;align-items:center;padding:8px 8px 20px;border-bottom:1px solid var(--color-line);}
+.rail-brand > span {font-size:28px;}.rail-brand strong {font-family:var(--font-display);font-size:18px;}.rail-brand p {font-size:12px;color:var(--color-haze);}
+.rail-label {padding:24px 10px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--color-haze);}
+.admin-rail nav,.drawer-admin {display:grid;gap:6px;}
+.admin-rail nav a,.drawer-admin a {display:flex;gap:12px;align-items:center;min-height:60px;padding:10px;border-radius:14px;border:1px solid transparent;}
+.admin-rail nav a > span:first-child,.drawer-admin a > span:first-child {font-size:21px;flex-shrink:0;}
+.admin-rail nav strong,.drawer-admin strong {display:block;font-size:14px;font-weight:600;}
+.admin-rail nav small,.drawer-admin small,.rail-profile small {display:block;font-size:11px;line-height:1.5;color:var(--color-haze);margin-top:3px;}
+.admin-rail nav a:hover,.drawer-admin a:hover {background:var(--color-raised);}
+.admin-rail nav a[aria-current],.drawer-admin a[aria-current],.mobile-workspaces a[aria-current] {border-color:var(--color-pop);background:var(--color-raised);}
+.rail-profile {display:flex;align-items:center;gap:10px;margin-top:24px;padding:16px 4px 0;border-top:1px solid var(--color-line);font-size:13px;}
+.admin-content {min-width:0;}.workspace-bar {display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:4px 0 22px;font-size:12px;color:var(--color-haze);}.workspace-bar strong {color:var(--color-chalk);}.workspace-bar a {min-height:44px;display:inline-flex;align-items:center;color:var(--color-model);}
+.mobile-workspaces {display:none;}
+.admin-content .panel,.admin-content .metric {border:1px solid var(--color-line);box-shadow:none;}
+.admin-content .metric {padding:24px;}.admin-content .metric p {font-size:13px;}.admin-content .metric span {font-size:12px;line-height:1.6;}
+.admin-content .overflow-x-auto {width:100%;max-width:100%;min-width:0;overscroll-behavior-inline:contain;border:1px solid var(--color-line);border-radius:14px;}
+.admin-content table {font-size:13px;}.admin-content thead {background:var(--color-raised);}.admin-content th,.admin-content td {padding:16px!important;}.admin-content tbody tr:hover {background:var(--color-raised);}.admin-content table button {min-height:44px;}
+.workspace-state {padding:32px;border:1px dashed var(--color-line);border-radius:20px;background:var(--color-deep);}.workspace-state h2 {font-size:20px;font-weight:700;}.workspace-state p {margin-top:8px;max-width:64ch;color:var(--color-haze);font-size:14px;}
+@media(max-width:1023px){.admin-shell{grid-template-columns:minmax(0,1fr);gap:0}.admin-rail{display:none}.mobile-workspaces{display:flex;gap:8px;max-width:100%;overflow-x:auto;padding:2px 2px 18px;overscroll-behavior-inline:contain}.mobile-workspaces a{display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:48px;padding:10px 14px;border:1px solid var(--color-line);border-radius:14px;font-size:13px}.workspace-bar{padding-bottom:8px}.admin-content .metric{padding:20px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

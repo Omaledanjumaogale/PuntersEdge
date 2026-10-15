@@ -6,9 +6,9 @@ import { v } from 'convex/values';
 export const syncProfile = mutation({ args: {}, handler: async (ctx) => {
   const account = await authComponent.getAuthUser(ctx);
   const existing = await getCurrentUser(ctx);
-  const profile = { name: account.name, email: account.email, emailVerificationTime: account.emailVerified ? existing?.emailVerificationTime ?? Date.now() : undefined };
+  const profile = { name: account.name, email: account.email, image:account.image??undefined, emailVerificationTime: account.emailVerified ? existing?.emailVerificationTime ?? Date.now() : undefined };
   if (existing) {
-    if (existing.name !== profile.name || existing.email !== profile.email || existing.emailVerificationTime !== profile.emailVerificationTime) await ctx.db.patch(existing._id, profile);
+    if (existing.name !== profile.name || existing.email !== profile.email || existing.image!==profile.image || existing.emailVerificationTime !== profile.emailVerificationTime) await ctx.db.patch(existing._id, profile);
     return existing._id;
   }
   // Never link an old account by email alone: a separate migration must prove ownership.
@@ -20,7 +20,7 @@ export const viewer = query({ args: {}, handler: async (ctx) => {
   const subscription=await ctx.db.query('subscriptions').withIndex('by_user',q=>q.eq('userId',user._id)).unique();
   const superAdmin=Boolean(process.env.SUPER_ADMIN_USER_ID && user._id === process.env.SUPER_ADMIN_USER_ID);
   const activeSubscription=superAdmin || !!subscription && subscription.expiresAt>Date.now();
-  return { role:superAdmin?'super_admin':activeSubscription?'subscriber':'member', activeSubscription, id: user._id, name: user.name ?? null, email: user.email ?? null,
+  return { role:superAdmin?'super_admin':activeSubscription?'subscriber':'member', activeSubscription, id: user._id, name: user.name ?? null, email: user.email ?? null, image:user.image??null,
     favouriteSport: user.favouriteSport ?? null, settings: user.settings ?? null, joined: user._creationTime,
     emailVerified: Boolean(user.emailVerificationTime),
     superAdmin: Boolean(process.env.SUPER_ADMIN_USER_ID && user._id === process.env.SUPER_ADMIN_USER_ID), };

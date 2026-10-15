@@ -12,7 +12,7 @@
 
 	const shown = $derived(
 		groups
-			.map((g) => ({ ...g, selections: valueOnly ? g.selections.filter((s) => (s as any).opportunity?.green) : g.selections }))
+			.map((g) => ({ ...g, selections: [...(valueOnly ? g.selections.filter((s) => (s as any).opportunity?.green) : g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id)) }))
 			.filter((g) => g.selections.length > 0)
 	);
 </script>
@@ -22,12 +22,15 @@
 {/if}
 
 <div class="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-4">
-	{#each shown as g (g.key)}
-		<section class="min-w-0 max-w-full" aria-labelledby="mk-{g.key}">
-			<header class="mb-2">
+	{#each shown as g, index (g.key)}
+		<details class="market-accordion min-w-0 max-w-full" open={index===0}>
+			<summary class="market-summary">
+				<div class="min-w-0 flex-1">
 				<h3 id="mk-{g.key}" class="text-base font-bold text-chalk"><span aria-hidden="true">{g.emoji}</span> {g.title}</h3>
-				<p class="text-xs text-haze">{g.blurb}</p>
-			</header>
+				<p class="mt-1 text-xs text-haze">{g.selections.length} options · Highest model % first</p>
+				</div><span class="accordion-chevron" aria-hidden="true">⌄</span>
+			</summary>
+			<p class="px-4 pb-3 text-xs text-haze">{g.blurb}</p>
 			<ul class="overflow-hidden rounded-2xl ring-1 ring-line">
 				{#each g.selections as s (s.id)}
 					{@const inSlip = app.inSlip(s.id)}
@@ -61,6 +64,9 @@
 					</li>
 				{/each}
 			</ul>
-		</section>
+		</details>
 	{/each}
 </div>
+<style>
+ .market-accordion{border:1px solid var(--color-line);border-radius:18px;background:var(--color-deep);overflow:hidden}.market-summary{display:flex;align-items:center;gap:12px;padding:16px;min-height:64px;cursor:pointer;list-style:none}.market-summary::-webkit-details-marker{display:none}.market-summary:hover{background:var(--color-raised)}.accordion-chevron{font-size:24px;transition:transform .2s;flex-shrink:0}.market-accordion[open] .accordion-chevron{transform:rotate(180deg)}.market-accordion ul{border-radius:0;box-shadow:none}.market-accordion h3{overflow-wrap:anywhere}@media(prefers-reduced-motion:reduce){.accordion-chevron{transition:none}}
+</style>

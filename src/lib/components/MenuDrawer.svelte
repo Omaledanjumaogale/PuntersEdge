@@ -6,7 +6,8 @@
 	import { auth } from '#lib/auth.svelte.ts';
 	import { pwa } from '#lib/pwa.svelte.ts';
 	import { theme } from '#lib/theme.svelte.ts';
-	import { NAV, isActive } from '#lib/nav.ts';
+	import { NAV, isActive, ADMIN_NAV, adminActive } from '#lib/nav.ts';
+	import ProfileAvatar from './ProfileAvatar.svelte';
 	import Logo from './Logo.svelte';
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -36,7 +37,7 @@
 	async function logOut() {
 		busy = true;
 		try {
-			if (pwa.pushEnabled) if (pwa.pushEnabled) await pwa.disableNotifications();
+			if (pwa.pushEnabled) await pwa.disableNotifications();
 			await auth.logOut();
 			close();
 			await goto('/');
@@ -95,7 +96,7 @@
 		<section class="rounded-[var(--radius-card)] bg-raised p-4 ring-1 ring-line" aria-label="Account">
 			{#if auth.signedIn}
 				<a href="/account" class="flex items-center gap-3">
-					<span class="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-pop to-model font-display text-xl font-bold text-ink">{auth.initial}</span>
+					<ProfileAvatar size={48}/>
 					<span class="min-w-0">
 						<span class="block truncate font-semibold text-chalk">{auth.displayName}</span>
 						<span class="block truncate text-sm text-haze">{auth.viewer?.email}</span>
@@ -113,6 +114,7 @@
 
 		{#if isSuperAdmin}
 			<a href={page.url.pathname.startsWith('/admin') ? '/board' : '/admin'} class="btn-primary">{page.url.pathname.startsWith('/admin') ? 'Switch to user view' : 'Open admin console'}</a>
+			<nav class="drawer-admin" aria-label="Administration"><p class="text-xs font-semibold uppercase tracking-widest text-haze">Administration</p>{#each ADMIN_NAV as item}<a href={item.href} aria-current={adminActive(page.url.pathname,page.url.search,item.section)?'page':undefined}><span aria-hidden="true">{item.emoji}</span><span><strong>{item.label}</strong><small>{item.hint}</small></span></a>{/each}</nav>
 		{/if}
 		<!-- Navigation -->
 		<nav aria-label="Main" class="grid gap-3">

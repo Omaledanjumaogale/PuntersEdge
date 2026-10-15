@@ -5,7 +5,7 @@ import { convexClient } from '@convex-dev/better-auth/client/plugins';
 import { ConvexClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api.js';
 
-export interface Viewer { id: string; name: string | null; email: string | null; joined: number; emailVerified: boolean; superAdmin: boolean; role?: string; activeSubscription?: boolean; settings: Settings | null; }
+export interface Viewer { id: string; name: string | null; email: string | null; image?:string|null; joined: number; emailVerified: boolean; superAdmin: boolean; role?: string; activeSubscription?: boolean; settings: Settings | null; }
 export const PASSWORD_RULE = 'At least 8 characters, including a letter and a number.';
 export function passwordIssues(pw: string): string | null {
   if (pw.length < 8) return 'Use at least 8 characters.';

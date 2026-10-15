@@ -24,7 +24,7 @@ export const NAV: NavItem[] = [
 		hint: SPORTS[s].markets.split(',')[0],
 		group: 'sport' as const
 	})),
-	{ href: '/value-bets', label: 'Value bets', emoji: '🔥', hint: 'Prices above fair', group: 'main' },
+	{ href: '/value-bets', label: 'Market choices', emoji: '💎', hint: 'Projections and observed prices', group: 'main' },
 	{ href: '/bet-machine', label: 'Bet machine', emoji: '🎟️', hint: 'Build a model-ranked accumulator', group: 'more' },
 	{ href: '/results', label: 'Results', emoji: '📈', hint: 'Scores and our record', group: 'main' },
 	{ href: '/betslips', label: 'Slip history', emoji: '🧾', hint: 'Saved slips, PDF and sharing', group: 'more' },
@@ -37,4 +37,15 @@ export const NAV: NavItem[] = [
 export function isActive(pathname: string, href: string, also: string[] = []) {
 	const hit = (h: string) => (h === '/' ? pathname === '/' : pathname === h || pathname.startsWith(`${h}/`));
 	return hit(href) || also.some(hit);
+}
+
+/** Shared admin workspace links. The drawer and desktop rail render these same records. */
+export const ADMIN_NAV = [
+ {href:'/admin',label:'Overview',emoji:'💎',hint:'Performance and coverage',section:'performance'},
+ {href:'/admin?workspace=operations',label:'Data operations',emoji:'📡',hint:'Sources, budgets and refreshes',section:'operations'},
+ {href:'/admin/models',label:'Model registry',emoji:'🧮',hint:'Candidates and evaluation',section:'models'},
+ {href:'/admin?workspace=memberships',label:'Members & payments',emoji:'🔑',hint:'Access and billing records',section:'memberships'}
+] as const;
+export function adminActive(pathname:string,search:string,section:string){
+ return pathname.startsWith('/admin/models')?section==='models':pathname==='/admin'&&(new URLSearchParams(search).get('workspace')??'performance')===section;
 }

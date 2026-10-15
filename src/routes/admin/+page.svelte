@@ -2,6 +2,8 @@
  import { auth } from '#lib/auth.svelte.ts';
  import { toast } from '#lib/toast.svelte.ts';
  import { anyApi } from 'convex/server';
+ import {page} from '$app/state';
+ import ConsoleIllustration from '#lib/components/admin/ConsoleIllustration.svelte';
  import { ShieldCheck, Activity, ChartNoAxesCombined, Users, RefreshCw, ArrowUpRight, Database, Target, CircleAlert } from 'lucide-svelte';
  import PerformanceChart from '#lib/components/admin/PerformanceChart.svelte';
  import CalibrationChart from '#lib/components/admin/CalibrationChart.svelte';
@@ -13,6 +15,8 @@
  let performance=$state<Performance|null>(null);
  let allowed=$state(false),checked=$state(false),error=$state(''),busy=$state(false),userId=$state('');
  let tab=$state<'performance'|'operations'|'memberships'>('performance');
+ let actionError=$state('');
+ $effect(()=>{const workspace=page.url.searchParams.get('workspace');tab=workspace==='operations'||workspace==='memberships'?workspace:'performance';});
  let breakdown=$state<'sports'|'grades'|'markets'|'bands'|'versions'>('sports');
  let filter=$state('');
  let sportFilter=$state('');
@@ -39,8 +43,8 @@
   ];return()=>subscriptions.forEach(stop=>stop());
  });
  $effect(()=>{const client=auth.client;const sport=sportFilter;performance=null;if(!allowed||!client)return;return client.onUpdate(anyApi.admin.performance,sport?{sport}:{},value=>performance=value,()=>error='Performance records could not load.');});
- async function refresh(){if(!auth.client)return;busy=true;try{await auth.client.mutation(anyApi.workflows.refreshData,{});toast.success('Refresh queued. Provider quotas remain enforced.');}catch(e){toast.error(e instanceof Error?e.message:'Refresh could not start.');}finally{busy=false;}}
- async function membership(active:boolean){if(!auth.client)return;busy=true;try{await auth.client.mutation(anyApi.admin.setMembership,{userId:userId.trim(),active});toast.success(active?'One month of access granted.':'Membership revoked.');userId='';}catch(e){toast.error(e instanceof Error?e.message:'Could not change membership.');}finally{busy=false;}}
+ async function refresh(){if(!auth.client)return;busy=true;actionError='';try{await auth.client.mutation(anyApi.workflows.refreshData,{});toast.success('Refresh queued. Provider quotas remain enforced.');}catch(e){actionError=e instanceof Error?e.message:'Refresh could not start.';toast.error(actionError);}finally{busy=false;}}
+ async function membership(active:boolean){if(!auth.client)return;busy=true;actionError='';try{await auth.client.mutation(anyApi.admin.setMembership,{userId:userId.trim(),active});toast.success(active?'One month of access granted.':'Membership revoked.');userId='';}catch(e){actionError=e instanceof Error?e.message:'Could not change membership.';toast.error(actionError);}finally{busy=false;}}
  async function exportForecast(fixtureId: unknown) {
   if(!auth.client || typeof fixtureId !== 'string')return;
   try {
@@ -51,26 +55,32 @@
    const data=await new Response(blob.stream().pipeThrough(new DecompressionStream('gzip'))).blob();
    const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
    const anchor=document.createElement('a');anchor.href=url;anchor.download=`PuntersEdge-${fixtureId}.json`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }catch(reason){toast.error(reason instanceof Error?reason.message:'Could not export forecast.');}
+  }catch(reason){actionError=reason instanceof Error?reason.message:'Could not export forecast.';toast.error(actionError);}
  }
- const tabs=[{id:'performance',label:'Model performance',icon:ChartNoAxesCombined},{id:'operations',label:'Data operations',icon:Activity},{id:'memberships',label:'Members & payments',icon:Users}] as const;
 </script>
 <svelte:head><title>Admin console · PuntersEdge</title><meta name="robots" content="noindex,nofollow" /></svelte:head>
 <section class="space-y-6">
  <header class="relative overflow-hidden rounded-[var(--radius-card)] bg-deep p-5 ring-1 ring-line sm:p-7">
   <div class="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-pop/10 blur-3xl" aria-hidden="true"></div>
   <div class="relative flex flex-wrap items-start justify-between gap-4">
-   <div><p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-model"><ShieldCheck class="h-4 w-4"/>Private administration</p><h1 class="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">The control room<span class="text-pop">.</span></h1><p class="mt-2 max-w-xl text-sm text-haze">Measured model performance, live source operations and all-access membership controls.</p></div>
+   <div class="min-w-0 flex-1"><p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-model"><ShieldCheck class="h-4 w-4"/>Intelligence workspace</p><h1 class="mt-3 font-display text-3xl font-bold tracking-tight sm:text-5xl">{tab==='operations'?'Data operations':tab==='memberships'?'Members & payments':'Platform overview'}</h1><p class="mt-3 max-w-xl text-sm leading-relaxed text-haze">{tab==='operations'?'Monitor source health, protect provider budgets and manage the live data pipeline.':tab==='memberships'?'Manage verified access, review billing records and keep membership changes accountable.':'A clear view of forecast quality, published coverage and the systems behind every market choice.'}</p></div>
+   <div class="hidden lg:block"><ConsoleIllustration/></div>
    {#if allowed}<div class="flex flex-wrap gap-2"><a href="/admin/models" class="btn-ghost text-sm">Model registry</a><a href="/board" class="btn-ghost text-sm">Open user view <ArrowUpRight class="h-4 w-4"/></a></div>{/if}
   </div>
  </header>
  {#if error}<p role="alert" class="flex items-center gap-2 rounded-2xl bg-loss/10 p-4 text-sm text-loss ring-1 ring-loss/30"><CircleAlert class="h-4 w-4"/>{error}</p>{/if}
+ {#if actionError}<div role="alert" class="rounded-2xl border border-loss/40 bg-loss/10 p-4"><p class="font-semibold text-loss">Action could not complete</p><p class="mt-1 break-words text-sm">{actionError}</p><button class="btn-ghost mt-3" onclick={()=>actionError=''}>Dismiss message</button></div>{/if}
  {#if !checked}<div class="panel p-8 text-center text-haze" role="status">Verifying administrator access…</div>
  {:else if !allowed}<div class="panel p-6"><h2 class="font-display text-xl font-bold">Administrator sign-in required</h2><p class="mt-2 text-sm text-haze">Use the authorized administrator account to access this private console.</p><a href="/login?next=/admin" class="btn-primary mt-4">Sign in</a></div>
  {:else}
-  <nav class="flex gap-2 overflow-x-auto rounded-2xl bg-deep p-2 ring-1 ring-line" aria-label="Admin sections">
-   {#each tabs as item}<button onclick={()=>tab=item.id} aria-current={tab===item.id?'page':undefined} class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors {tab===item.id?'bg-raised text-chalk ring-1 ring-pop/40':'text-haze hover:text-chalk'}"><item.icon class="h-4 w-4"/>{item.label}</button>{/each}
-  </nav>
+  <div class="grid gap-3 sm:grid-cols-3" aria-label="Platform coverage">
+   <a href="/board" class="surface p-4"><p class="text-xs font-semibold text-haze">📊 Published coverage</p><p class="mt-2 font-display text-2xl font-bold">{performance?.coverage.projected??'—'}</p><p class="mt-1 text-xs text-haze">Open the fixture board ↗</p></a>
+   <a href="/admin?workspace=operations" class="surface p-4"><p class="text-xs font-semibold text-haze">📡 Pipeline status</p><p class="mt-2 font-display text-xl font-bold">{!health?'Loading':health.locked?'Refreshing':health.lastError?'Needs attention':'Ready'}</p><p class="mt-1 text-xs text-haze">Review sources and budgets ↗</p></a>
+   <a href="/admin/models" class="surface p-4"><p class="text-xs font-semibold text-haze">🧮 Model governance</p><p class="mt-2 font-display text-xl font-bold">Registry</p><p class="mt-1 text-xs text-haze">Review serving candidates ↗</p></a>
+  </div>
+  {#if (tab==='performance'&&!performance)||(tab==='operations'&&!health)||(tab==='memberships'&&!overview)}
+   <div class="workspace-state" role="status" aria-live="polite"><h2>{error?'Workspace unavailable':'Loading workspace'}</h2><p>{error?'The data connection could not load this workspace. Your administrator permissions are still enforced. Reload to retry.':'Connecting to verified records. Metrics and tables will appear when their subscriptions respond.'}</p>{#if error}<a class="btn-ghost mt-4" href={page.url.pathname+page.url.search} data-sveltekit-reload>Retry connection</a>{/if}</div>
+  {:else}
   {#if tab==='performance'}
    <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-display text-xl font-bold">Forecast intelligence</h2><p class="mt-1 text-xs text-haze">Evaluate published forecasts against confirmed final scores.</p></div><label class="flex items-center gap-2 text-xs text-haze">Sport<select bind:value={sportFilter} class="min-h-11 rounded-xl bg-raised px-3 py-2 text-sm text-chalk ring-1 ring-line"><option value="">All sports</option><option value="football">Football</option><option value="nba">NBA</option><option value="basketball">Basketball</option><option value="hockey">Ice hockey</option><option value="baseball">Baseball</option></select></label></div>
    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -96,6 +106,7 @@
   {:else}
    <div class="grid gap-4 lg:grid-cols-[1fr_1.3fr]"><section class="panel p-5"><h2 class="font-display text-xl font-bold">Membership controls</h2><p class="mt-2 text-sm text-haze">All-access membership costs {money(10000)} per calendar month. Manual changes create an audit record.</p><label class="mt-5 block text-sm font-medium">Account user ID<input bind:value={userId} placeholder="Select a member below or enter their ID" class="mt-2 block w-full rounded-xl bg-ink px-3 py-3 text-sm ring-1 ring-line"/></label><div class="mt-4 flex flex-wrap gap-2"><button disabled={busy||!userId.trim()} onclick={()=>membership(true)} class="btn-primary">Grant one month</button><button disabled={busy||!userId.trim()} onclick={()=>membership(false)} class="btn-ghost text-loss">Revoke access</button></div></section><section class="panel p-5"><h2 class="font-display text-xl font-bold">Recent memberships</h2><ul class="mt-4 grid gap-2">{#each overview?.subscriptions??[] as sub}<li><button onclick={()=>userId=sub.userId} class="flex min-h-12 w-full flex-wrap items-center justify-between gap-2 rounded-xl bg-ink p-3 text-left ring-1 ring-line hover:ring-pop"><span class="max-w-full truncate font-mono text-xs">{sub.userId}</span><span class="text-xs text-haze">Expires {date(sub.expiresAt)}</span></button></li>{:else}<li class="text-sm text-haze">No memberships recorded.</li>{/each}</ul></section></div>
    <section class="panel p-5"><h2 class="font-display text-xl font-bold">Recent payments</h2><p class="mt-1 text-xs text-haze">Server-verified checkout records across Flutterwave and Korapay.</p><div class="mt-4 overflow-x-auto"><table><thead><tr><th>Reference</th><th>Provider</th><th>Amount</th><th>Status</th></tr></thead><tbody>{#each overview?.payments??[] as payment}<tr><td class="font-mono text-xs">{payment.reference}</td><td class="capitalize">{payment.provider}</td><td>{money(payment.amount)}</td><td><span class="rounded-full bg-raised px-2 py-1 text-xs">{payment.status}</span></td></tr>{:else}<tr><td colspan="4" class="py-8 text-center text-haze">No payment records yet.</td></tr>{/each}</tbody></table></div></section>
+  {/if}
   {/if}
  {/if}
 </section>

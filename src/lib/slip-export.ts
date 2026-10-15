@@ -1,9 +1,7 @@
-import { shareSlipText } from './slips.js';
 export interface ExportSlip {
  name: string; betType: string; stake: number; potentialReturn: number;
  items: {matchTitle:string;selection:string;bookmaker:string;odds:number;modelProb?:number;kickoff?:number|string;market?:string;sport?:string;fixtureStatus?:string;marketKey?:string;family?:string;score?:{home:number;away:number;regHome?:number;regAway?:number}}[];
 }
-export function whatsappSlip(slip:ExportSlip){return `https://wa.me/?text=${encodeURIComponent(shareSlipText(slip))}`;}
 /** Branded table PDF, rendered locally with pagination and repeated column headers. */
 export async function downloadSlipPdf(slip:ExportSlip){
  const {jsPDF}=await import('jspdf');const doc=new jsPDF();
