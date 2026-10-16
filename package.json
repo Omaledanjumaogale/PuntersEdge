@@ -15,7 +15,7 @@
     "convex:deploy": "convex deploy",
     "pipeline": "node scripts/pipeline.js",
     "build:single": "vite build && node scripts/build-single-file.mjs",
-    "test:backend": "vitest run --config vitest.config.ts",
+    "test:backend": "svelte-kit sync && vitest run --config vitest.config.ts",
     "check:backend": "tsc --noEmit -p convex/tsconfig.json"
   },
   "dependencies": {

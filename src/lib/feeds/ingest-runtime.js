@@ -39,6 +39,11 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
  const flushArchive=async(/** @type {string|undefined|null} */key)=>{if(!key)return;const outbox=await read(key);for(const batch of outbox.batches??outbox)await rpc.mutation('performance:archiveBatch',batch);if(outbox.states?.length)await rpc.mutation('betslip:resolveSavedFixtures',{states:outbox.states});for(const event of outbox.events??[])await rpc.action('notifications:deliver',event);await rpc.mutation('feed:ackArchive',{key});await blobs.delete(key);};
  try{
   await flushArchive(state.pendingArchiveKey);
+  const retiredKeys=[];
+  for(const entry of state.retiredKeys??[]){
+   if(entry.after>now||[state.storeKey,state.lookupsKey,state.feedKey,state.previewKey].includes(entry.key)){retiredKeys.push(entry);continue;}
+   try{await blobs.delete(entry.key);}catch{retiredKeys.push(entry);}
+  }
   const store=reviveStore(await read(state.storeKey,state.storeUrl)),lookups=await read(state.lookupsKey,state.lookupsUrl)??{};
   const migrationBackupKey=!state.storeKey?await put('backup',store):undefined;
   store.modelArtifacts=await rpc.query('models:serving',{});
@@ -71,12 +76,12 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   const changedStates=Object.values(store.games).filter(g=>JSON.stringify(g.status)!==JSON.stringify(previousGames[g.uid]?.status)||g.kickoff!==previousGames[g.uid]?.kickoff).map(g=>({fixtureId:g.uid,kickoff:g.kickoff,status:g.status.state,family:SPORTS[/** @type {import("./catalog.js").SportKey} */(g.sport)].family,...(Number.isFinite(g.status.home)&&Number.isFinite(g.status.away)?{score:{home:g.status.home,away:g.status.away,...(g.status.regHome!==undefined?{regHome:g.status.regHome}:{}),...(g.status.regAway!==undefined?{regAway:g.status.regAway}:{})}}:{})}));
   const events=Object.entries(notificationCounts(previousGames,store.games,now)).filter(([,count])=>count>0).map(([event,count])=>({event,count,batchId:`${now}:${event}`}));
   const pendingArchiveKey=batches.length||changedStates.length||events.length?await put('outbox',{batches,states:changedStates,events}):undefined;
-  await rpc.mutation('feed:commitEdge',{now,ledgers:result.ledgers,lastRun:result.lastRun,log:result.log,storeKey,lookupsKey,feedKey,version,generatedAt,previewKey,previewVersion,counts:{...Object.fromEntries(Object.entries(feed.inputs).map(([s,rows])=>[s,rows.length])),games:feed.games.length},usage,coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter(g=>!g.priced).length,pending:Object.keys(store.record.pending).length,modelVersion:MODEL_VERSION},...(pendingArchiveKey?{pendingArchiveKey}:{}),...(migrationBackupKey?{migrationBackupKey}:{})});
+  for(const key of [state.storeKey,state.lookupsKey,state.feedKey,state.previewKey])if(key&&![storeKey,lookupsKey,feedKey,previewKey].includes(key)&&!retiredKeys.some(entry=>entry.key===key))retiredKeys.push({key,after:now+2*3600000});
+  await rpc.mutation('feed:commitEdge',{retiredKeys,now,ledgers:result.ledgers,lastRun:result.lastRun,log:result.log,storeKey,lookupsKey,feedKey,version,generatedAt,previewKey,previewVersion,counts:{...Object.fromEntries(Object.entries(feed.inputs).map(([s,rows])=>[s,rows.length])),games:feed.games.length},usage,coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter(g=>!g.priced).length,pending:Object.keys(store.record.pending).length,modelVersion:MODEL_VERSION},...(pendingArchiveKey?{pendingArchiveKey}:{}),...(migrationBackupKey?{migrationBackupKey}:{})});
   // Public preview is intentionally limited; premium data is never written to this key.
   await blobs.put('preview/current.gz',gzipJson(preview));
   await flushArchive(pendingArchiveKey);
-  // Only obsolete hot-state blobs are removed. Forecast archives have no destructive retention job.
-  for(const old of [state.storeKey,state.lookupsKey,state.feedKey,state.previewKey])if(old&&![storeKey,lookupsKey,feedKey,previewKey].includes(old))await blobs.delete(old);
+  // Replaced hot blobs have a two-hour grace period for in-flight readers and training jobs.
   await rpc.mutation('feed:completeEdge',{});
   return {ran:result.ran.length,archiveChanges:changes.length,feedUpdated:version!==state.feedVersion,storeBytes:gzipJson(store).length,feedBytes:gzipJson(feed).length,publicChanged};
  }catch(error){let message=error instanceof Error?error.message:String(error);for(const value of Object.values(keys))if(value)message=message.split(value).join('[redacted]');await rpc.mutation('feed:release',{now,error:message.slice(0,300),...(reserved?{ledgers:reserved}:{})});throw new Error(message);}

@@ -28,3 +28,9 @@ test('hot-copy compaction preserves settlement fields and original immutable sna
  const p={fixtureId:'x',priorPublication:{publishedAt:1},publicationHistory:[1],selections:[{key:'home',modelProb:.7,grade:'A',result:'won',opportunity:{note:'frozen'},eligibilityReasons:['frozen']}],input:{ratings:{homeMean:2}}};
  const compact=compactSnapshot(p);assert.equal(compact.selections[0].modelProb,.7);assert.equal(compact.selections[0].result,'won');assert.equal(p.selections[0].opportunity.note,'frozen');assert.equal(compact.priorPublication,undefined);
 });
+
+test('replaced R2 state has a grace period before cleanup and active pointers survive',async()=>{
+ const h=harness();await h.run(now);assert.ok(h.files.has('state/initial.gz'));const active=h.state.storeKey;
+ await h.run(now+30*60000);assert.ok(h.files.has('state/initial.gz'));assert.ok(h.files.has(active));
+ await h.run(now+3*3600000);assert.equal(h.files.has('state/initial.gz'),false);assert.ok(h.files.has(h.state.storeKey));
+});

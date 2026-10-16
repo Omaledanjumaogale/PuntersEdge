@@ -71,7 +71,7 @@ export const claim = internalMutation({
     return {
       ledgers: (await getDoc(ctx,"quota"))?.data?.ledgers ?? d.ledgers ?? {},
       lastRun: d.lastRun ?? {},
-      storeKey:d.storeKey??null,lookupsKey:d.lookupsKey??null,feedKey:d.feedKey??null,previewKey:d.previewKey??null,pendingArchiveKey:d.pendingArchiveKey??null,
+      retiredKeys:d.retiredKeys??[],storeKey:d.storeKey??null,lookupsKey:d.lookupsKey??null,feedKey:d.feedKey??null,previewKey:d.previewKey??null,pendingArchiveKey:d.pendingArchiveKey??null,
       storeUrl:d.storeKey?null:d.storeId?await ctx.storage.getUrl(d.storeId):null,lookupsUrl:d.lookupsKey?null:d.lookupsId?await ctx.storage.getUrl(d.lookupsId):null,
       storeId: (d.storeId as Id<"_storage"> | undefined) ?? null,
       lookupsId: (d.lookupsId as Id<"_storage"> | undefined) ?? null,
@@ -166,10 +166,10 @@ export const diagnosticState = internalQuery({args:{},handler:async(ctx)=>{
 }});
 
 /** R2 ingest commits small pointers. No blob bytes are returned or stored in Convex. */
-export const commitEdge=internalMutation({args:{now:v.number(),ledgers:v.any(),lastRun:v.any(),log:v.array(v.string()),storeKey:v.string(),lookupsKey:v.string(),feedKey:v.string(),version:v.string(),generatedAt:v.string(),previewKey:v.string(),previewVersion:v.string(),counts:v.any(),usage:v.any(),coverage:v.any(),pendingArchiveKey:v.optional(v.string()),migrationBackupKey:v.optional(v.string())},handler:async(ctx,args)=>{
+export const commitEdge=internalMutation({args:{now:v.number(),ledgers:v.any(),lastRun:v.any(),log:v.array(v.string()),storeKey:v.string(),lookupsKey:v.string(),feedKey:v.string(),version:v.string(),generatedAt:v.string(),previewKey:v.string(),previewVersion:v.string(),counts:v.any(),usage:v.any(),coverage:v.any(),pendingArchiveKey:v.optional(v.string()),migrationBackupKey:v.optional(v.string()),retiredKeys:v.array(v.object({key:v.string(),after:v.number()}))},handler:async(ctx,args)=>{
  for(const key of [args.storeKey,args.lookupsKey,args.feedKey,args.previewKey,...(args.pendingArchiveKey?[args.pendingArchiveKey]:[])])if(!/^(state|feed|preview|outbox)\/[a-f0-9]+\.gz$/.test(key))throw new Error('Invalid R2 pointer');
  const ingest=await getDoc(ctx,'ingest'),d={...(ingest?.data??{})};delete d.ledgers;
- const values={...d,storeKey:args.storeKey,lookupsKey:args.lookupsKey,feedKey:args.feedKey,previewKey:args.previewKey,feedVersion:args.version,previewVersion:args.previewVersion,lastRun:args.lastRun,lastTick:args.now,lastLog:args.log.slice(0,20),lastError:null,lastErrorAt:null,...(args.pendingArchiveKey?{pendingArchiveKey:args.pendingArchiveKey}:{}),...(args.migrationBackupKey?{migrationBackupKey:args.migrationBackupKey}:{})};
+ const values={...d,storeKey:args.storeKey,lookupsKey:args.lookupsKey,feedKey:args.feedKey,previewKey:args.previewKey,feedVersion:args.version,previewVersion:args.previewVersion,lastRun:args.lastRun,retiredKeys:args.retiredKeys,lastTick:args.now,lastLog:args.log.slice(0,20),lastError:null,lastErrorAt:null,...(args.pendingArchiveKey?{pendingArchiveKey:args.pendingArchiveKey}:{}),...(args.migrationBackupKey?{migrationBackupKey:args.migrationBackupKey}:{})};
  if(ingest)await ctx.db.patch(ingest._id,{data:values});else await ctx.db.insert('feed_state',{key:'ingest',data:values});
  await putDoc(ctx,'quota',{ledgers:args.ledgers});
  const old=await getDoc(ctx,'feed');

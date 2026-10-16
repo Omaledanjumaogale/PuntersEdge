@@ -20,7 +20,7 @@ The replacement stops unchanged publications, batches up to 20 metadata updates 
 
 New publications retain compressed original evidence in R2. Only hot settlement copies omit repeated prose and the already archived prior publication. A private migration backup preserves the original live store. Existing cold Convex archives remain available: mass-downloading them now would itself consume the remaining Convex egress. They incur no download egress while idle.
 
-A tick writes an R2 outbox, atomically commits its pointer with the feed pointer, then applies idempotent archive, saved-fixture and notification updates. A failure leaves the outbox for the next tick to replay. Old hot-state files are removed only after a successful commit and outbox flush. Forecast archives and migration backups are not bulk-deleted.
+A tick writes an R2 outbox, atomically commits its pointer with the feed pointer, then applies idempotent archive, saved-fixture and notification updates. A failure leaves the outbox for the next tick to replay. Replaced hot-state files have a two-hour grace period for in-flight downloads and training jobs before a later successful tick removes them. Forecast archives and migration backups are not bulk-deleted.
 
 Daily chronological retraining still runs. Collection reads the R2 live store; the relatively small retained training corpus/dataset remains on Convex storage. Promotion and betting-approval gates are unchanged. Manual admin refreshes use the same R2 pipeline from a Convex action, so use the automatic schedule for normal operation: manual bulk writes still count as Convex outgoing fetch traffic.
 
