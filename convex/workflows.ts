@@ -5,9 +5,9 @@ import { requireAdmin } from './access';
 export const health = query({ args: {}, handler: async ctx => {
   await requireAdmin(ctx);
   const ingest = await ctx.db.query('feed_state').withIndex('by_key', q => q.eq('key', 'ingest')).unique();
-  const feed = await ctx.db.query('feed_state').withIndex('by_key', q => q.eq('key', 'feed')).unique();
+  const feed = await ctx.db.query('feed_state').withIndex('by_key', q => q.eq('key', 'operations')).unique() ?? await ctx.db.query('feed_state').withIndex('by_key', q => q.eq('key', 'feed')).unique();
   const d = ingest?.data ?? {};
-  return { locked: Number(d.lockUntil ?? 0) > Date.now(), lockUntil: d.lockUntil ?? null, lastTick: d.lastTick ?? null, lastError: d.lastError ?? null, lastErrorAt: d.lastErrorAt ?? null, lastLog: d.lastLog ?? [], usage: feed?.data?.usage ?? null, nextManualRefresh: Number(d.lastAdminRefresh ?? 0) + 5 * 60000 };
+  return { storageMode:d.storeKey?'R2 bulk storage':'Convex legacy storage',coverage:feed?.data?.coverage??null, locked: Number(d.lockUntil ?? 0) > Date.now(), lockUntil: d.lockUntil ?? null, lastTick: d.lastTick ?? null, lastError: d.lastError ?? null, lastErrorAt: d.lastErrorAt ?? null, lastLog: d.lastLog ?? [], usage: feed?.data?.usage ?? null, nextManualRefresh: Number(d.lastAdminRefresh ?? 0) + 5 * 60000 };
 }});
 export const refreshData = mutation({ args: {}, handler: async ctx => {
   await requireAdmin(ctx);

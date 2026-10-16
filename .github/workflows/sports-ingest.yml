@@ -1,0 +1,31 @@
+name: Refresh sports data on R2
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sports-ingest-production
+  cancel-in-progress: false
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      PUBLIC_CONVEX_URL: https://reliable-duck-539.eu-west-1.convex.cloud
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      EDGE_DATA_URL: https://puntersedge.ewinproject.org
+      EDGE_DATA_SECRET: ${{ secrets.EDGE_DATA_SECRET }}
+      API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+      ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --legacy-peer-deps --ignore-scripts
+      - run: node scripts/edge-ingest.mjs

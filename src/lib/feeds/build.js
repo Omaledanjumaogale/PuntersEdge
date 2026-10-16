@@ -137,7 +137,7 @@ export function updateRecord(store, now) {
       const latestInput=inputFor(store,g,now);
       // v3 evaluates the last actually published pre-kickoff snapshot. Retain
       // each previous forecast's prices/probabilities rather than silently rewriting it.
-      if(latestInput && snapshot.modelVersion=== '2026.10.evidence-gated.3' && now-snapshot.publishedAt>=30*60_000) {
+      if(latestInput && snapshot.modelVersion=== '2026.10.evidence-gated.3' && now-snapshot.publishedAt>=30*60_000 && JSON.stringify(latestInput)!==JSON.stringify(snapshot.input)) {
         try {
           const next=/** @type {any} */(snapshotOf(g,latestInput,predict(g.sport,latestInput,{now}),now));
           next.priorPublication={publishedAt:snapshot.publishedAt,modelVersion:snapshot.modelVersion,artifactVersion:snapshot.artifactVersion??null,input:snapshot.input,forecast:snapshot.forecast,selections:snapshot.selections};
@@ -214,6 +214,7 @@ export function buildFeed(store, now, usage) {
     const snapshot = store.projections[g.uid];
     const reviewable = snapshot?.finishedAt && now < snapshot.finishedAt + REVIEW_MS;
     const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now) : null;
+    if (!input && !snapshot) continue;
     if (input) inputs[g.sport].push(input);
     games.push({
       id: g.uid,

@@ -122,6 +122,7 @@ class FeedState {
 		// Never hydrate another user's premium data from a shared browser cache.
 		this.#dispose = $effect.root(() => {
 			$effect(() => {
+    if(auth.status==='loading')return;
     const viewer=auth.viewer;const allowed=!!(viewer?.activeSubscription||viewer?.superAdmin);const nextKey=`${viewer?.id??'guest'}:${allowed}`;const nextClient=allowed?auth.client:null;
     if(this.#accessKey===nextKey&&this.#client===nextClient)return;
     this.#accessKey=nextKey;
@@ -133,7 +134,7 @@ class FeedState {
 				this.#client = nextClient;
 				this.data = null; this.version = null; this.mode = 'unavailable'; this.usage = null;
     try {localStorage.removeItem(CACHE_KEY);if(allowed&&nextClient&&viewer?.id){const cached=JSON.parse(localStorage.getItem(CACHE_KEY+':'+viewer.id)??'null');if(cached?.owner===viewer.id&&cached?.data?.v===1){this.data=cached.data;this.version=cached.version;this.mode='live';}}}catch{/* Optional owner-scoped cache unavailable. */}
-				if (!this.#client) { void this.#loadPreview(); this.#previewTimer=setInterval(()=>void this.#loadPreview(),120000); return; }
+				if (!this.#client) { void this.#loadPreview(); this.#previewTimer=setInterval(()=>{if(!document.hidden)void this.#loadPreview();},600000); return; }
 				this.status = 'checking';
 				this.#unsubscribe = client!.onUpdate(api.feed.meta, {}, (meta) => {
 					void this.#accept(meta);

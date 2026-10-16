@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.0.2] - 2026-10-16
+
+- Move scheduled fixture processing, hot state, feed delivery and new forecast archives to private Cloudflare R2 storage.
+- Keep Convex for accounts, access checks, saved tickets and small feed/archive metadata.
+- Stop unchanged half-hour forecast republications, batch performance counters, isolate provider quota writes, and load detailed performance only in its admin workspace.
+- Preserve full forecast evidence in immutable archives, compact duplicated explanation text in hot settlement copies, and retry pending archive/result/notification metadata through a durable outbox.
+- Serve the limited public preview directly from R2; authorize every private feed and archive download.
+- Reduce anonymous polling and exclude fixtures without a usable projection from delivered feeds.
+
 ## [1.0.0.1] - 2026-10-14
 
 - Inspect fitted candidates in the protected model registry and run shadow forecasts without unsupported stake recommendations.

@@ -1,10 +1,4 @@
-import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
-
-const crons = cronJobs();
-
-// Live data: every 30 minutes. Each tick only calls providers whose jobs are
-// due and within quota (see src/lib/feeds/budget.ts and jobs.js).
-crons.interval("ingest live feeds", { minutes: 30 }, internal.ingest.tick, {});
-
+import {cronJobs} from 'convex/server';
+// Heavy ingestion runs in .github/workflows/sports-ingest.yml, keeping blob traffic off Convex.
+const crons=cronJobs();
 export default crons;

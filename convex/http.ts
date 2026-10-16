@@ -11,6 +11,12 @@ http.route({ path: "/payments/flutterwave", method: "POST", handler: flutterwave
 http.route({path:"/feed",method:"GET",handler:httpAction(async(ctx)=>{
  try {
   const meta=await ctx.runQuery(internal.feed.storageMeta,{});
+  if(meta?.blobKey){
+   const base=process.env.EDGE_DATA_URL,secret=process.env.EDGE_DATA_SECRET;
+   if(!base||!secret)return new Response('Feed unavailable',{status:503});
+   const r=await fetch(new URL('/api/internal/blob/'+meta.blobKey,base),{headers:{Authorization:`Bearer ${secret}`},signal:AbortSignal.timeout(20000)});
+   return new Response(r.body,{status:r.status,headers:{'Content-Type':'application/gzip','Cache-Control':'private, no-store','Vary':'Authorization'}});
+  }
   if(!meta?.url)return new Response("Feed unavailable",{status:503});
   const response=await fetch(meta.url,{signal:AbortSignal.timeout(15000)});
   if(!response.ok)return new Response("Feed unavailable",{status:503});

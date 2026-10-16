@@ -1,0 +1,28 @@
+import {it,expect,vi,afterEach} from 'vitest';
+const identity=vi.hoisted(()=>({active:false,role:'guest',token:undefined as string|undefined}));
+vi.mock('#lib/server/membership.ts',()=>({membership:async()=>identity}));
+vi.mock('convex/browser',()=>({ConvexHttpClient:class{setAuth(){}async query(){return {blobKey:'feed/abc.gz',version:'abc'};}}}));
+import {GET as feed}from'../../src/routes/api/feed/+server';
+import {GET as preview}from'../../src/routes/api/preview/+server';
+import {GET as archive}from'../../src/routes/api/archive/+server';
+import {GET as getBlob,PUT as putBlob}from'../../src/routes/api/internal/blob/[...key]/+server';
+function event(path:string,options:RequestInit={}){const bucket={get:vi.fn(async()=>({body:new Blob(['private']).stream(),etag:'etag',size:7})),put:vi.fn(),delete:vi.fn()};return {url:new URL('https://example.test'+path),request:new Request('https://example.test'+path,options),params:{key:'state/abc.gz'},platform:{env:{DATA_BUCKET:bucket,EDGE_DATA_SECRET:'secret',PUBLIC_CONVEX_URL:'https://example.convex.cloud'},ctx:{waitUntil(){}},caches:{}},fetch:vi.fn()} as any;}
+afterEach(()=>{identity.active=false;identity.role='guest';identity.token=undefined;});
+it('rejects anonymous private data reads and writes before touching R2',async()=>{
+ const e=event('/api/internal/blob/state/abc.gz');expect((await getBlob(e)).status).toBe(401);expect(e.platform.env.DATA_BUCKET.get).not.toHaveBeenCalled();
+ expect((await putBlob(e)).status).toBe(401);expect(e.platform.env.DATA_BUCKET.put).not.toHaveBeenCalled();
+ expect((await feed(event('/api/feed'))).status).toBe(403);expect((await archive(event('/api/archive?key=archives/a/b.gz'))).status).toBe(403);
+});
+it('reads only the limited public preview without Convex calls',async()=>{
+ const e=event('/api/preview');const response=await preview(e);expect(response.status).toBe(200);expect(response.headers.get('X-Data-Source')).toBe('r2');expect(e.platform.env.DATA_BUCKET.get).toHaveBeenCalledWith('preview/current.gz');expect(e.fetch).not.toHaveBeenCalled();
+});
+it('authorizes conditional premium downloads and keeps archive access admin-only',async()=>{
+ identity.active=true;identity.role='subscriber';identity.token='token';const e=event('/api/feed');const response=await feed(e);expect(response.status).toBe(200);expect(response.headers.get('Cache-Control')).toBe('private, no-store');expect(e.platform.env.DATA_BUCKET.get).toHaveBeenCalledWith('feed/abc.gz');
+ expect((await archive(event('/api/archive?key=archives/a/b.gz'))).status).toBe(403);
+ const conditional=event('/api/feed',{headers:{'If-None-Match':'"abc"'}});expect((await feed(conditional)).status).toBe(304);expect(conditional.platform.env.DATA_BUCKET.get).not.toHaveBeenCalled();
+ identity.active=false;expect((await feed(conditional)).status).toBe(403);
+});
+it('rejects traversal and non-archive keys even for valid credentials',async()=>{
+ identity.active=true;identity.role='super_admin';expect((await archive(event('/api/archive?key=state/abc.gz'))).status).toBe(400);
+ const e=event('/api/internal/blob/state/a',{headers:{Authorization:'Bearer secret'}});e.params.key='state/../feed/abc.gz';expect((await getBlob(e)).status).toBe(400);
+});

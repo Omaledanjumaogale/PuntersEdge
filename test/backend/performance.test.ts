@@ -29,3 +29,18 @@ it('keeps durable performance idempotent and replaces corrected results without 
  await t.mutation(anyApi.performance.record,{...first,storageId:await store()});
  expect(await t.query(anyApi.performance.fixtureStates,{ids:['fixture-1']})).toMatchObject([{score:{home:0,away:1}}]);
 });
+
+it('batches R2 archive metadata and leaves aggregate documents untouched on pre-match refresh',async()=>{
+ const t=convexTest(schema,modules),base={fixtureId:'r2-1',sport:'football',family:'football',match:'A vs B',league:'League',kickoff:2000,publishedAt:1000,modelVersion:'v3',state:'scheduled',blobKey:'archives/r2-1/abc.gz',fingerprint:'first',contributions:{},recent:[]};
+ await t.mutation(anyApi.performance.archiveBatch,{publications:[{fixtureId:base.fixtureId,publishedAt:base.publishedAt,modelVersion:base.modelVersion,blobKey:base.blobKey}],records:[base,{...base,fixtureId:'r2-2',blobKey:'archives/r2-2/abc.gz'}]});
+ const before=await t.run(ctx=>ctx.db.query('performance_metrics').collect());expect(before).toHaveLength(2);expect(before.every(row=>row.fixtures===2)).toBe(true);
+ await t.mutation(anyApi.performance.archiveBatch,{publications:[],records:[{...base,publishedAt:1500,observedAt:1500,fingerprint:'new-publication',blobKey:'archives/r2-1/def.gz'}]});
+ expect(await t.run(ctx=>ctx.db.query('performance_metrics').collect())).toEqual(before);
+ await expect(t.query(anyApi.performance.archive,{fixtureId:'r2-1'})).rejects.toThrow('Administrator');
+ const rows=await t.run(ctx=>ctx.db.query('projection_snapshots').collect());expect(rows.every(row=>!row.storageId&&row.blobKey)).toBe(true);
+});
+it('quota reservations do not rewrite the large ingest document or subscriber feed',async()=>{
+ const t=convexTest(schema,modules);await t.run(async ctx=>{await ctx.db.insert('feed_state',{key:'ingest',data:{lastRun:{job:10},ledgers:{legacy:true}}});await ctx.db.insert('feed_state',{key:'feed',data:{version:'unchanged'}});});
+ const before=await t.run(ctx=>ctx.db.query('feed_state').collect());await t.mutation(anyApi.feed.reserve,{ledgers:{provider:{used:5}}});
+ const after=await t.run(ctx=>ctx.db.query('feed_state').collect());expect(after.filter(r=>r.key!=='quota')).toEqual(before);expect(after.find(r=>r.key==='quota')?.data.ledgers.provider.used).toBe(5);
+});

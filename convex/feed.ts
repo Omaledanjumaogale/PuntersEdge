@@ -8,16 +8,16 @@ import { requireSubscription } from "./access";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
-const LOCK_MS = 9 * 60_000;
+const LOCK_MS = 18 * 60_000;
 
-async function getDoc(ctx: MutationCtx, key: "ingest" | "feed") {
+async function getDoc(ctx: MutationCtx, key: string) {
   return await ctx.db
     .query("feed_state")
     .withIndex("by_key", (q) => q.eq("key", key))
     .unique();
 }
 
-async function putDoc(ctx: MutationCtx, key: "ingest" | "feed", data: Record<string, unknown>) {
+async function putDoc(ctx: MutationCtx, key: string, data: Record<string, unknown>) {
   const doc = await getDoc(ctx, key);
   if (doc) await ctx.db.patch(doc._id, { data: { ...doc.data, ...data } });
   else await ctx.db.insert("feed_state", { key, data });
@@ -32,10 +32,11 @@ export const storageMeta = internalQuery({
       .query("feed_state")
       .withIndex("by_key", (q) => q.eq("key", "feed"))
       .unique();
-    if (!doc?.data?.storageId) return null;
+    if (!doc?.data?.storageId&&!doc?.data?.blobKey) return null;
     const d = doc.data;
     return {
-      url: await ctx.storage.getUrl(d.storageId as Id<"_storage">),
+      url: d.blobKey?null:await ctx.storage.getUrl(d.storageId as Id<"_storage">),
+      blobKey:d.blobKey??null,
       version: d.version as string,
       generatedAt: d.generatedAt as string,
       encoding: (d.encoding as string) ?? "gzip",
@@ -49,8 +50,8 @@ export const storageMeta = internalQuery({
 export const meta = query({args:{},handler:async(ctx)=>{
  await requireSubscription(ctx);
  const doc=await ctx.db.query('feed_state').withIndex('by_key',q=>q.eq('key','feed')).unique();
- if(!doc?.data?.storageId)return null;
- return {url:'/api/feed',version:doc.data.version as string,generatedAt:doc.data.generatedAt as string,encoding:'gzip',counts:doc.data.counts??null,usage:null,checkedAt:doc.data.checkedAt??doc.data.generatedAt};
+ if(!doc?.data?.storageId&&!doc?.data?.blobKey)return null;
+ return {blobKey:doc.data.blobKey??null,url:'/api/feed',version:doc.data.version as string,generatedAt:doc.data.generatedAt as string,encoding:'gzip',counts:doc.data.counts??null,usage:null,checkedAt:doc.data.checkedAt??doc.data.generatedAt};
 }});
 
 export const previewStorageMeta=internalQuery({args:{},handler:async(ctx)=>{
@@ -68,8 +69,10 @@ export const claim = internalMutation({
     if (d.lockUntil && d.lockUntil > now) return null;
     await putDoc(ctx, "ingest", { lockUntil: now + LOCK_MS });
     return {
-      ledgers: d.ledgers ?? {},
+      ledgers: (await getDoc(ctx,"quota"))?.data?.ledgers ?? d.ledgers ?? {},
       lastRun: d.lastRun ?? {},
+      storeKey:d.storeKey??null,lookupsKey:d.lookupsKey??null,feedKey:d.feedKey??null,previewKey:d.previewKey??null,pendingArchiveKey:d.pendingArchiveKey??null,
+      storeUrl:d.storeKey?null:d.storeId?await ctx.storage.getUrl(d.storeId):null,lookupsUrl:d.lookupsKey?null:d.lookupsId?await ctx.storage.getUrl(d.lookupsId):null,
       storeId: (d.storeId as Id<"_storage"> | undefined) ?? null,
       lookupsId: (d.lookupsId as Id<"_storage"> | undefined) ?? null,
       previewVersion: (d.previewVersion as string|undefined)??null,
@@ -82,7 +85,7 @@ export const claim = internalMutation({
 export const reserve = internalMutation({
   args: { ledgers: v.any() },
   handler: async (ctx, { ledgers }) => {
-    await putDoc(ctx, "ingest", { ledgers });
+    await putDoc(ctx, "quota", { ledgers });
   },
 });
 
@@ -150,7 +153,8 @@ export const commit = internalMutation({
 export const release = internalMutation({
   args: { ledgers: v.optional(v.any()), error: v.string(), now: v.number() },
   handler: async (ctx, { ledgers, error, now }) => {
-    await putDoc(ctx, "ingest", { lockUntil: 0, lastError: error.slice(0, 300), lastErrorAt: now, ...(ledgers ? { ledgers } : {}) });
+    if(ledgers)await putDoc(ctx,"quota",{ledgers});
+    await putDoc(ctx, "ingest", { lockUntil: 0, lastError: error.slice(0, 300), lastErrorAt: now });
   },
 });
 
@@ -160,3 +164,18 @@ export const diagnosticState = internalQuery({args:{},handler:async(ctx)=>{
  const ingest=await ctx.db.query('feed_state').withIndex('by_key',q=>q.eq('key','ingest')).unique();
  return {feed:feed?.data??null,lastTick:ingest?.data?.lastTick??null};
 }});
+
+/** R2 ingest commits small pointers. No blob bytes are returned or stored in Convex. */
+export const commitEdge=internalMutation({args:{now:v.number(),ledgers:v.any(),lastRun:v.any(),log:v.array(v.string()),storeKey:v.string(),lookupsKey:v.string(),feedKey:v.string(),version:v.string(),generatedAt:v.string(),previewKey:v.string(),previewVersion:v.string(),counts:v.any(),usage:v.any(),coverage:v.any(),pendingArchiveKey:v.optional(v.string()),migrationBackupKey:v.optional(v.string())},handler:async(ctx,args)=>{
+ for(const key of [args.storeKey,args.lookupsKey,args.feedKey,args.previewKey,...(args.pendingArchiveKey?[args.pendingArchiveKey]:[])])if(!/^(state|feed|preview|outbox)\/[a-f0-9]+\.gz$/.test(key))throw new Error('Invalid R2 pointer');
+ const ingest=await getDoc(ctx,'ingest'),d={...(ingest?.data??{})};delete d.ledgers;
+ const values={...d,storeKey:args.storeKey,lookupsKey:args.lookupsKey,feedKey:args.feedKey,previewKey:args.previewKey,feedVersion:args.version,previewVersion:args.previewVersion,lastRun:args.lastRun,lastTick:args.now,lastLog:args.log.slice(0,20),lastError:null,lastErrorAt:null,...(args.pendingArchiveKey?{pendingArchiveKey:args.pendingArchiveKey}:{}),...(args.migrationBackupKey?{migrationBackupKey:args.migrationBackupKey}:{})};
+ if(ingest)await ctx.db.patch(ingest._id,{data:values});else await ctx.db.insert('feed_state',{key:'ingest',data:values});
+ await putDoc(ctx,'quota',{ledgers:args.ledgers});
+ const old=await getDoc(ctx,'feed');
+ if(old?.data?.version!==args.version||old?.data?.blobKey!==args.feedKey)await putDoc(ctx,'feed',{blobKey:args.feedKey,version:args.version,generatedAt:args.generatedAt,encoding:'gzip',counts:args.counts,coverage:args.coverage,checkedAt:args.generatedAt});
+ // Keep provider quota updates separate from the document subscribed to by every viewer.
+ await putDoc(ctx,'operations',{usage:args.usage,coverage:args.coverage,checkedAt:new Date(args.now).toISOString()});
+}});
+export const ackArchive=internalMutation({args:{key:v.string()},handler:async(ctx,{key})=>{const doc=await getDoc(ctx,'ingest');if(doc?.data?.pendingArchiveKey===key){const data={...doc.data};delete data.pendingArchiveKey;await ctx.db.patch(doc._id,{data});}}});
+export const completeEdge=internalMutation({args:{},handler:async ctx=>{await putDoc(ctx,'ingest',{lockUntil:0});}});

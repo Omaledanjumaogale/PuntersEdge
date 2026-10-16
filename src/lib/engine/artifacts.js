@@ -44,7 +44,10 @@ export function fittedInput(input,game,records,now) {
   if(!input.ratings){const league=a.sport==='nba'?LEAGUE_PROFILES.NBA:LEAGUE_PROFILES.EuroLeague;input.ratings={home:{pace:league.pace,offRtg:100*home/league.pace,defRtg:league.offRtg},away:{pace:league.pace,offRtg:100*away/league.pace,defRtg:league.offRtg}};input.paceBasis='League prior; scoring rates inferred from fitted score means';}
  }
  input.ratingsSource=`Fitted ${a.version} · ${a.trainingCount} completed games`;
- input.modelArtifact=a;
+ // A fixture needs two team parameters, not a duplicate of the entire league model.
+ const forFixture=(/** @type {any} */a)=>({...a,teams:Object.fromEntries([game.homeId,game.awayId].filter(id=>a.teams[String(id)]).map(id=>[String(id),a.teams[String(id)]]))});
+ input.modelArtifact=forFixture(a);
+ input.periodArtifacts=input.periodArtifacts.map(forFixture);
  input.analysisEvidence={approved:record.approved===true,independent:true,domainSupported:record.approved===true,approvedMarkets:record.approvedMarkets??[],modelVersion:a.version,trainedThrough:a.trainedThrough,trainingCount:a.trainingCount};
  return input;
 }

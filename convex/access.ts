@@ -16,7 +16,7 @@ export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
 }
 export async function requireSubscription(ctx: QueryCtx | MutationCtx) {
   const userId = await requireUser(ctx);
-  if (await isSuperAdmin(ctx)) return userId;
+  if (process.env.SUPER_ADMIN_USER_ID && userId === process.env.SUPER_ADMIN_USER_ID) return userId;
   const subscription = await ctx.db.query('subscriptions').withIndex('by_user', q => q.eq('userId', userId)).unique();
   if (!subscription || subscription.expiresAt <= Date.now()) throw new Error('An active all-access subscription is required.');
   return userId;
@@ -26,7 +26,7 @@ export const subscriptionAccess = internalQuery({ args: {}, handler: async ctx =
 
 export const role = query({args:{},handler:async(ctx)=>{
  const user=await getCurrentUser(ctx);if(!user)return {role:'guest',active:false,expiresAt:null};
- if(await isSuperAdmin(ctx))return {role:'super_admin',active:true,expiresAt:null};
+ if(process.env.SUPER_ADMIN_USER_ID&&user._id===process.env.SUPER_ADMIN_USER_ID)return {role:'super_admin',active:true,expiresAt:null};
  const subscription=await ctx.db.query('subscriptions').withIndex('by_user',q=>q.eq('userId',user._id)).unique();
  const active=!!subscription&&subscription.expiresAt>Date.now();
  return {role:active?'subscriber':'member',active,expiresAt:subscription?.expiresAt??null};
