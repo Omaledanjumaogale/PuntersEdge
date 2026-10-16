@@ -1,8 +1,9 @@
+import {runtimeEnv} from '#lib/server/cloudflare.ts';
 import {ConvexHttpClient} from 'convex/browser';
 import {anyApi} from 'convex/server';
 import type {RequestEvent} from '@sveltejs/kit';
 export async function membership(event:RequestEvent):Promise<{active:boolean;role:string;token?:string}>{
- const env=event.platform?.env as Record<string,string|undefined>|undefined;
+ const env=runtimeEnv(event.platform) as Record<string,string|undefined>;
  const site=env?.PUBLIC_CONVEX_SITE_URL||import.meta.env.PUBLIC_CONVEX_SITE_URL;
  const cloud=env?.PUBLIC_CONVEX_URL||import.meta.env.PUBLIC_CONVEX_URL;
  if(!site||!cloud||!event.request.headers.get('cookie'))return {active:false,role:'guest'};

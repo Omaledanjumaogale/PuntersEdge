@@ -1,8 +1,8 @@
 import type {RequestHandler} from './$types';
-import {dataBucket,validBlobKey,sameSecret} from '#lib/server/blob-store.ts';
+import {dataBucket,validBlobKey,sameSecret,runtimeEnv} from '#lib/server/blob-store.ts';
 const handler:RequestHandler=async({request,params,platform})=>{
  const headers={'Cache-Control':'no-store'};
- const secret=platform?.env?.EDGE_DATA_SECRET;
+ const secret=runtimeEnv(platform).EDGE_DATA_SECRET;
  if(typeof secret!=='string'||!sameSecret(request.headers.get('Authorization')??'',`Bearer ${secret}`))return new Response('Unauthorized',{status:401,headers});
  const key=params.key??'',bucket=dataBucket(platform);
  if(!validBlobKey(key))return new Response('Invalid key',{status:400,headers});

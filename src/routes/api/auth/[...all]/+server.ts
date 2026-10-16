@@ -1,8 +1,9 @@
+import {runtimeEnv} from '#lib/server/cloudflare.ts';
 import type { RequestHandler } from './$types';
 
 /** Same-origin proxy keeps Better Auth session cookies HttpOnly on Pages. */
 const proxy: RequestHandler = async ({ request, url, fetch, platform }) => {
-  const environment = platform?.env as Record<string, string | undefined> | undefined;
+  const environment = runtimeEnv(platform) as Record<string, string | undefined>;
   const convexUrl = environment?.PUBLIC_CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL;
   const site = environment?.PUBLIC_CONVEX_SITE_URL || import.meta.env.PUBLIC_CONVEX_SITE_URL || convexUrl?.replace('.convex.cloud', '.convex.site');
   if (!site) return new Response('Authentication is not configured.', { status: 503 });

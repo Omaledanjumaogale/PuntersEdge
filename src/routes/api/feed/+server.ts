@@ -1,3 +1,4 @@
+import {runtimeEnv} from '#lib/server/cloudflare.ts';
 import type {RequestHandler} from './$types';
 import {membership} from '#lib/server/membership.ts';
 import {dataBucket,validBlobKey} from '#lib/server/blob-store.ts';
@@ -7,7 +8,7 @@ import {anyApi} from 'convex/server';
 export const GET:RequestHandler=async event=>{
  const headers={'Cache-Control':'private, no-store','Vary':'Cookie'};
  const access=await membership(event);if(!access.active||!access.token)return new Response('Active membership required',{status:403,headers});
- const env=event.platform?.env as Record<string,string|undefined>|undefined,cloud=env?.PUBLIC_CONVEX_URL||import.meta.env.PUBLIC_CONVEX_URL,site=env?.PUBLIC_CONVEX_SITE_URL||import.meta.env.PUBLIC_CONVEX_SITE_URL;
+ const env=runtimeEnv(event.platform) as Record<string,string|undefined>,cloud=env?.PUBLIC_CONVEX_URL||import.meta.env.PUBLIC_CONVEX_URL,site=env?.PUBLIC_CONVEX_SITE_URL||import.meta.env.PUBLIC_CONVEX_SITE_URL;
  if(!cloud)return new Response('Backend unavailable',{status:503,headers});
  try{
   const client=new ConvexHttpClient(cloud);client.setAuth(access.token);const meta=await client.query(anyApi.feed.meta,{});
