@@ -1,6 +1,6 @@
 import { settle } from './engine/settlement.js';
 /** @typedef {{selection:string,marketKey?:string,sport?:string,family?:string,fixtureStatus?:string,score?:{home:number,away:number,regHome?:number,regAway?:number}}} OutcomeItem */
-/** @typedef {OutcomeItem & {matchTitle:string,bookmaker:string,odds:number,modelProb?:number,kickoff?:number|string,market?:string}} ShareItem */
+/** @typedef {OutcomeItem & {league?:string,country?:string,matchTitle:string,bookmaker:string,odds:number,modelProb?:number,kickoff?:number|string,market?:string}} ShareItem */
 
 /** Convert saved market IDs to the engine's score-settlement vocabulary. */
 export function settlementKey(/** @type {OutcomeItem} */ item) {
@@ -39,9 +39,10 @@ export function shareSlipText(/** @type {{name:string,betType:string,stake:numbe
   const money = (/** @type {number} */ number) => `NGN ${Number(number).toLocaleString('en-NG', { maximumFractionDigits: 2 })}`;
   return [
     `PuntersEdge — ${slip.name}`,
+    'https://puntersedge.ewinproject.org/betslips',
     `${slip.betType === 'acca' ? 'Accumulator' : 'Singles'} · ${slip.items.length} selections`,
     `Combined odds: ${slip.items.reduce((total,item)=>total*item.odds,1).toFixed(2)}`,
-    ...slip.items.map((item, index) => `*${index + 1}. ${item.matchTitle}*\n${item.kickoff ? new Date(item.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})+' WAT\n' : ''}Pick: ${item.selection}\n${item.market ? 'Market: '+item.market+'\n' : ''}Odds: ${item.odds.toFixed(2)} · ${item.bookmaker}\n${item.modelProb !== undefined ? 'Model: '+(item.modelProb*100).toFixed(1)+'%\n' : ''}${item.score ? `\nScore: ${item.score.home}-${item.score.away}${item.score.regHome !== undefined && item.score.regAway !== undefined && (item.score.regHome !== item.score.home || item.score.regAway !== item.score.away) ? ` (regulation ${item.score.regHome}-${item.score.regAway})` : ''} · ${itemOutcome(item)}` : ''}`),
+    ...slip.items.map((item, index) => `*${index + 1}. ${item.matchTitle}*\n${item.league??'League unavailable'} · ${item.country??'Country unavailable'}\n${item.kickoff ? new Date(item.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})+' WAT\n' : ''}Pick: ${item.selection}\n${item.market ? 'Market: '+item.market+'\n' : ''}Odds: ${item.odds.toFixed(2)} · ${item.bookmaker}\n${item.modelProb !== undefined ? 'Model: '+(item.modelProb*100).toFixed(1)+'%\n' : ''}${item.score ? `\nScore: ${item.score.home}-${item.score.away}${item.score.regHome !== undefined && item.score.regAway !== undefined && (item.score.regHome !== item.score.home || item.score.regAway !== item.score.away) ? ` (regulation ${item.score.regHome}-${item.score.regAway})` : ''} · ${itemOutcome(item)}` : ''}`),
     `Stake: ${money(slip.stake)}${slip.betType === 'singles' ? ' per selection' : ''}`,
     `Potential return: ${money(slip.potentialReturn)}`,
     'Analytical record only. PuntersEdge does not place bets. 18+.',

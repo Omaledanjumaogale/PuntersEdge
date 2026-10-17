@@ -1,3 +1,4 @@
+import {recordActivity} from '#lib/activity.ts';
 /**
  * Application state (Svelte 5 runes).
  *
@@ -30,6 +31,7 @@ export interface Settings {
 }
 
 export interface SlipItem {
+ league?:string;country?:string;
 	pushProb?: number;
 	marketKey?: string;
 	id: string;
@@ -201,7 +203,7 @@ class AppState {
 	/** Add or remove a selection. Several markets from one match are allowed. */
 	toggle(v: ValueBet) {
 		if (this.inSlip(v.id)) {
-			this.slip = this.slip.filter((s) => s.id !== v.id);
+			this.slip = this.slip.filter((s) => s.id !== v.id);recordActivity('slip_removed');
 			return false;
 		}
 		const game = this.gameById(v.fixtureId);
@@ -212,6 +214,7 @@ class AppState {
 			fixtureId: v.fixtureId,
 			sport: v.sport as SportKey,
 			matchTitle: v.matchTitle,
+ league:game.league,country:game.country,
 			market: v.market,
 			selection: v.selection,
 			bookmaker: v.bookmaker,
@@ -220,7 +223,7 @@ class AppState {
 			pushProb: (v as any).pushProb ?? 0,
 			edgePercent: v.edgePercent
 		};
-		this.slip = [...this.slip, item];
+		this.slip = [...this.slip, item];recordActivity('slip_added');
 		return true;
 	}
 
@@ -243,7 +246,7 @@ class AppState {
 	);
 
 	remove(id: string) {
-		this.slip = this.slip.filter((s) => s.id !== id);
+		this.slip = this.slip.filter((s) => s.id !== id);recordActivity('slip_removed');
 	}
 
 	clearSlip() {

@@ -15,6 +15,7 @@ import { api } from '../../convex/_generated/api.js';
 import type { SportKey } from '#lib/sports.ts';
 
 export interface FeedGame {
+ country?:string;
 	id: string;
 	sport: SportKey;
 	league: string;

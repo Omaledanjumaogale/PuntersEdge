@@ -8,6 +8,7 @@ const item = v.object({
   fixtureId: v.string(),
   sport: v.string(),
   matchTitle: v.string(),
+ league:v.optional(v.string()),country:v.optional(v.string()),
   market: v.string(),
   selection: v.string(),
   bookmaker: v.string(),

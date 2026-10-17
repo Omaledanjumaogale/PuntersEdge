@@ -2,6 +2,9 @@
 	import '@fontsource-variable/instrument-sans/index.css';
 	import './layout.css';
 	import { onMount } from 'svelte';
+ import {anyApi} from 'convex/server';
+ import {pendingActivity,acknowledgeActivity} from '#lib/activity.ts';
+ $effect(()=>{const client=auth.client;if(!client)return;const ping=()=>{if(document.visibilityState==='visible'){const events=pendingActivity();void client.mutation(anyApi.testers.presence,{route:window.location.pathname,events}).then(accepted=>{if(accepted)acknowledgeActivity(events);}).catch(()=>{});}};ping();const timer=setInterval(ping,300000);return ()=>clearInterval(timer);});
 	import VipInvitation from '#lib/components/VipInvitation.svelte';
 	import AccessNotice from '#lib/components/AccessNotice.svelte';
 	import EcosystemBanner from '#lib/components/EcosystemBanner.svelte';

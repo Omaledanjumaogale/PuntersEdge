@@ -50,7 +50,7 @@
  }
  async function pdf(slip: Saved) {
   busy=slip._id;
-  try { await downloadSlipPdf(slip); } catch { toast.error('PDF download failed. Try again.'); } finally { busy=''; }
+  try { await downloadSlipPdf({...slip,items:slip.items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,country:item.country??game?.country};})}); } catch { toast.error('PDF download failed. Try again.'); } finally { busy=''; }
  }
 </script>
 <svelte:head><title>Saved betslips — PuntersEdge</title><meta name="robots" content="noindex" /></svelte:head>

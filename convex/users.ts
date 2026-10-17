@@ -1,3 +1,4 @@
+import {entitlement} from './lib/entitlements';
 import { authComponent, getCurrentUser } from './auth';
 import { mutation, query, internalQuery, internalMutation } from './_generated/server';
 import { componentsGeneric } from 'convex/server';
@@ -17,10 +18,11 @@ export const syncProfile = mutation({ args: {}, handler: async (ctx) => {
 export const viewer = query({ args: {}, handler: async (ctx) => {
   const user = await getCurrentUser(ctx);
   if (!user) return null;
-  const subscription=await ctx.db.query('subscriptions').withIndex('by_user',q=>q.eq('userId',user._id)).unique();
   const superAdmin=Boolean(process.env.SUPER_ADMIN_USER_ID && user._id === process.env.SUPER_ADMIN_USER_ID);
-  const activeSubscription=superAdmin || !!subscription && subscription.expiresAt>Date.now();
-  return { role:superAdmin?'super_admin':activeSubscription?'subscriber':'member', activeSubscription, id: user._id, name: user.name ?? null, email: user.email ?? null, image:user.image??null,
+  const personalProfile=await ctx.db.query('member_profiles').withIndex('by_user',q=>q.eq('userId',user._id)).unique();
+  const access=await entitlement(ctx,user._id);
+  const activeSubscription=access.active;
+  return { personalProfile,accountStatus:access.status,accessKind:access.kind,accessExpiresAt:access.expiresAt,role:superAdmin?'super_admin':activeSubscription?'subscriber':'member', activeSubscription, id: user._id, name: user.name ?? null, email: user.email ?? null, image:user.image??null,
     favouriteSport: user.favouriteSport ?? null, settings: user.settings ?? null, joined: user._creationTime,
     emailVerified: Boolean(user.emailVerificationTime),
     superAdmin: Boolean(process.env.SUPER_ADMIN_USER_ID && user._id === process.env.SUPER_ADMIN_USER_ID), };

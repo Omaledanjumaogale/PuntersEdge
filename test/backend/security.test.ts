@@ -271,3 +271,33 @@ it('targeted background test reaches only owner devices and records push service
  expect(await t.action(anyApi.notifications.deliver,args)).toEqual({sent:0,failed:0});expect(send).toHaveBeenCalledTimes(1);
  const devices=await t.run(ctx=>ctx.db.query('push_subscriptions').collect());expect(devices.find(d=>d.userId===a.localId)?.lastDelivery).toMatchObject({outcome:'accepted',statusCode:201});expect(devices.find(d=>d.userId===b.localId)?.lastDelivery).toBeUndefined();
 });
+
+describe('individual tester access',()=>{
+ it('requires a complete profile, isolates users, prevents renewal by reuse and enforces suspension',async()=>{
+ const t=create(),a=await member(t,'tester-a@example.test'),b=await member(t,'tester-b@example.test'),owner=await member(t,'owner@example.test');
+ vi.stubEnv('TESTER_INVITE_EMAIL','invite@example.test');vi.stubEnv('TESTER_INVITE_PASSWORD','test-only-password');vi.stubEnv('SUPER_ADMIN_USER_ID',owner.localId);
+ const profile={fullName:'Example Tester',whatsapp:'+2348012345678',dob:'1990-01-01',sex:'male',state:'Abia',lga:'Aba North'};
+ const args={email:'invite@example.test',password:'test-only-password',profile};
+ await expect(a.signed.mutation(anyApi.testers.redeem,{...args,profile:{...profile,lga:'Invalid area'}})).rejects.toThrow('valid state');
+ expect(await a.signed.mutation(anyApi.testers.redeem,args)).toHaveProperty('expiresAt');
+ expect(await a.signed.query(anyApi.access.role,{})).toMatchObject({active:true});
+ expect(await b.signed.query(anyApi.testers.mine,{})).toBeNull();
+ expect(await a.signed.mutation(anyApi.testers.redeem,args)).toHaveProperty('error');
+ await expect(a.signed.mutation(anyApi.testers.setAccess,{userId:b.localId,status:'active',period:'free'})).rejects.toThrow('Administrator');
+ await owner.signed.mutation(anyApi.testers.setAccess,{userId:a.localId,status:'suspended',period:'free'});
+ expect(await a.signed.query(anyApi.access.role,{})).toMatchObject({active:false,status:'suspended'});
+ await expect(a.signed.query(anyApi.ticketRules.list,{})).rejects.toThrow('suspended');
+ await owner.signed.mutation(anyApi.testers.setAccess,{userId:a.localId,status:'active',period:'free'});
+ expect(await a.signed.query(anyApi.access.role,{})).toMatchObject({active:true});
+ });
+ it('limits invitation attempts and rejects expired tester grants',async()=>{
+ const t=create(),a=await member(t);vi.stubEnv('TESTER_INVITE_EMAIL','invite@example.test');vi.stubEnv('TESTER_INVITE_PASSWORD','correct');
+ const args={email:'invite@example.test',password:'wrong',profile:{fullName:'Example Tester',whatsapp:'+2348012345678',dob:'1990-01-01',sex:'male',state:'Abia',lga:'Aba North'}};
+ for(let i=0;i<5;i++)await a.signed.mutation(anyApi.testers.redeem,args);
+ expect((await a.signed.mutation(anyApi.testers.redeem,args)).error).toContain('15 minutes');
+ await t.run(ctx=>ctx.db.insert('account_access',{userId:a.localId,status:'active',kind:'tester',grant:'timed',expiresAt:Date.now()-1000,updatedAt:Date.now()}));
+ expect(await a.signed.query(anyApi.access.role,{})).toMatchObject({active:false});
+ });
+});
+
+it('presence batches actions, strips queries, bounds history and throttles writes',async()=>{const t=create(),a=await member(t);const event={event:'slip_added',at:Date.now(),route:'/board?private=excluded'};expect(await a.signed.mutation(anyApi.testers.presence,{route:'/board?private=excluded',events:[event,{...event,event:'password'}]})).toBe(true);expect(await a.signed.mutation(anyApi.testers.presence,{route:'/account',events:[event]})).toBe(false);const rows=await t.run(ctx=>ctx.db.query('user_presence').collect());expect(rows).toHaveLength(1);expect(rows[0]).toMatchObject({route:'/board',events:[{event:'slip_added',route:'/board'}]});});

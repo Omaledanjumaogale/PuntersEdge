@@ -13,6 +13,7 @@ import { bestMatch } from './matching.js';
  * @typedef {Object} StoredGame
  * @property {string} uid `${sport}-${src}-${id}`, stable and URL-safe
  * @property {SportKey} sport
+ * @property {string} [country]
  * @property {string} league
  * @property {string | number} [leagueId] API-Sports league id
  * @property {string | number} [season]
@@ -126,6 +127,7 @@ export function upsertGames(store, games, now) {
     }
     Object.assign(g, {
       league: n.league,
+      country:n.country??g.country,
       leagueId: n.leagueId,
       season: n.season,
       home: n.home,

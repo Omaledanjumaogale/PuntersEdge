@@ -19,6 +19,10 @@ export default defineSchema({
     settings: v.optional(v.object({bankroll:v.number(),kellyFraction:v.number(),modelWeight:v.number(),motion:v.boolean(),theme:v.union(v.literal("system"),v.literal("light"),v.literal("dark"))})),
   }).index("email", ["email"]).index("by_auth_subject", ["authSubject"]),
 
+  member_profiles:defineTable({userId:v.id('users'),fullName:v.string(),whatsapp:v.string(),dob:v.string(),sex:v.string(),state:v.string(),lga:v.string(),updatedAt:v.number()}).index('by_user',['userId']),
+  account_access:defineTable({userId:v.id('users'),status:v.string(),kind:v.string(),grant:v.string(),expiresAt:v.optional(v.number()),updatedAt:v.number()}).index('by_user',['userId']),
+  user_presence:defineTable({userId:v.id('users'),lastSeen:v.number(),route:v.string(),events:v.optional(v.array(v.object({event:v.string(),at:v.number(),route:v.string()})))}).index('by_user',['userId']),
+  tester_attempts:defineTable({userId:v.id('users'),at:v.number(),count:v.number()}).index('by_user',['userId']),
   football_matches: defineTable({
     fixtureId: v.string(),
     homeTeam: v.string(),
@@ -162,7 +166,7 @@ export default defineSchema({
       v.object({
         fixtureId: v.string(),
         sport: v.string(),
-        matchTitle: v.string(),
+        matchTitle: v.string(),league:v.optional(v.string()),country:v.optional(v.string()),
         market: v.string(),
         selection: v.string(),
         bookmaker: v.string(),
@@ -182,7 +186,7 @@ export default defineSchema({
   }).index("by_user", ["userId"]),
 
   saved_slips: defineTable({
-    userId: v.id('users'), name: v.string(), items: v.array(v.object({fixtureId:v.string(),sport:v.string(),matchTitle:v.string(),market:v.string(),selection:v.string(),bookmaker:v.string(),odds:v.number(),modelProb:v.optional(v.number()),pushProb:v.optional(v.number()),edgePercent:v.number(),marketKey:v.optional(v.string()),kickoff:v.optional(v.number()),fixtureStatus:v.optional(v.string()),score:v.optional(v.object({home:v.number(),away:v.number(),regHome:v.optional(v.number()),regAway:v.optional(v.number())})),family:v.optional(v.string()),result:v.optional(v.string())})),
+    userId: v.id('users'), name: v.string(), items: v.array(v.object({fixtureId:v.string(),sport:v.string(),matchTitle:v.string(),league:v.optional(v.string()),country:v.optional(v.string()),market:v.string(),selection:v.string(),bookmaker:v.string(),odds:v.number(),modelProb:v.optional(v.number()),pushProb:v.optional(v.number()),edgePercent:v.number(),marketKey:v.optional(v.string()),kickoff:v.optional(v.number()),fixtureStatus:v.optional(v.string()),score:v.optional(v.object({home:v.number(),away:v.number(),regHome:v.optional(v.number()),regAway:v.optional(v.number())})),family:v.optional(v.string()),result:v.optional(v.string())})),
     stake:v.number(),betType:v.union(v.literal('acca'),v.literal('singles')),totalOdds:v.number(),potentialReturn:v.number(),updatedAt:v.number(),locked:v.boolean(),awaitingResults:v.boolean()
   }).index('by_user',['userId']).index('by_locked',['locked']).index('by_awaiting_results',['awaitingResults']),
   projection_snapshots: defineTable({observedAt:v.optional(v.number()),fixtureId:v.string(),sport:v.string(),family:v.string(),match:v.string(),league:v.string(),kickoff:v.number(),publishedAt:v.number(),modelVersion:v.string(),state:v.string(),finishedAt:v.optional(v.number()),score:v.optional(v.object({home:v.number(),away:v.number(),regHome:v.optional(v.number()),regAway:v.optional(v.number())})),storageId:v.optional(v.id('_storage')),blobKey:v.optional(v.string()),fingerprint:v.string(),contributions:v.any(),recent:v.array(v.any())}).index('by_fixture',['fixtureId']).index('by_sport',['sport']).index('by_kickoff',['kickoff']).index('by_state_kickoff',['state','kickoff']).index('by_sport_state',['sport','state','kickoff']),

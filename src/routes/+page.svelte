@@ -13,7 +13,10 @@
 	import { SPORTS, SPORT_ORDER } from '#lib/sports.ts';
 	import { sportEmoji } from '#lib/format.ts';
 
-	const top = $derived(app.valueBets.slice(0, 3));
+	const top = $derived.by(() => {
+ const rows=app.all.filter(p=>p.status.state==='scheduled').slice(0,3).flatMap(p=>{const pick=p.markets.flatMap(g=>g.selections).sort((a,b)=>b.modelProb-a.modelProb)[0];return pick?[{id:pick.id,fixtureId:p.fixtureId,sport:p.sport,matchTitle:p.matchTitle,selection:pick.selection,modelProb:pick.modelProb,bestOdds:pick.pricing==='quoted'?pick.bestOdds:null}]:[];});
+ return rows.length?rows:(feed.data?.previewFixtures??[]).slice(0,3).map(p=>({id:p.id,fixtureId:p.id,sport:p.sport,matchTitle:p.home+' vs '+p.away,selection:p.headline?.selection??'Open published analysis',modelProb:p.headline?.modelProb??null,bestOdds:p.headline?.odds??null}));
+ });
 	const best = $derived(app.valueBets[0]);
 	const marketsPriced = $derived(app.all.reduce((a, p) => a + p.markets.reduce((b, g) => b + g.selections.length, 0), 0));
 	const valueBySport = $derived(Object.fromEntries(SPORT_ORDER.map((s) => [s, app.valueBets.filter((v) => v.sport === s).length])));
@@ -38,7 +41,7 @@
 
 <TLDRBlock answer="PuntersEdge compares sports model probabilities with bookmaker prices across football, NBA, basketball, ice hockey and baseball. Check the provider data badge and its refresh timestamp. Predictions are estimates, and no outcome or return is guaranteed." />
 <!-- Hero -->
-<section class="relative grid items-center gap-10 py-4 md:grid-cols-[1.1fr_1fr] md:py-10" aria-labelledby="home-title">
+<section class="hero-section relative grid items-center gap-10 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:py-10" aria-labelledby="home-title">
 	<div>
 		<div class="flex flex-wrap items-center gap-2">
 			<p class="inline-flex items-center gap-1.5 rounded-full bg-raised px-3 py-1 text-sm font-semibold text-chalk ring-1 ring-line">
@@ -63,7 +66,7 @@
 		<dl class="mt-8 grid max-w-lg grid-cols-3 gap-3">
 			<a href="/board" class="surface block p-3 hover:ring-1 hover:ring-pop">
 				<dt class="text-xs text-haze">{liveCount ? 'Live now' : 'Games'}</dt>
-				<dd class="font-display text-2xl font-bold {liveCount ? 'text-loss' : 'text-chalk'}">{liveCount || app.all.length}</dd>
+				<dd class="font-display text-2xl font-bold {liveCount ? 'text-loss' : 'text-chalk'}">{liveCount || app.all.length || feed.data?.previewFixtures?.length || 0}</dd>
 			</a>
 			<a href="/value-bets" class="surface block p-3 hover:ring-1 hover:ring-pop">
 				<dt class="text-xs text-haze">Value bets</dt>
@@ -78,22 +81,24 @@
 
 	<!-- 3D stack of today's real top picks -->
 	<div class="relative mx-auto w-full max-w-sm transition-[height] duration-700 [perspective:1200px]" style="height: {stackOpen ? 27 : 21}rem">
-		{#each top as v, i (v.id)}
+		<div class="hero-orbit" aria-hidden="true"></div>
+{#if !top.length}<p class="surface relative p-6 text-haze">The published board is loading. <a href="/board" class="text-pop">Open fixtures ↗</a></p>{/if}
+{#each top as v, i (v.id)}
 			<a
 				href="/match?id={v.fixtureId}"
 				class="surface absolute inset-x-0 z-20 block p-4 shadow-[0_30px_60px_-30px_rgb(0_0_0/0.6)] transition-transform duration-700 ease-[var(--ease-spring)]"
 				style="top: {stackOpen ? i * 7.6 : 2.5 + i * 1.1}rem; transform: rotateX({stackOpen ? 0 : 18}deg) rotateZ({stackOpen ? 0 : (i - 1) * -5}deg) translateZ({(3 - i) * 20}px); z-index: {30 - i}"
 			>
 				<p class="truncate text-xs font-medium text-haze">{sportEmoji[v.sport]} {v.matchTitle}</p>
-				<p class="mt-1 truncate font-display text-lg font-bold text-chalk">{gradeEmoji[v.grade]} {v.selection}</p>
+				<p class="mt-1 truncate font-display text-lg font-bold text-chalk">{v.selection}</p>
 				<p class="mt-1 text-sm">
-					<span class="font-semibold text-book">{odds(v.bestOdds)}</span> <span class="text-haze">at {v.bookmaker}, needs {pct(1 / v.bestOdds)}</span>
+					<span class="font-semibold text-book">{v.bestOdds?odds(v.bestOdds):'Price unavailable'}</span> <span class="text-haze">Published board projection</span>
 				</p>
-				<p class="mt-0.5 text-sm"><span class="font-semibold text-model">{signed(v.edgePercent, 1)}% edge</span> <span class="text-haze">model {pct(v.modelProb)}</span></p>
+				<p class="mt-0.5 text-sm"><span class="font-semibold text-model">{v.modelProb===null?'Probability unavailable':'Model '+pct(v.modelProb)}</span></p>
 			</a>
 		{/each}
-		<div class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-3">
-			<button onclick={() => (stackOpen = !stackOpen)} aria-pressed={stackOpen} class="btn-ghost px-4 py-2 text-sm">
+		<div class="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-3">
+			<button onclick={() => (stackOpen = !stackOpen)} disabled={!top.length} aria-pressed={stackOpen} class="btn-ghost px-4 py-2 text-sm">
 				{stackOpen ? '🗂️ Stack picks' : '🃏 Fan out picks'}
 			</button>
 			<span class="text-xs text-haze">Live from today's board</span>
@@ -209,3 +214,5 @@
 <section aria-labelledby="analysis-sources" class="mt-8 text-sm text-haze"><h2 id="analysis-sources" class="font-bold text-chalk">Where does the sports data come from?</h2><p class="mt-2">Available live feeds use <cite><a class="underline" href="https://api-sports.io/">API-Sports</a></cite>, <cite><a class="underline" href="https://oddspapi.io/">OddsPapi</a></cite> and <cite><a class="underline" href="https://the-odds-api.com/">The Odds API</a></cite>. Coverage depends on provider plans and quotas. <a class="underline" href="/results">Review freshness and usage</a>.</p><p class="mt-2"><a href="https://ewinproject.org" class="underline">Explore the E-WIN Project Ecosystem</a>.</p></section>
 
 <section id="vip-pricing" class="surface mt-14 grid gap-8 overflow-hidden p-6 sm:p-10 lg:grid-cols-[1fr_1.2fr]" aria-labelledby="vip-plan-title"><div><p class="text-sm font-bold uppercase tracking-widest text-model">Exclusive VIP Punter</p><h2 id="vip-plan-title" class="mt-3 text-3xl font-extrabold">Executive VIP Punter subscription</h2><p class="mt-5 text-5xl font-extrabold">₦10,000<span class="ml-2 text-base font-normal text-haze">/ month</span></p><p class="mt-3 text-sm text-haze">One monthly plan for every member feature. Administrative tools remain exclusive to the super-admin.</p><a href="/subscribe" class="btn-primary mt-6 inline-flex">Unlock Exclusive VIP</a></div><div><h3 class="text-xl font-bold">Everything you need to examine your picks</h3><ul class="mt-5 grid gap-4 sm:grid-cols-2">{#each ['Football, NBA, basketball, hockey and baseball dashboards','Full match projections, confidence and all supported markets','Advanced bet machine with automatic ticket sizing','Results, latest scores and published performance record','Named betslip history, ticket previews and editing','Branded PDF downloads','Bookmaker comparison, glossary and model settings','Agnes AI explanations within daily limits','Selectable mobile alerts for fixtures, scores and activities'] as benefit}<li class="flex items-start gap-2 text-sm"><span class="font-bold text-model" aria-hidden="true">✓</span>{benefit}</li>{/each}</ul><p class="mt-5 text-xs text-haze">A verified payment adds one calendar month. No automatic debit. Model estimates do not guarantee wins or returns.</p></div></section>
+
+<style>.hero-section{min-width:0;overflow-x:clip}.hero-orbit{position:absolute;inset:12% -3% 15%;border:1px solid #7c66df66;border-radius:50%;transform:rotate(-18deg);box-shadow:0 0 70px #6650cc24,inset 0 0 60px #34d39912;pointer-events:none}@media(prefers-reduced-motion:reduce){:global(a){transition:none!important}}</style>

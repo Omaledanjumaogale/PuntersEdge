@@ -1,3 +1,4 @@
+import {clearActivity} from '#lib/activity.ts';
 import type { Settings } from '#lib/state.svelte.ts';
 import { convexUrl } from '#lib/convex.ts';
 import { createAuthClient } from 'better-auth/client';
@@ -5,7 +6,7 @@ import { convexClient } from '@convex-dev/better-auth/client/plugins';
 import { ConvexClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api.js';
 
-export interface Viewer { id: string; name: string | null; email: string | null; image?:string|null; joined: number; emailVerified: boolean; superAdmin: boolean; role?: string; activeSubscription?: boolean; settings: Settings | null; }
+export interface Viewer { personalProfile?:{fullName:string;whatsapp:string;dob:string;sex:string;state:string;lga:string}|null; accountStatus?:string;accessKind?:string;accessExpiresAt?:number|null; id: string; name: string | null; email: string | null; image?:string|null; joined: number; emailVerified: boolean; superAdmin: boolean; role?: string; activeSubscription?: boolean; settings: Settings | null; }
 export const PASSWORD_RULE = 'At least 8 characters, including a letter and a number.';
 export function passwordIssues(pw: string): string | null {
   if (pw.length < 8) return 'Use at least 8 characters.';
@@ -69,7 +70,7 @@ class AuthState {
       else this.#clear();
     });
   }
-  #clear() { this.viewer = null; this.status = 'signedOut'; this.#unsubscribe?.(); this.#unsubscribe = null; this.#client?.setAuth(async () => null); }
+  #clear() { clearActivity();this.viewer = null; this.status = 'signedOut'; this.#unsubscribe?.(); this.#unsubscribe = null; this.#client?.setAuth(async () => null); }
   async signUp(input: { name: string; email: string; password: string }) {
     if (!convexUrl) throw new Error('Account services are not configured.');
     const issue = passwordIssues(input.password); if (issue) throw new Error(issue);

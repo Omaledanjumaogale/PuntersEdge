@@ -29,25 +29,25 @@
 	},
 	"icons": [
 		{
-			"src": "/icons/icon-192.png",
+			"src": "/icons/brand-v2-192.png",
 			"sizes": "192x192",
 			"type": "image/png",
 			"purpose": "any"
 		},
 		{
-			"src": "/icons/icon-512.png",
+			"src": "/icons/brand-v2-512.png",
 			"sizes": "512x512",
 			"type": "image/png",
 			"purpose": "any"
 		},
 		{
-			"src": "/icons/icon-maskable-192.png",
+			"src": "/icons/brand-v2-maskable-192.png",
 			"sizes": "192x192",
 			"type": "image/png",
 			"purpose": "maskable"
 		},
 		{
-			"src": "/icons/icon-maskable-512.png",
+			"src": "/icons/brand-v2-maskable-512.png",
 			"sizes": "512x512",
 			"type": "image/png",
 			"purpose": "maskable"
@@ -67,7 +67,7 @@
 			"url": "/board?source=shortcut",
 			"icons": [
 				{
-					"src": "/icons/icon-192.png",
+					"src": "/icons/brand-v2-192.png",
 					"sizes": "192x192"
 				}
 			]
@@ -79,7 +79,7 @@
 			"url": "/value-bets?source=shortcut",
 			"icons": [
 				{
-					"src": "/icons/icon-192.png",
+					"src": "/icons/brand-v2-192.png",
 					"sizes": "192x192"
 				}
 			]
@@ -91,7 +91,7 @@
 			"url": "/sports?source=shortcut",
 			"icons": [
 				{
-					"src": "/icons/icon-192.png",
+					"src": "/icons/brand-v2-192.png",
 					"sizes": "192x192"
 				}
 			]
@@ -103,7 +103,7 @@
 			"url": "/results?source=shortcut",
 			"icons": [
 				{
-					"src": "/icons/icon-192.png",
+					"src": "/icons/brand-v2-192.png",
 					"sizes": "192x192"
 				}
 			]

@@ -6,7 +6,7 @@ import { api } from '../../convex/_generated/api.js';
 
 const ownerGet = (key:string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const ownerSet = (key:string,value:string) => { try { localStorage.setItem(key,value); } catch { /* session-only state */ } };
-const payload = (items: SlipItem[]) => items.map(({ fixtureId, sport, matchTitle, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+const payload = (items: SlipItem[]) => items.map(({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
 export function startSlipSync(): () => void {
  if (typeof window === 'undefined' || auth.mode !== 'convex') return () => {};
  let timer: ReturnType<typeof setTimeout> | undefined;

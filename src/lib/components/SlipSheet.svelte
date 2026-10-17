@@ -2,7 +2,8 @@
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { toast } from '#lib/toast.svelte.ts';
-	import { downloadSlipPdf } from '#lib/slip-export.ts';
+	import {shareSlipText} from '#lib/slips.js';
+ import { downloadSlipPdf } from '#lib/slip-export.ts';
 	import { api } from '../../../convex/_generated/api.js';
 	import { odds, pct, ngn, signed } from '#lib/format.ts';
 	import { fly, fade } from 'svelte/transition';
@@ -21,7 +22,7 @@
 
 	const items = $derived(app.slip);
 	const econ = $derived(app.slipEconomics);
-	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
+	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,country:item.country??game?.country,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
 	const isAcca = $derived(mode === 'acca' && items.length > 1);
 
 	const singlesEv = $derived(items.reduce((acc, i) => acc + stake * (i.modelProb * i.odds - 1), 0));
@@ -33,10 +34,8 @@
 	}
 
 	async function copySlip() {
-		const lines = items.map((i) => `${i.matchTitle}: ${i.selection} @ ${odds(i.odds)} (${i.bookmaker})`);
-		const head = isAcca ? `Accumulator, ${items.length} legs @ ${odds(econ.combinedOdds)}` : `${items.length} single${items.length > 1 ? 's' : ''}`;
 		try {
-			await navigator.clipboard.writeText(`${head}\n${lines.join('\n')}\nStake ${ngn(stake)}${isAcca ? '' : ' each'}`);
+			await navigator.clipboard.writeText(shareSlipText(exportSlip));
 			copied = true;
 			setTimeout(() => (copied = false), 1800);
 		} catch {
@@ -48,7 +47,7 @@
 		if (!auth.client) { toast.error('Log in to save a named slip.'); return; }
 		savingHistory = true;
 		try {
-			const selections = items.map(({ fixtureId, sport, matchTitle, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+			const selections = items.map(({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
 			await auth.client.mutation(api.betslip.saveHistory, { name: slipName.trim() || `My slip ${new Date().toLocaleDateString('en-NG')}`, items: selections, stake, betType: mode });
 			toast.success('Named slip saved to your history.'); slipName = '';
 		} catch (reason) { toast.error((reason as Error).message); }

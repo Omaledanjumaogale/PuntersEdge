@@ -118,4 +118,5 @@
 			</div>
 		{/if}
 	{/if}
+<a href="/match?id={p.fixtureId}" class="mt-4 flex min-h-11 items-center justify-center rounded-xl bg-amber-300 px-4 py-2 text-sm font-bold text-slate-950">🔎 Full fixture analysis</a>
 </article>
