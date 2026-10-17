@@ -133,3 +133,18 @@ The advanced bet machine lives at `/bet-machine`. Premium file downloads and sav
 Free visitors see the landing page and a limited board of real fixtures. Fixture clicks display a closable VIP invitation; full analysis and all analytical tools require Exclusive VIP (₦10,000/month), with super-admin-only console access. The bet machine chooses its own ticket size within the requested combined-odds range and shows every qualifying option. Notifications are opt-in per device, with category preferences saved in Settings. See the integration guide for preview sanitization, route enforcement, notification delivery and device-testing limitations.
 
 See [multi-market and period backtests](docs/MARKET-BACKTESTS.md) for totals, team totals and handicap evaluations.
+# Research-backed evaluation and experimental tennis
+
+The eight requested upstream tools are reviewed at pinned revisions in
+[the research acceptance report](docs/research/UPGRADE-ACCEPTANCE.md). The current
+trainer reports individual market families and paired fixture-block uncertainty;
+an aggregate score alone cannot qualify a serving update. This is evaluation
+infrastructure, not a claim of improved betting returns.
+
+The `/tennis` workspace displays private daily results-based match/first-set
+estimates where real provider events map to sufficient player history. It has its
+own chronological global-rating calibration, collapsed markets and unpriced
+betslip controls. Tennis is experimental; automatic settlement, verified-value
+approval and accumulator-optimizer integration remain unavailable. Source history,
+fitted artifacts and prospective snapshots stay in private R2. No paid tennis odds
+calls or extra client polling are added.

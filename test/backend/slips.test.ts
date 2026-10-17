@@ -109,3 +109,14 @@ describe('saved betslip ownership, final-state locks and retained results',()=>{
   const saved=await t.run(ctx=>ctx.db.get(id));expect(saved?.items[1].odds).toBe(0);expect(saved?.totalOdds).toBe(2.1);
   await expect(alice.mutation(anyApi.betslip.save,{items:[{...selection(),odds:1}],stake:100,betType:'acca'})).rejects.toThrow('valid odds');
  });
+
+it('persists experimental tennis picks without inventing odds, payout or a settled result',async()=>{
+ const t=create(),signed=await member(t,'tennis-slip@example.test');
+ const pick={...selection('tennis-oddsapi-provider-id'),sport:'tennis',market:'Match winner',selection:'Player A',marketKey:'match_winner:a',bookmaker:'Unpriced experimental estimate',odds:0,modelProb:.65,edgePercent:0};
+ await signed.mutation(anyApi.betslip.save,{items:[pick],stake:1000,betType:'single'});
+ expect(await signed.query(anyApi.betslip.mine,{})).toMatchObject({items:[{sport:'tennis',odds:0}],totalOdds:0,potentialReturn:0});
+ await expect(signed.mutation(anyApi.betslip.saveHistory,{name:'Unverified tennis',items:[pick],stake:1000,betType:'acca'})).rejects.toThrow('could not be verified');
+ await t.mutation(anyApi.tennisSchedule.publish,{at:Date.now(),fixtures:[{id:'tennis-oddsapi-provider-id',kickoff:Date.now()+3600000}]});
+ const id=await signed.mutation(anyApi.betslip.saveHistory,{name:'Tennis review',items:[pick],stake:1000,betType:'acca'});
+ const saved=await t.run(ctx=>ctx.db.get(id));expect(saved).toMatchObject({items:[{sport:'tennis',odds:0}],totalOdds:0,potentialReturn:0});
+});

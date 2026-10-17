@@ -1,3 +1,4 @@
+import {GET as tennisFeed}from'../../src/routes/api/tennis/+server';
 import {POST as tennisUpload}from'../../src/routes/api/admin/tennis/+server';
 import {it,expect,vi,afterEach} from 'vitest';
 import {env as nativeEnv} from './worker-env.mock';
@@ -41,4 +42,12 @@ it('tennis upload requires administrator identity, origin and explicit license b
  const wrong=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://wrong.test'},body:'{}'});expect((await tennisUpload(wrong)).status).toBe(403);
  const missing=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://example.test'},body:JSON.stringify({rows:[{}]})});expect((await tennisUpload(missing)).status).toBe(400);expect(missing.platform.env.DATA_BUCKET.put).not.toHaveBeenCalled();
  const good=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://example.test'},body:JSON.stringify({license:{source:'Test source',name:'Test only',commercialUseApproved:true},rows:[{id:'test'}]})});expect((await tennisUpload(good)).status).toBe(201);expect(good.platform.env.DATA_BUCKET.put).toHaveBeenCalledTimes(2);expect(good.platform.env.DATA_BUCKET.put.mock.calls[0][0].startsWith('archives/tennis/datasets/')).toBe(true);
+});
+
+it('keeps tennis snapshots private, conditional and bounded without a Convex bulk fallback',async()=>{
+ const denied=event('/api/tennis');expect((await tennisFeed(denied)).status).toBe(403);expect(denied.platform.env.DATA_BUCKET.get).not.toHaveBeenCalled();
+ identity.active=true;identity.role='subscriber';
+ const valid=event('/api/tennis');const response=await tennisFeed(valid);expect(response.status).toBe(200);expect(response.headers.get('Cache-Control')).toBe('private, no-store');expect(valid.platform.env.DATA_BUCKET.get).toHaveBeenCalledWith('archives/tennis/live-information.json.gz');expect(valid.fetch).not.toHaveBeenCalled();
+ const unchanged=event('/api/tennis',{headers:{'If-None-Match':'"etag"'}});expect((await tennisFeed(unchanged)).status).toBe(304);
+ const oversized=event('/api/tennis');oversized.platform.env.DATA_BUCKET.get.mockResolvedValue({size:300000});expect((await tennisFeed(oversized)).status).toBe(503);
 });

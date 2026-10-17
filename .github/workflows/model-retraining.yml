@@ -35,6 +35,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: pip install -r training/requirements.txt
       - run: python -m unittest discover -s training -p test_continuous.py
+      - run: python -m unittest discover -s training -p test_evaluation_diagnostics.py
       - name: Collect retained actual results without provider calls
         run: node scripts/continuous-training.mjs collect
       - name: Refit and compare on unseen chronological results
@@ -67,6 +68,8 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: python -m unittest discover -s training -p test_tennis_shadow.py
       - run: python -m unittest discover -s training -p test_tennis_results.py
+      - run: python -m unittest discover -s training -p test_tennis_live.py
+      - run: python -m unittest discover -s training -p test_evaluation_diagnostics.py
       - name: Restore privately cached results-only tennis sources
         run: node scripts/tennis-results.mjs restore
       - name: Download licensed results and refresh the current season
@@ -77,6 +80,12 @@ jobs:
         run: node scripts/tennis-results.mjs store
       - name: Discover tennis without paid provider calls and load private R2 history
         run: node scripts/tennis-shadow.mjs collect
+      - name: Evaluate the separate global-only tennis model on chronological holdouts
+        run: python training/tennis_live.py train
+      - name: Build genuine upcoming tennis informational forecasts
+        run: python training/tennis_live.py
+      - name: Publish one compact private R2 snapshot without extra provider calls
+        run: node scripts/tennis-live.mjs
       - name: Fit point-stat models and evaluate chronological calibration holdout
         run: python training/tennis_shadow.py training/private/tennis-dataset.json training/private/tennis-result.json
       - name: Publish compact shadow evidence with live markets disabled

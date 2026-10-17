@@ -1,0 +1,3 @@
+export interface TennisOption {side:string;selection:string;modelProb:number}
+export interface TennisFixture {id:string;league:string;tour:string;playerA:string;playerB:string;kickoff:number;publishedAt:number;trainedThroughAssumed?:number;surface:string;markets:{key:string;title:string;options:TennisOption[]}[]}
+export interface TennisSnapshot {v:1;at:number;mode:string;model:string;bettingApproved:false;fixtures:TennisFixture[];withheld:Record<string,number>;coverageErrors:string[];evaluation?:{segments:{tour:string;market:string;calibrationRows:number;raw:{n:number;brier:number};calibrated:{n:number;brier:number;accuracy:number}|null}[];limitations:string[]}}

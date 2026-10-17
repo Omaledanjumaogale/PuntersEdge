@@ -14,7 +14,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
-from tennis_shadow import calibrator, metrics
+from tennis_shadow import calibrator, metrics, sigmoid, logit
+from evaluation_diagnostics import reliability
 
 SOURCE = 'https://www.valuebetennis.com/donnees.htm'
 LICENSE = 'https://creativecommons.org/licenses/by/4.0/'
@@ -184,6 +185,7 @@ def train(folder):
                 segments.append({'tour': tour, 'market': target, 'year': year, 'calibrationRows': len(calibration),
                                  'raw': metrics(pairs), 'calibrated': metrics(pairs, fitted) if fitted else None,
                                  'calibrationError': calibration_error(pairs, fitted),
+                                 'reliability': reliability([(sigmoid(fitted['intercept']+fitted['slope']*logit(max(1e-6,min(1-1e-6,p)))) if fitted else p,y) for p,y in pairs]),
                                  'openingOddsBenchmark': metrics([(r['openingBenchmark'], r['y']) for r in matched]),
                                  'modelOnSameQuotedMatches': metrics([(r['p'], r['y']) for r in matched], fitted) if fitted else None,
                                  'bettingApproved': False})

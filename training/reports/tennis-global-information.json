@@ -1,0 +1,84 @@
+{
+  "model": "Global Elo K=24, minimum 10 prior matches; independent frozen 2024 Platt calibrators",
+  "split": "2021\u20132023 history; 2024 calibration; 2025 onward sequential delayed-label evaluation",
+  "limitations": [
+    "Seven-day label availability is assumed, not verified by the export.",
+    "No prospective ROI or bookmaker outperformance has been demonstrated.",
+    "Global ratings omit surface, injuries, current form details and match-format effects."
+  ],
+  "evaluatedAt": "2026-10-17T19:15:41.321437+00:00",
+  "eligibleHistoricalRows": 260072,
+  "historicalStart": "2021-01-01T12:00:00+00:00",
+  "historicalEnd": "2026-10-17T06:05:00+00:00",
+  "segments": [
+    {
+      "tour": "ATP",
+      "market": "match_winner",
+      "calibrationRows": 20957,
+      "raw": {
+        "n": 33684,
+        "brier": 0.21303717816105242,
+        "logLoss": 0.6144048508365086,
+        "accuracy": 0.6615010093813086
+      },
+      "calibrated": {
+        "n": 33684,
+        "brier": 0.21159057338766762,
+        "logLoss": 0.610411506833152,
+        "accuracy": 0.6614416340102126
+      }
+    },
+    {
+      "tour": "ATP",
+      "market": "first_set_winner",
+      "calibrationRows": 20957,
+      "raw": {
+        "n": 33684,
+        "brier": 0.22639400503120774,
+        "logLoss": 0.6437019528949884,
+        "accuracy": 0.6258757867236671
+      },
+      "calibrated": {
+        "n": 33684,
+        "brier": 0.22636267549101116,
+        "logLoss": 0.6436012041000299,
+        "accuracy": 0.6254898468115426
+      }
+    },
+    {
+      "tour": "WTA",
+      "market": "match_winner",
+      "calibrationRows": 16612,
+      "raw": {
+        "n": 24956,
+        "brier": 0.20663154599712455,
+        "logLoss": 0.6003120678397793,
+        "accuracy": 0.6785542554896618
+      },
+      "calibrated": {
+        "n": 24956,
+        "brier": 0.20351261860176667,
+        "logLoss": 0.5914050261142055,
+        "accuracy": 0.6793155954479885
+      }
+    },
+    {
+      "tour": "WTA",
+      "market": "first_set_winner",
+      "calibrationRows": 16612,
+      "raw": {
+        "n": 24956,
+        "brier": 0.21971203656093594,
+        "logLoss": 0.6290163799089522,
+        "accuracy": 0.6460169899022279
+      },
+      "calibrated": {
+        "n": 24956,
+        "brier": 0.21897923401402017,
+        "logLoss": 0.6269870341183824,
+        "accuracy": 0.6456964257092482
+      }
+    }
+  ],
+  "bettingApproved": false
+}

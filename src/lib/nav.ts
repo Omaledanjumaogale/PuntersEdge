@@ -11,12 +11,12 @@ export interface NavItem {
 	also?: string[];
 }
 
-const sportHrefs = SPORT_ORDER.map((s) => SPORTS[s].href);
+const sportHrefs = [...SPORT_ORDER.map((s) => SPORTS[s].href),'/tennis'];
 
 export const NAV: NavItem[] = [
 	{ href: '/', label: 'Home', emoji: '🏠', hint: 'Start here', group: 'main' },
 	{ href: '/board', label: 'Board', emoji: '📊', hint: "Today's top picks", group: 'main' },
-	{ href: '/sports', label: 'Sports', emoji: '🏟️', hint: 'Five sports, one place', group: 'main', also: sportHrefs },
+	{ href: '/sports', label: 'Sports', emoji: '🏟️', hint: 'Sports and experimental tennis', group: 'main', also: sportHrefs },
 	...SPORT_ORDER.map((s) => ({
 		href: SPORTS[s].href,
 		label: SPORTS[s].label,
@@ -24,6 +24,7 @@ export const NAV: NavItem[] = [
 		hint: SPORTS[s].markets.split(',')[0],
 		group: 'sport' as const
 	})),
+	{href:'/tennis',label:'Tennis',emoji:'🎾',hint:'Experimental results-based estimates',group:'sport'},
 	{ href: '/value-bets', label: 'Market choices', emoji: '💎', hint: 'Projections and observed prices', group: 'main' },
 	{ href: '/bet-machine', label: 'Bet machine', emoji: '🎟️', hint: 'Build a model-ranked accumulator', group: 'more' },
 	{ href: '/results', label: 'Results', emoji: '📈', hint: 'Scores and our record', group: 'main' },

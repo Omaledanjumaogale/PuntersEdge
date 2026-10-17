@@ -1,0 +1,22 @@
+import {ConvexHttpClient} from 'convex/browser';
+import {makeFunctionReference} from 'convex/server';
+/** One compact daily snapshot in private R2; no extra provider or Convex reads. */
+import {readFileSync} from 'node:fs';
+import {gzipSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
+import {blobClient} from '../src/lib/feeds/blob-client.js';
+const snapshot=JSON.parse(readFileSync('training/private/tennis-live.json','utf8'));
+if(snapshot.v!==1||snapshot.bettingApproved!==false||snapshot.fixtures.length>200)throw Error('Invalid informational snapshot');
+const fitted=readFileSync('training/private/valuebetennis/global-ratings.json');
+const fingerprint=createHash('sha256').update(fitted).digest('hex');
+snapshot.artifactKey='archives/tennis/global-models/'+fingerprint+'.json.gz';
+snapshot.modelVersion='tennis-global-'+fingerprint;
+const bytes=gzipSync(JSON.stringify(snapshot));
+if(bytes.length>256*1024)throw Error('Tennis snapshot exceeds size limit');
+const blobs=blobClient(process.env.EDGE_DATA_URL,process.env.EDGE_DATA_SECRET);
+await blobs.put(snapshot.artifactKey,gzipSync(fitted));
+await blobs.put('archives/tennis/live-information.json.gz',bytes);
+await blobs.put('archives/tennis/prospective/'+snapshot.at+'.json.gz',bytes);
+const client=new ConvexHttpClient(process.env.PUBLIC_CONVEX_URL);client.setAdminAuth(process.env.CONVEX_DEPLOY_KEY);
+await client.mutation(makeFunctionReference('tennisSchedule:publish'),{at:snapshot.at,fixtures:snapshot.fixtures.map(f=>({id:f.id,kickoff:f.kickoff}))});
+console.log(JSON.stringify({fixtures:snapshot.fixtures.length,bytes:bytes.length,bettingApproved:false}));

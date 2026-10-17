@@ -3,7 +3,7 @@ import {existsSync,readFileSync} from 'node:fs';
 const root='.svelte-kit/cloudflare';
 const routes=JSON.parse(readFileSync(root+'/_routes.json','utf8'));
 assert.ok(!routes.include.includes('/*'),'Static page requests must not invoke a Function');
-for(const route of ['','board','login','tester','match','betslips','admin','admin/members','admin/models']){
+for(const route of ['','board','login','tester','match','tennis','betslips','admin','admin/members','admin/models']){
  const path=route||'index';
  const html=existsSync(`${root}/${path}.html`)?`${root}/${path}.html`:`${root}/${path}/index.html`;
  assert.ok(existsSync(html),`Missing static application shell: /${route}`);

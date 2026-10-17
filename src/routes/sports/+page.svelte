@@ -25,7 +25,7 @@
 		<h1 class="text-4xl font-extrabold text-chalk">🏟️ Sports</h1>
 		<DataBadge />
 	</div>
-	<p class="mt-2 text-haze">Five dashboards, each with an engine built for how that sport is scored. Pick one.</p>
+	<p class="mt-2 text-haze">Explore five score-based sports dashboards and the experimental tennis forecast workspace.</p>
 </header>
 
 <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -52,3 +52,4 @@
 		</a>
 	{/each}
 </div>
+<a href="/tennis" class="surface mt-4 flex min-w-0 flex-wrap items-center justify-between gap-4 p-5"><span class="min-w-0"><strong class="text-xl">🎾 Tennis</strong><span class="mt-2 block text-sm text-haze">Results-based match and first-set estimates. Experimental evidence and coverage are shown alongside each forecast.</span></span><span class="text-sm font-semibold text-model">Explore tennis ↗</span></a>

@@ -1,0 +1,443 @@
+{
+  "status": "Evaluation complete",
+  "evaluatedAt": "2026-10-17T19:17:54.348810+00:00",
+  "segments": [
+    {
+      "sport": "baseball",
+      "league": "MLB",
+      "scope": "full",
+      "rows": 5780,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1716416400000,
+        "incumbentCutoff": 1730506080000.0,
+        "testStart": 1716417600000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "basketball",
+      "league": "EuroLeague",
+      "scope": "full",
+      "rows": 661,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1733687100000,
+        "incumbentCutoff": 1748365200000.0,
+        "testStart": 1734111000000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "football",
+      "league": "Premier League",
+      "scope": "full",
+      "rows": 1140,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1725375600000,
+        "incumbentCutoff": 1748358000000.0,
+        "testStart": 1726405200000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "hockey",
+      "league": "NHL",
+      "scope": "full",
+      "rows": 3016,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1734397200000,
+        "incumbentCutoff": 1750377600000.0,
+        "testStart": 1734399000000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "nba",
+      "league": "NBA",
+      "scope": "full",
+      "rows": 2778,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1735776000000,
+        "incumbentCutoff": 1750809600000.0,
+        "testStart": 1735777800000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "baseball",
+      "league": "MLB",
+      "scope": "first_five",
+      "rows": 5858,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1716322200000,
+        "incumbentCutoff": 1730506080000.0,
+        "testStart": 1716329400000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "baseball",
+      "league": "MLB",
+      "scope": "first_inning",
+      "rows": 5858,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1716322200000,
+        "incumbentCutoff": 1730506080000.0,
+        "testStart": 1716329400000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "basketball",
+      "league": "EuroLeague",
+      "scope": "first_half",
+      "rows": 661,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1733687100000,
+        "incumbentCutoff": 1748365200000.0,
+        "testStart": 1734111000000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "basketball",
+      "league": "EuroLeague",
+      "scope": "first_quarter",
+      "rows": 661,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1733687100000,
+        "incumbentCutoff": 1748365200000.0,
+        "testStart": 1734111000000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "football",
+      "league": "Premier League",
+      "scope": "first_half",
+      "rows": 1140,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1725375600000,
+        "incumbentCutoff": 1748358000000.0,
+        "testStart": 1726405200000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "hockey",
+      "league": "NHL",
+      "scope": "first_period",
+      "rows": 3015,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1734397200000,
+        "incumbentCutoff": 1750377600000.0,
+        "testStart": 1734399000000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "hockey",
+      "league": "NHL",
+      "scope": "regulation",
+      "rows": 3013,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1734404400000,
+        "incumbentCutoff": 1750377600000.0,
+        "testStart": 1734406200000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "nba",
+      "league": "NBA",
+      "scope": "first_half",
+      "rows": 2778,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1735776000000,
+        "incumbentCutoff": 1750809600000.0,
+        "testStart": 1735777800000,
+        "newTrainingRows": 0
+      }
+    },
+    {
+      "sport": "nba",
+      "league": "NBA",
+      "scope": "first_quarter",
+      "rows": 2778,
+      "status": "Refitted; waiting for unseen results",
+      "evaluation": {
+        "n": 0,
+        "candidateBrier": null,
+        "incumbentBrier": null,
+        "candidateLogLoss": null,
+        "incumbentLogLoss": null,
+        "candidateMae": null,
+        "incumbentMae": null,
+        "markets": {},
+        "pairedBrier": {
+          "nFixtures": 0,
+          "blocks": 0,
+          "blockSize": 7,
+          "meanDifference": null,
+          "interval95": null,
+          "sufficient": false,
+          "method": "Fixed-seed consecutive-fixture block bootstrap; candidate minus incumbent loss"
+        },
+        "allMarketFamiliesNonRegressing": false,
+        "candidateCutoff": 1735776000000,
+        "incumbentCutoff": 1750809600000.0,
+        "testStart": 1735777800000,
+        "newTrainingRows": 0
+      }
+    }
+  ],
+  "qualifiedUpdates": 0,
+  "excludedUnavailableOrDuplicateRows": 0,
+  "policy": "Chronological split reserves latest30% of new results (at least40), 48h availability gap; >=40 unseen fixtures, >=20 new training results, >=1% Brier improvement, no log-loss regression, MAE within2%; each market family Brier/log-loss within2%, paired fixture-block Brier interval upper bound below0; never automatic betting approval"
+}

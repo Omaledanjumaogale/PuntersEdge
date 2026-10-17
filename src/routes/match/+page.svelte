@@ -215,7 +215,7 @@
 			<p class="text-haze">We know about this game but can't price it yet: no bookmaker prices and no league table to rate the teams from. It will appear on the {info.label} dashboard as soon as we can.</p>
 		{/if}
 	</section>
-	<AIExplanation fixtureId={game.id} sport={game.sport} />
+	{#if game.sport!=='tennis'}<AIExplanation fixtureId={game.id} sport={game.sport} />{:else}<a class="btn-primary mt-4" href="/tennis">Open tennis analysis</a>{/if}
 {:else}
 	<section class="surface mt-6 p-6">
 		<h1 class="text-2xl font-bold text-chalk">🤷 That game isn't on the board</h1>

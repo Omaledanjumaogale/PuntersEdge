@@ -40,7 +40,14 @@ describe('backend access and subscription security', () => {
   const bad={artifact:{...artifact,version:'bad-candidate'},incumbentVersion:'incumbent',evaluation:{n:50,newTrainingRows:30,candidateBrier:.5,incumbentBrier:.2,candidateLogLoss:.6,incumbentLogLoss:.4,candidateMae:1,incumbentMae:1,candidateCutoff:1,incumbentCutoff:1,testStart:2}};
   await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[bad],fingerprint:'test-data'});
   expect(await signed.query(anyApi.models.list,{})).toMatchObject([{version:'incumbent',mode:'active'}]);
-  const better={...bad,artifact:{...artifact,version:'better-candidate'},evaluation:{...bad.evaluation,candidateBrier:.15,candidateLogLoss:.3}};
+  const unsupported={...bad,artifact:{...artifact,version:'unsupported'},evaluation:{...bad.evaluation,candidateBrier:.15,candidateLogLoss:.3}};
+  await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[unsupported],fingerprint:'test-data'});
+  expect((await signed.query(anyApi.models.list,{})).find((r:any)=>r.mode==='active')?.version).toBe('incumbent');
+  const markets=Object.fromEntries(['total','home','away','margin'].map(key=>[key,{nOptions:140,candidateBrier:.15,incumbentBrier:.2,candidateLogLoss:.3,incumbentLogLoss:.4}]));
+  const better={...bad,artifact:{...artifact,version:'better-candidate'},evaluation:{...bad.evaluation,n:70,candidateBrier:.15,candidateLogLoss:.3,markets,pairedBrier:{nFixtures:70,blocks:10,blockSize:7,interval95:[-.08,-.01]}}};
+  const regressing={...better,artifact:{...artifact,version:'regressing'},evaluation:{...better.evaluation,markets:{...markets,home:{...markets.home,candidateBrier:.3}}}};
+  await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[regressing],fingerprint:'test-data'});
+  expect((await signed.query(anyApi.models.list,{})).find((r:any)=>r.mode==='active')?.version).toBe('incumbent');
   await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[better],fingerprint:'test-data'});
   expect(await signed.query(anyApi.models.list,{})).toEqual(expect.arrayContaining([expect.objectContaining({version:'better-candidate',mode:'active',approved:false,approvedMarkets:[]}),expect.objectContaining({version:'incumbent',mode:'retired'})]));
   await expect(t.mutation(anyApi.learning.finish,{report:{},candidates:[],fingerprint:'different-data'})).rejects.toThrow('changed');

@@ -51,7 +51,7 @@ export const gradeMeaning: Record<string, string> = {
 	PASS: 'No value at this price'
 };
 
-export const sportEmoji: Record<string, string> = { football: '⚽', basketball: '🏀', nba: '⛹️', hockey: '🏒', baseball: '⚾' };
+export const sportEmoji: Record<string, string> = { football: '⚽', basketball: '🏀', nba: '⛹️', hockey: '🏒', baseball: '⚾', tennis: '🎾' };
 
 /** Short status label for a game: "LIVE 2–1 67'", "FT 3–2", "Postponed". */
 export function statusLabel(s: { state: string; home?: number; away?: number; detail?: string } | undefined) {

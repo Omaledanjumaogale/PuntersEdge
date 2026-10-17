@@ -23,5 +23,6 @@
 				</a>
 			</li>
 		{/each}
+		<li><a href="/tennis" aria-current={page.url.pathname==='/tennis'?'page':undefined} class="flex min-h-10 items-center gap-2 rounded-full bg-deep px-3.5 py-2 text-sm font-semibold ring-1 ring-line">🎾 Tennis <span class="text-xs text-haze">Experimental</span></a></li>
 	</ul>
 </nav>

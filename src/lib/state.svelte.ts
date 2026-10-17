@@ -16,6 +16,7 @@ import { withModelOnlyMarkets } from '#lib/engine/model-only.js';
 import {applyEvidence} from '#lib/engine/evidence.js';
 import { SPORT_ORDER, type SportKey } from '#lib/sports.ts';
 import {hasQuotedOdds,slipPricing} from '#lib/slip-pricing.js';
+import type {TennisFixture,TennisOption} from '#lib/tennis-types.ts';
 
 export type FootballPrediction = ReturnType<typeof buildFootballPrediction>;
 export type BasketballPrediction = ReturnType<typeof buildBasketballPrediction>;
@@ -37,7 +38,7 @@ export interface SlipItem {
 	marketKey?: string;
 	id: string;
 	fixtureId: string;
-	sport: SportKey;
+	sport: SportKey | 'tennis';
 	matchTitle: string;
 	market: string;
 	selection: string;
@@ -82,6 +83,7 @@ function save(key: string, value: unknown) {
 }
 
 class AppState {
+	tennisFixtures = $state<TennisFixture[]>([]);
 	settings = $state<Settings>(load(SETTINGS_KEY, DEFAULT_SETTINGS));
 	slip = $state<SlipItem[]>(loadArray<SlipItem>(SLIP_KEY));
 	slipOpen = $state(false);
@@ -193,8 +195,18 @@ class AppState {
 		return this.all.find((p) => p.fixtureId === id);
 	}
 
-	gameById(id: string): FeedGame | undefined {
-		return this.games.find((g) => g.id === id);
+	gameById(id: string) {
+		const game=this.games.find((g) => g.id === id);if(game)return game;
+		const tennis=this.tennisFixtures.find(f=>f.id===id);
+		return tennis?{id:tennis.id,sport:'tennis' as const,league:tennis.league,country:undefined,home:tennis.playerA,away:tennis.playerB,kickoff:new Date(tennis.kickoff).toISOString(),status:{state:'scheduled' as const,home:undefined,away:undefined},books:0,priced:false,availabilityReason:'Experimental tennis analysis is available in the tennis workspace.'}:undefined;
+	}
+	/** Experimental tennis stays separate from validated score-sport engines. */
+	toggleTennis(fixture:TennisFixture,market:{key:string;title:string},option:TennisOption){
+		const id=`${fixture.id}:${market.key}:${option.side}`;
+		if(this.inSlip(id)){this.remove(id);return;}
+		const now=Date.now();
+		if(!this.tennisFixtures.some(f=>f.id===fixture.id)||fixture.kickoff<=now||fixture.publishedAt>now||now-fixture.publishedAt>86400000||!Number.isFinite(option.modelProb)||option.modelProb<=0||option.modelProb>=1)return;
+		this.slip=[...this.slip,{id,fixtureId:fixture.id,sport:'tennis',marketKey:`${market.key}:${option.side}`,matchTitle:`${fixture.playerA} vs ${fixture.playerB}`,league:fixture.league,market:market.title,selection:option.selection,bookmaker:'Unpriced experimental estimate',odds:0,modelProb:option.modelProb,edgePercent:0,pushProb:0}];recordActivity('slip_added');
 	}
 
 	inSlip(id: string) {
