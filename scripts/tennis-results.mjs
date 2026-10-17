@@ -2,9 +2,9 @@
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {gzipSync,gunzipSync} from 'node:zlib';
-import {blobClient} from '../src/lib/feeds/blob-client.js';
+import {runnerBlobs} from './runner-blobs.mjs';
 const root='training/private/valuebetennis',prefix='archives/tennis/results/';
-const blobs=blobClient(process.env.EDGE_DATA_URL,process.env.EDGE_DATA_SECRET);
+const blobs=runnerBlobs();
 const fingerprint=bytes=>createHash('sha256').update(bytes).digest('hex');
 const allowed=name=>{const match=/^valuebetennis-matchs-(20\d{2})\.csv$/.exec(name);return match?Number(match[1])>=2021&&Number(match[1])<=new Date().getUTCFullYear():['source-license.html','CC-BY-4.0.html'].includes(name);};
 try{

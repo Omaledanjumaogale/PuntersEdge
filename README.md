@@ -148,3 +148,7 @@ betslip controls. Tennis is experimental; automatic settlement, verified-value
 approval and accumulator-optimizer integration remain unavailable. Source history,
 fitted artifacts and prospective snapshots stay in private R2. No paid tennis odds
 calls or extra client polling are added.
+
+Scheduled ingestion and tennis training now use the authenticated R2 control API
+directly, avoiding application Worker invocations for retained-file transfers.
+Browser APIs still require available Worker capacity.

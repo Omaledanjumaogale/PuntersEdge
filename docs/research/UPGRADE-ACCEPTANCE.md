@@ -82,7 +82,10 @@ or stake recommendation may fill that gap.
 ## Resource and release boundaries
 
 All training runs on the existing GitHub job, not on each page request or in an
-LLM. Tennis reuses the documented free catalogue/events discovery and makes no
+LLM. Scheduled ingestion and tennis jobs access R2 directly through the same
+Cloudflare control API used by Wrangler, using existing server-only account
+credentials. These file operations no longer invoke the application Worker.
+Partial direct-R2 configuration fails closed; no credentials enter browser assets. Tennis reuses the documented free catalogue/events discovery and makes no
 additional paid odds request. Three R2 writes per daily forecast retain the fitted artifact, a
 current snapshot and a prospective audit snapshot. Convex receives only a bounded
 ID/kickoff verification index, once daily, so named betslips can verify real tennis

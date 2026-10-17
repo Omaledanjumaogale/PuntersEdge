@@ -18,6 +18,8 @@ jobs:
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       EDGE_DATA_URL: https://puntersedge.ewinproject.org
       EDGE_DATA_SECRET: ${{ secrets.EDGE_DATA_SECRET }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
       THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
       ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
