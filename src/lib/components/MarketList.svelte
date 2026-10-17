@@ -11,16 +11,16 @@
  {#each shown as g(g.key)}<details class="market-accordion"><summary class="market-summary"><span class="min-w-0"><strong><span aria-hidden="true">{g.emoji}</span> {g.title}</strong><small>{g.selections.length} options · Model % high to low</small></span><span class="accordion-chevron" aria-hidden="true">⌄</span></summary>
  <p class="px-3 pb-3 text-xs text-haze">{g.blurb}</p>
  <ul class="market-tiles">{#each g.selections as s(s.id)}
- {@const inSlip=app.inSlip(s.id)}{@const selectable=s.pricing==='quoted'&&app.gameById(s.fixtureId)?.status.state==='scheduled'&&Date.parse(app.gameById(s.fixtureId)?.kickoff??'')>app.now}{@const opportunity=(s as any).opportunity}
+ {@const inSlip=app.inSlip(s.id)}{@const selectable=app.gameById(s.fixtureId)?.status.state==='scheduled'&&Date.parse(app.gameById(s.fixtureId)?.kickoff??'')>app.now}{@const opportunity=(s as any).opportunity}
  <li class:selected={inSlip}>
  <div class="market-choice">
  <span class="choice-name">{#if opportunity?.green}<span class="choice-light" aria-hidden="true"></span>{/if}{s.selection}</span>
  <span class="choice-prob">{pct(s.modelProb,1)}<small>Model</small></span>
  <span class="choice-meta">Projection {(s as any).projectionGrade??'—'} · {s.pricing==='quoted'?s.bookmaker:'Fair estimate'}<span class="choice-price">{odds(s.pricing==='quoted'?s.bestOdds:s.fairOdds)}</span></span>
- <button class="choice-add" disabled={!selectable&&!inSlip} aria-pressed={inSlip} aria-label={inSlip?`Remove ${s.selection} from betslip`:selectable?`Add ${s.selection} to betslip`:`Cannot add ${s.selection}: ${s.pricing!=='quoted'?'bookmaker price unavailable':'pre-match selection closed'}`} title={inSlip?'Remove from betslip':selectable?'Add to betslip':s.pricing!=='quoted'?'Waiting for a real bookmaker price':'Pre-match selection closed'} onclick={()=>{app.toggle(s);feedback=app.inSlip(s.id)?`${s.selection} added to betslip.`:`${s.selection} removed from betslip.`;}}><span aria-hidden="true">{inSlip?'✓':'+'}</span></button>
- {#if !selectable&&!inSlip}<span class="choice-unavailable">{s.pricing!=='quoted'?'Bookmaker price needed to add':'Pre-match selection closed'}</span>{/if}
+ <button class="choice-add" disabled={!selectable&&!inSlip} aria-pressed={inSlip} aria-label={inSlip?`Remove ${s.selection} from betslip`:selectable?`Add ${s.selection} to betslip`:`Cannot add ${s.selection}: pre-match selection closed`} title={inSlip?'Remove from betslip':selectable?'Add to betslip':'Pre-match selection closed'} onclick={()=>{app.toggle(s);feedback=app.inSlip(s.id)?`${s.selection} added to betslip.`:`${s.selection} removed from betslip.`;}}><span aria-hidden="true">{inSlip?'✓':'+'}</span></button>
+ {#if !selectable&&!inSlip}<span class="choice-unavailable">Pre-match selection closed</span>{/if}
  </div>
- <details class="choice-note"><summary>Analysis <span>{s.pricing==='quoted'?`${signed(s.edgePercent,1)}% EV`:'Quote unavailable'}{#if s.pushProb>.005} · {pct(s.pushProb)} refund{/if}</span></summary><div><p>{opportunity?.note??'No market choice note is available.'}</p><p class="mt-2">{opportunity?.gradeBasis??'Model probabilities are estimates, not measured accuracy.'}</p><p class="mt-2">Fair price {odds(s.fairOdds)}. {s.pricing==='quoted'?`Value grade ${s.grade}. Confirm current bookmaker price.`:'Estimated prices cannot be added as executable bookmaker offers.'}</p></div></details>
+ <details class="choice-note"><summary>Analysis <span>{s.pricing==='quoted'?`${signed(s.edgePercent,1)}% EV`:'Quote unavailable'}{#if s.pushProb>.005} · {pct(s.pushProb)} refund{/if}</span></summary><div><p>{opportunity?.note??'No market choice note is available.'}</p><p class="mt-2">{opportunity?.gradeBasis??'Model probabilities are estimates, not measured accuracy.'}</p><p class="mt-2">Fair price {odds(s.fairOdds)}. {s.pricing==='quoted'?`Value grade ${s.grade}. Confirm current bookmaker price.`:'Add this unpriced selection to your slip. Its fair estimate is excluded from quoted combined odds.'}</p></div></details>
  </li>{/each}</ul></details>{/each}
 </div>
 <p class="sr-only" role="status" aria-live="polite">{feedback}</p>

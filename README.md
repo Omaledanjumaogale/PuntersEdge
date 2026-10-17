@@ -26,7 +26,7 @@ Live fixtures, fair prices, value bets and stake sizes for **football, NBA, bask
 | Styling | Tailwind CSS 4 tokens, self-hosted Bricolage Grotesque + Instrument Sans |
 | 3D | Three.js (lazy-loaded) |
 | Engine | Dependency-free ES modules in `src/lib/engine` (runs in browser and Node) |
-| Hosting | Cloudflare Pages (`@sveltejs/adapter-cloudflare`), every route prerendered |
+| Hosting | Cloudflare Pages: static application page shells; protected APIs use Functions |
 | Backend | Convex (`convex/`): auth, betslip sync, live-data ingest (cron + Node action + file storage) |
 
 ## Getting started
@@ -81,7 +81,7 @@ Without an available entitled provider feed, dashboards remain empty and show an
 ## Progressive Web App
 
 - `static/manifest.webmanifest` — id, shortcuts, maskable icons at true sizes, narrow/wide screenshots for the rich install sheet.
-- `src/service-worker/` — precaches the build, static files and every prerendered page (one per fixture); cache-first assets, network-first pages with offline fallback; updates wait for the user to tap **Update**.
+- `src/service-worker/` — precaches build assets and public home/board shells; private pages and APIs are excluded from shared caching. Failed public navigation can use its cached shell; updates wait for **Update**.
 - `src/lib/pwa.svelte.ts` — install prompt (Android/desktop), iOS add-to-home-screen guidance, update and offline state.
 
 ## Project layout

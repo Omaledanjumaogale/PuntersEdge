@@ -2,6 +2,13 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {machineCandidates,buildMachineTicket} from '../src/lib/bet-machine.js';
 const now=Date.parse('2026-10-13T12:00Z');
 const pick=(id,fixtureId,p,odds)=>({id,fixtureId,sport:'football',market:'Result',selection:'Home',modelProb:p,bestOdds:odds,pricing:'quoted',edgePercent:5,pushProb:0});
+test('manual shortlist includes unpriced choices but target-odds optimizer never invents their prices',()=>{
+ const unknown={...pick('a:home','a',.9,0),pricing:'derived'},quoted=pick('b:home','b',.8,2);
+ const make=p=>({fixtureId:p.fixtureId,sport:'football',kickoffTime:new Date(now+3600000).toISOString(),status:{state:'scheduled'},markets:[{key:'result',selections:[p]}]});
+ const rows=machineCandidates([make(unknown),make(quoted)],{from:now,to:now+7200000,publishedIds:new Set(['a','b']),sports:['football'],markets:[],direction:'all',minOdds:1.1,maxOdds:3,minProbability:.6,includeUnpriced:true},now);
+ assert.equal(rows.length,2);assert.equal(rows[0].evidence.breakEvenProbability,null);
+ const ticket=buildMachineTicket(rows,{minTotal:2,maxTotal:2.1});assert.deepEqual(ticket.picks.map(p=>p.id),['b:home']);
+});
 test('optimizer chooses its own ticket size within requested odds and keeps just one selection per fixture',()=>{const picks=[pick('a:home','a',.9,1.3),pick('a:away','a',.7,2),pick('b:home','b',.8,1.5),pick('c:home','c',.65,2.1)];const result=buildMachineTicket(picks,{minTotal:2.5,maxTotal:3});assert.equal(result.picks.length,2);assert.equal(new Set(result.picks.map(p=>p.fixtureId)).size,2);assert.equal(result.picks[0].fixtureId,'a');assert.equal(result.picks[1].fixtureId,'c');assert.ok(result.combinedOdds>=2&&result.combinedOdds<=3);assert.equal(buildMachineTicket(picks,{minTotal:20,maxTotal:30}),null);});
 test('candidate filters exclude unpublished, live, derived, stale and wrong-direction markets',()=>{const make=(id,status='scheduled',pricing='quoted')=>({fixtureId:id,sport:'football',kickoffTime:new Date(now+3600000).toISOString(),status:{state:status},markets:[{key:'result',selections:[{...pick(`${id}:home`,id,.75,1.5),pricing}]}]});const options={from:now,to:now+3*3600000,publishedIds:new Set(['a','live','derived']),sports:['football'],markets:['result'],direction:'home',minOdds:1.2,maxOdds:2,minProbability:.6,positiveValue:true};const rows=machineCandidates([make('a'),make('live','live'),make('derived','scheduled','derived'),make('unpublished')],options,now);assert.equal(rows.length,1);assert.equal(rows[0].fixtureId,'a');assert.equal(machineCandidates([make('a')],{...options,direction:'away'},now).length,0);assert.equal(machineCandidates([make('a')],{...options,to:now+1000},now).length,0);});
 

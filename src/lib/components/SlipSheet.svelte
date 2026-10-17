@@ -2,6 +2,7 @@
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { toast } from '#lib/toast.svelte.ts';
+	import {hasQuotedOdds} from '#lib/slip-pricing.js';
 	import {shareSlipText} from '#lib/slips.js';
  import { downloadSlipPdf } from '#lib/slip-export.ts';
 	import { api } from '../../../convex/_generated/api.js';
@@ -22,10 +23,10 @@
 
 	const items = $derived(app.slip);
 	const econ = $derived(app.slipEconomics);
-	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,country:item.country??game?.country,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
+	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.filter(hasQuotedOdds).reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,country:item.country??game?.country,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
 	const isAcca = $derived(mode === 'acca' && items.length > 1);
 
-	const singlesEv = $derived(items.reduce((acc, i) => acc + stake * (i.modelProb * i.odds - 1), 0));
+	const singlesEv = $derived(items.filter(hasQuotedOdds).reduce((acc, i) => acc + stake * (i.modelProb * i.odds - 1), 0));
 	const accaReturn = $derived(stake * econ.combinedOdds);
 	const expected = $derived(isAcca ? stake * (econ.evPercent / 100) : singlesEv);
 
@@ -93,7 +94,7 @@
 						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}{#if (i.pushProb??0)>0}, refund {pct(i.pushProb??0,1)}{/if}</p>
 						{#if app.sameGameFixtures.has(i.fixtureId)}<p class="mt-0.5 text-xs font-semibold text-book">🔗 Same match as another pick</p>{/if}
 					</div>
-					<span class="font-display text-lg font-semibold text-book">{odds(i.odds)}</span>
+					<span class="font-display text-lg font-semibold text-book">{i.odds>1?odds(i.odds):'Unpriced'}</span>
 					<button onclick={() => app.remove(i.id)} class="rounded-full p-1.5 text-haze hover:text-loss" aria-label="Remove {i.selection}"><X class="h-4 w-4" /></button>
 				</div>
 			{:else}
@@ -136,22 +137,23 @@
 					</div>
 				</label>
 
+				{#if econ.unpricedCount}<p class="rounded-xl bg-raised p-3 text-xs text-haze">{econ.unpricedCount} unpriced selection{econ.unpricedCount===1?'':'s'} included. Combined odds and returns below cover only the {econ.quotedCount} quoted selection{econ.quotedCount===1?'':'s'}; the full ticket return is unknown.</p>{/if}
 				<dl class="grid grid-cols-2 gap-y-1.5 text-sm">
 					{#if isAcca}
-						<dt class="text-haze">Combined odds</dt><dd class="text-right text-book">{odds(econ.combinedOdds)}</dd>
-						<dt class="text-haze">Model win chance</dt><dd class="text-right">{pct(econ.combinedProb, 1)}</dd>
-						<dt class="text-haze">Return if it lands</dt><dd class="text-right">{ngn(accaReturn)}</dd>
+						<dt class="text-haze">{econ.unpricedCount?'Quoted selections odds':'Combined odds'}</dt><dd class="text-right text-book">{econ.quotedCount?odds(econ.combinedOdds):'No quotes'}</dd>
+						<dt class="text-haze">{econ.unpricedCount?'Quoted subset chance':'Model win chance'}</dt><dd class="text-right">{econ.quotedCount?pct(econ.combinedProb, 1):'Unavailable'}</dd>
+						<dt class="text-haze">{econ.unpricedCount?'Quoted subset return':'Return if it lands'}</dt><dd class="text-right">{ngn(accaReturn)}</dd>
 					{:else}
 						<dt class="text-haze">Total staked</dt><dd class="text-right">{ngn(stake * items.length)}</dd>
 					{/if}
 					<dt class="text-haze">Expected profit</dt>
-					<dd class="text-right font-semibold {expected >= 0 ? 'text-model' : 'text-loss'}">{expected >= 0 ? '+' : '−'}{ngn(Math.abs(expected))}</dd>
+					<dd class="text-right font-semibold {expected >= 0 ? 'text-model' : 'text-loss'}">{econ.unpricedCount?'Unavailable with unpriced selections':(expected>=0?'+':'−')+ngn(Math.abs(expected))}</dd>
 				</dl>
 
 				{#if isAcca && app.sameGameFixtures.size > 0}
 					<p class="rounded-xl tint-book px-3 py-2 text-xs font-medium text-chalk ring-1 ring-book/50">🔗 Some picks are from the same match. Their results are linked, so the combined chance above is only a rough guide, and many bookmakers won't accept them in one accumulator. Singles are safer.</p>
 				{/if}
-				{#if isAcca && econ.evPercent < 0}
+				{#if isAcca && !econ.unpricedCount && econ.evPercent < 0}
 					<p class="rounded-xl tint-loss px-3 py-2 text-xs text-loss">This combination has negative expected value ({signed(econ.evPercent)}%). Singles keep each edge intact.</p>
 				{/if}
 

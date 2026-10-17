@@ -6,7 +6,7 @@
   "description": "Enterprise Quantitative Sports Analytics, Predictions & PWA for Basketball Fixtures and Football Matches",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/finalize-static.mjs",
     "preview": "wrangler pages dev .svelte-kit/cloudflare --port 4173",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "gen": "wrangler types",

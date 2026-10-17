@@ -13,7 +13,8 @@ export function machineCandidates(predictions, options, now = Date.now()) {
   for(const group of p.markets) for(const pick of group.selections) {
    const observedAt=p.quoteObservedAt?.[pick.bookmaker];
    if(observedAt && (observedAt>now+60000 || now-observedAt>86400000))continue;
-   if(pick.pricing!=='quoted'||!Number.isFinite(pick.bestOdds)||pick.bestOdds<options.minOdds||pick.bestOdds>options.maxOdds||!Number.isFinite(pick.modelProb)||pick.modelProb<options.minProbability||pick.modelProb>1||(pick.pushProb??0)<0||(pick.pushProb??0)>=1)continue;
+   const quoted=pick.pricing==='quoted'&&Number.isFinite(pick.bestOdds)&&pick.bestOdds>1;
+   if((!quoted&&!options.includeUnpriced)||(quoted&&(pick.bestOdds<options.minOdds||pick.bestOdds>options.maxOdds))||!Number.isFinite(pick.modelProb)||pick.modelProb<options.minProbability||pick.modelProb>1||(pick.pushProb??0)<0||(pick.pushProb??0)>=1)continue;
    if(options.positiveValue && !(pick.edgePercent>0 && pick.edgePercent<=25))continue;
    if(options.markets.length && !options.markets.includes(group.key))continue;
    const key=pick.id.slice(p.fixtureId.length+1);
@@ -23,7 +24,7 @@ export function machineCandidates(predictions, options, now = Date.now()) {
    const marketProbability=Number.isFinite(pick.marketProb)?pick.marketProb:null;
    const divergence=marketProbability===null?null:100*Math.abs(pick.modelProb-marketProbability);
    const cohort=options.sportStats?.[p.sport];
-   const evidence={basis:p.ratingsSource??'Not provided',modelProbability:pick.modelProb,marketProbability,breakEvenProbability:1/pick.bestOdds,divergence,verdict:pick.id===p.bestValue?.id&&p.bestValue?.eligible===true,likelihoodBand:likelihoodGrade(pick.modelProb*(1-(pick.pushProb??0))),observedAt:observedAt??null,alternatives,settledSportPicks:cohort?.picks??0,sportWinRate:cohort?.won+cohort?.lost>0?cohort.won/(cohort.won+cohort.lost):null};
+   const evidence={basis:p.ratingsSource??'Not provided',modelProbability:pick.modelProb,marketProbability,breakEvenProbability:quoted?1/pick.bestOdds:null,divergence,verdict:pick.id===p.bestValue?.id&&p.bestValue?.eligible===true,likelihoodBand:likelihoodGrade(pick.modelProb*(1-(pick.pushProb??0))),observedAt:observedAt??null,alternatives,settledSportPicks:cohort?.picks??0,sportWinRate:cohort?.won+cohort?.lost>0?cohort.won/(cohort.won+cohort.lost):null};
    rows.push({...pick,evidence,kickoffTime:p.kickoffTime,group:group.key,successProbability:pick.modelProb*(1-(pick.pushProb??0))});
   }
  }
@@ -33,7 +34,7 @@ export function machineCandidates(predictions, options, now = Date.now()) {
 export function buildMachineTicket(candidates, options) {
  if(!Number.isFinite(options.minTotal)||!Number.isFinite(options.maxTotal)||options.minTotal<=1||options.maxTotal<options.minTotal)throw new Error('Choose a valid combined odds range greater than 1.');
  // Keep market alternatives across fixtures rather than allowing one match to monopolize the search.
- const counts=new Map();const pool=candidates.filter(p=>{const count=counts.get(p.fixtureId)??0;counts.set(p.fixtureId,count+1);return count<8;}).slice(0,200);
+ const counts=new Map();const pool=candidates.filter(p=>p.pricing==='quoted'&&Number.isFinite(p.bestOdds)&&p.bestOdds>1).filter(p=>{const count=counts.get(p.fixtureId)??0;counts.set(p.fixtureId,count+1);return count<8;}).slice(0,200);
  let beam=[{picks:/** @type {Pick[]} */([]),odds:1,probability:1,last:-1}];
  const maximum=Math.min(30,new Set(pool.map(p=>p.fixtureId)).size);
  let best=/** @type {typeof beam[number]|undefined} */(undefined);

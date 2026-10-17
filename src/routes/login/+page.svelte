@@ -1,4 +1,5 @@
 <script lang="ts">
+    import {browser} from '$app/env';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { auth } from '#lib/auth.svelte.ts';
@@ -10,7 +11,7 @@
 	let error = $state('');
 	let busy = $state(false);
 
-	const next = $derived((page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
+	const next = $derived(browser&&(page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
 
 	$effect(() => {
 		if (auth.signedIn && !busy) goto(next, { replaceState: true });

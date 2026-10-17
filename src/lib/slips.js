@@ -1,3 +1,4 @@
+import {slipPricing} from './slip-pricing.js';
 import { settle } from './engine/settlement.js';
 /** @typedef {{selection:string,marketKey?:string,sport?:string,family?:string,fixtureStatus?:string,score?:{home:number,away:number,regHome?:number,regAway?:number}}} OutcomeItem */
 /** @typedef {OutcomeItem & {league?:string,country?:string,matchTitle:string,bookmaker:string,odds:number,modelProb?:number,kickoff?:number|string,market?:string}} ShareItem */
@@ -36,15 +37,16 @@ export function slipOutcome(/** @type {OutcomeItem[]} */ items, /** @type {strin
   return 'won';
 }
 export function shareSlipText(/** @type {{name:string,betType:string,stake:number,potentialReturn:number,items:ShareItem[]}} */ slip) {
+  const pricing=slipPricing(slip.items,slip.stake,slip.betType);
   const money = (/** @type {number} */ number) => `NGN ${Number(number).toLocaleString('en-NG', { maximumFractionDigits: 2 })}`;
   return [
     `PuntersEdge — ${slip.name}`,
     'https://puntersedge.ewinproject.org/betslips',
     `${slip.betType === 'acca' ? 'Accumulator' : 'Singles'} · ${slip.items.length} selections`,
-    `Combined odds: ${slip.items.reduce((total,item)=>total*item.odds,1).toFixed(2)}`,
-    ...slip.items.map((item, index) => `*${index + 1}. ${item.matchTitle}*\n${item.league??'League unavailable'} · ${item.country??'Country unavailable'}\n${item.kickoff ? new Date(item.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})+' WAT\n' : ''}Pick: ${item.selection}\n${item.market ? 'Market: '+item.market+'\n' : ''}Odds: ${item.odds.toFixed(2)} · ${item.bookmaker}\n${item.modelProb !== undefined ? 'Model: '+(item.modelProb*100).toFixed(1)+'%\n' : ''}${item.score ? `\nScore: ${item.score.home}-${item.score.away}${item.score.regHome !== undefined && item.score.regAway !== undefined && (item.score.regHome !== item.score.home || item.score.regAway !== item.score.away) ? ` (regulation ${item.score.regHome}-${item.score.regAway})` : ''} · ${itemOutcome(item)}` : ''}`),
+    `${pricing.unpricedCount?'Quoted subset odds':'Combined odds'}: ${pricing.quotedCount?pricing.totalOdds.toFixed(2):'Unavailable'}${pricing.unpricedCount?' · '+pricing.unpricedCount+' unpriced selections excluded':''}`,
+    ...slip.items.map((item, index) => `*${index + 1}. ${item.matchTitle}*\n${item.league??'League unavailable'} · ${item.country??'Country unavailable'}\n${item.kickoff ? new Date(item.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})+' WAT\n' : ''}Pick: ${item.selection}\n${item.market ? 'Market: '+item.market+'\n' : ''}Odds: ${item.odds>1?item.odds.toFixed(2):'Unpriced'} · ${item.bookmaker}\n${item.modelProb !== undefined ? 'Model: '+(item.modelProb*100).toFixed(1)+'%\n' : ''}${item.score ? `\nScore: ${item.score.home}-${item.score.away}${item.score.regHome !== undefined && item.score.regAway !== undefined && (item.score.regHome !== item.score.home || item.score.regAway !== item.score.away) ? ` (regulation ${item.score.regHome}-${item.score.regAway})` : ''} · ${itemOutcome(item)}` : ''}`),
     `Stake: ${money(slip.stake)}${slip.betType === 'singles' ? ' per selection' : ''}`,
-    `Potential return: ${money(slip.potentialReturn)}`,
+    `${pricing.unpricedCount?'Quoted subset return (full ticket unknown)':'Potential return'}: ${money(pricing.potentialReturn)}`,
     'Analytical record only. PuntersEdge does not place bets. 18+.',
   ].join('\n\n');
 }

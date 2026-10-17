@@ -1,4 +1,5 @@
 <script lang="ts">
+    import {browser} from '$app/env';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { auth, passwordStrength, PASSWORD_RULE } from '#lib/auth.svelte.ts';
@@ -13,7 +14,7 @@
 	let busy = $state(false);
 	let verificationSent = $state(false);
 
-	const next = $derived((page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
+	const next = $derived(browser&&(page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
 	const strength = $derived(passwordStrength(password));
 	const strengthLabel = ['Too short', 'Okay', 'Good', 'Strong', 'Excellent'];
 	const strengthTone = ['bg-loss', 'bg-book', 'bg-model', 'bg-model', 'bg-pop'];

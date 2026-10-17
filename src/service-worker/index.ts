@@ -57,6 +57,7 @@ async function networkFirstPage(request: Request, path: string): Promise<Respons
 	const cache = await caches.open(SHELL);
 	try {
 		const response = await Promise.race([fetch(request), timeout(3000)]);
+		if(!response.ok)throw new Error(`Page unavailable (${response.status})`);
 		if (response.ok && response.type === 'basic' && !/private|no-store/i.test(response.headers.get('Cache-Control')??'')) await cache.put(path, response.clone());
 		return response;
 	} catch {

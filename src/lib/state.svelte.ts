@@ -15,6 +15,7 @@ import { feed, type FeedGame } from '#lib/feed.svelte.ts';
 import { withModelOnlyMarkets } from '#lib/engine/model-only.js';
 import {applyEvidence} from '#lib/engine/evidence.js';
 import { SPORT_ORDER, type SportKey } from '#lib/sports.ts';
+import {hasQuotedOdds,slipPricing} from '#lib/slip-pricing.js';
 
 export type FootballPrediction = ReturnType<typeof buildFootballPrediction>;
 export type BasketballPrediction = ReturnType<typeof buildBasketballPrediction>;
@@ -160,7 +161,7 @@ class AppState {
 				}))
 	);
 
-	slipEconomics = $derived(({...evaluateAccumulator(this.slip.map((s) => ({ odds: s.odds, modelProb: s.modelProb*(1-(s.pushProb??0)) }))),evPercent:100*(this.slip.reduce((total,s)=>total*(s.odds*s.modelProb*(1-(s.pushProb??0))+(s.pushProb??0)),1)-1)}));
+	slipEconomics = $derived.by(()=>{const priced=this.slip.filter(hasQuotedOdds);const summary=slipPricing(this.slip);return {...evaluateAccumulator(priced.map(s=>({odds:s.odds,modelProb:s.modelProb*(1-(s.pushProb??0))}))),...summary,combinedOdds:summary.totalOdds,evPercent:summary.complete?100*(priced.reduce((n,s)=>n*(s.odds*s.modelProb*(1-(s.pushProb??0))+(s.pushProb??0)),1)-1):0};});
 
 	constructor() {
 		if (browser) {
@@ -207,7 +208,7 @@ class AppState {
 			return false;
 		}
 		const game = this.gameById(v.fixtureId);
-		if(v.pricing !== 'quoted' || game?.status.state !== 'scheduled' || Date.parse(game.kickoff) <= Date.now()) return false;
+		if(game?.status.state !== 'scheduled' || Date.parse(game.kickoff) <= Date.now()) return false;
 		const item: SlipItem = {
 			id: v.id,
 			marketKey: v.id.slice(v.fixtureId.length + 1),
@@ -217,8 +218,8 @@ class AppState {
  league:game.league,country:game.country,
 			market: v.market,
 			selection: v.selection,
-			bookmaker: v.bookmaker,
-			odds: v.bestOdds,
+			bookmaker: v.pricing==='quoted'?v.bookmaker:'Unpriced selection',
+			odds: v.pricing==='quoted'&&hasQuotedOdds({odds:v.bestOdds})?v.bestOdds:0,
 			modelProb: v.modelProb,
 			pushProb: (v as any).pushProb ?? 0,
 			edgePercent: v.edgePercent

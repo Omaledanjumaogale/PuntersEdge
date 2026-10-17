@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {browser} from '$app/env';
   import { page } from '$app/state';
   import { auth, PASSWORD_RULE } from '#lib/auth.svelte.ts';
   import AuthShell from '#lib/components/AuthShell.svelte';
@@ -8,7 +9,7 @@
   let busy = $state(false);
   let message = $state('');
   let error = $state('');
-  const token = $derived(page.url.searchParams.get('token'));
+  const token = $derived(browser?page.url.searchParams.get('token'):null);
   async function submit(event: SubmitEvent) {
     event.preventDefault(); busy = true; error = ''; message = '';
     try {

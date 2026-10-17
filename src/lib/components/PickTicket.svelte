@@ -19,7 +19,7 @@
 			<span class="truncate font-display text-base font-bold text-chalk">{pick.selection}</span>
 		</div>
 		<div class="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
-			<span><span class="text-book font-semibold">{odds(pick.bestOdds)}</span> <span class="text-haze">at {pick.bookmaker}</span></span>
+			<span><span class="text-book font-semibold">{pick.pricing==='quoted'?odds(pick.bestOdds):'Unpriced'}</span> <span class="text-haze">at {pick.bookmaker}</span></span>
 			<span><span class="text-model font-semibold">{odds(pick.fairOdds)}</span> <span class="text-haze">fair</span></span>
 			<span class={positive ? 'text-model' : 'text-loss'}>{signed(pick.edgePercent, 2)}% edge</span>
 		</div>
@@ -27,6 +27,7 @@
 	<div class="ticket-rule flex w-[4.75rem] shrink-0 sm:w-[5.5rem] flex-col items-center justify-center gap-1 px-2 py-3 text-center">
 		{#if positive}
 			<span class="text-xs leading-tight text-haze">Stake<br /><span class="font-semibold text-chalk">{ngn(app.stakeFor(pick.kellyStakePercent))}</span></span>
+		{/if}
 			<button
 				disabled={!selected && (app.gameById(pick.fixtureId)?.status.state!=='scheduled'||Date.parse(app.gameById(pick.fixtureId)?.kickoff??'')<=Date.now())}
 				onclick={() => (selected ? app.toggle(pick) : app.addAndExplore(pick))}
@@ -36,8 +37,5 @@
 			>
 				{#if selected}<Check class="h-4 w-4" strokeWidth={3} />{:else}<Plus class="h-4 w-4" strokeWidth={3} />{/if}
 			</button>
-		{:else}
-			<span class="text-xs font-medium text-haze">✋ No bet</span>
-		{/if}
 	</div>
 </div>

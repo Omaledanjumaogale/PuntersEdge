@@ -1,3 +1,4 @@
+import {slipPricing,validSlipOdds} from '../src/lib/slip-pricing.js';
 import { requireSubscription } from "./access";
 import { getCurrentUser } from "./auth";
 import { query, mutation } from "./_generated/server";
@@ -37,17 +38,17 @@ export const save = mutation({
     const userId = await requireSubscription(ctx);
     if (userId === null) throw new Error("Sign in to sync your slip.");
     if(!Number.isFinite(args.stake)||args.stake<0||args.stake>1e9)throw new Error('Enter a valid stake.');
-    if(args.items.some(s=>!Number.isFinite(s.odds)||s.odds<=1||s.odds>10000||(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid odds and probabilities.');
+    if(args.items.some(s=>!validSlipOdds(s.odds)||(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid odds and probabilities.');
     if (args.items.length > 30) throw new Error("A slip can hold at most 30 selections.");
 
-    const totalOdds = Math.round(args.items.reduce((acc, i) => acc * i.odds, 1) * 100) / 100;
+    const {totalOdds,potentialReturn}=slipPricing(args.items,args.stake,args.betType==='single'?'singles':args.betType);
     const doc = {
       userId,
       items: args.items,
       stake: Math.max(0, args.stake),
       betType: args.betType,
       totalOdds,
-      potentialReturn: Math.round(args.stake * totalOdds * 100) / 100,
+      potentialReturn,
       safetyScore: args.items.length <= 1 ? 100 : Math.max(10, Math.round(100 - (args.items.length - 1) * 18.5)),
       status: "draft",
     };
@@ -88,7 +89,7 @@ function invalidInput(args: { name: string; stake: number; items: typeof item.ty
   if (!Number.isFinite(args.stake) || args.stake < 0 || args.stake > 1e9) throw new Error('Enter a valid stake.');
   if(args.items.some(s=>(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid probabilities.');
   if (!args.items.length || args.items.length > 30) throw new Error('Save between 1 and 30 selections.');
-  if (args.items.some(selection => !Number.isFinite(selection.odds) || selection.odds <= 1 || selection.odds > 10000)) throw new Error('Each selection needs valid decimal odds greater than 1.');
+  if (args.items.some(selection => !validSlipOdds(selection.odds))) throw new Error('Use quoted decimal odds greater than 1, or zero for an unpriced selection.');
   if (new Set(args.items.map(selection => `${selection.fixtureId}:${selection.marketKey ?? selection.market}:${selection.selection}`)).size !== args.items.length) throw new Error('Remove duplicate selections.');
 }
 async function owner(ctx: MutationCtx, id: Doc<'saved_slips'>['_id']) {
@@ -110,8 +111,7 @@ function isFinal(selection: { fixtureStatus?: string }) { return selection.fixtu
 function completed(selections: { fixtureStatus?: string }[]) { return selections.length > 0 && selections.every(isFinal); }
 function selectionFingerprint(selection: typeof item.type) { return JSON.stringify([selection.fixtureId, selection.sport, selection.matchTitle, selection.market, selection.selection, selection.bookmaker, selection.odds, selection.modelProb ?? null, selection.pushProb ?? 0, selection.edgePercent, selection.marketKey ?? null]); }
 function economics(items: typeof item.type[], stake: number, betType: 'acca' | 'singles') {
-  const totalOdds = Math.round(items.reduce((total, selection) => total * selection.odds, 1) * 100) / 100;
-  const potentialReturn = Math.round(stake * (betType === 'acca' ? totalOdds : items.reduce((total, selection) => total + selection.odds, 0)) * 100) / 100;
+  const {totalOdds,potentialReturn}=slipPricing(items,stake,betType);
   if (!Number.isFinite(totalOdds) || !Number.isFinite(potentialReturn)) throw new Error('Combined odds are too large.');
   return { totalOdds, potentialReturn };
 }

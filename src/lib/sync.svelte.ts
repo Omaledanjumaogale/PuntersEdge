@@ -27,7 +27,7 @@ export function startSlipSync(): () => void {
    ownerSet('pe:slip:owner', userId); owner = userId;
    unsubscribe = client.onUpdate(api.betslip.mine, {}, saved => {
     if (owner !== userId) return;
-    const incoming: SlipItem[] = (saved?.items ?? []).map(i => ({ ...i, id: i.marketKey ? `${i.fixtureId}:${i.marketKey}` : `${i.fixtureId}:saved:${i.selection}`, sport: i.sport as SlipItem['sport'], modelProb: i.modelProb ?? 1 / i.odds }));
+    const incoming: SlipItem[] = (saved?.items ?? []).map(i => ({ ...i, id: i.marketKey ? `${i.fixtureId}:${i.marketKey}` : `${i.fixtureId}:saved:${i.selection}`, sport: i.sport as SlipItem['sport'], modelProb: i.modelProb ?? (i.odds>1?1/i.odds:0) }));
     remoteJson = JSON.stringify(payload(incoming));
     if (saved || ready) {
      if (JSON.stringify(payload(app.slip)) !== remoteJson) app.slip = incoming;

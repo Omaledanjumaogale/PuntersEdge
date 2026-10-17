@@ -40,13 +40,18 @@ try{
   assert.equal(await add.getAttribute('aria-pressed'),'true');
   await add.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('qe:slip:v2')??'[]').length===0);
   assert.equal(await add.getAttribute('aria-pressed'),'false');
-  const unavailable=target.locator('button.choice-add:disabled').first();assert.ok(await unavailable.count(),'Unquoted choices have explicit disabled controls');
-  assert.match(await unavailable.getAttribute('aria-label'),/bookmaker price unavailable/);
+  const unquotedGroup=target.locator('.market-accordion').filter({has:page.locator('.choice-meta',{hasText:'Fair estimate'})}).first();
+  if(!await unquotedGroup.getAttribute('open'))await unquotedGroup.evaluate(el=>el.open=true);
+  const unquoted=unquotedGroup.locator('li').filter({has:page.locator('.choice-meta',{hasText:'Fair estimate'})}).first().locator('button.choice-add');
+  assert.equal(await unquoted.isEnabled(),true,'Unquoted choices remain selectable');
+  await unquoted.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('qe:slip:v2')??'[]').some(i=>i.odds===0));
+  const unpriced=await page.evaluate(()=>JSON.parse(localStorage.getItem('qe:slip:v2')).find(i=>i.odds===0));assert.equal(unpriced.bookmaker,'Unpriced selection');
+  await unquoted.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('qe:slip:v2')??'[]').length===0);
   const probs=await group.locator('.choice-prob').evaluateAll(nodes=>nodes.map(n=>parseFloat(n.textContent)));
   assert.ok(probs.every((p,i)=>!i||p<=probs[i-1]),'Options remain sorted by model probability');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow');
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({width,addRemovePersisted:true,unquotedDisabled:true,collapsedByDefault:true,touchTarget:box.width,errors}));
+  console.log(JSON.stringify({width,addRemovePersisted:true,unquotedSelectable:true,collapsedByDefault:true,touchTarget:box.width,errors}));
   await page.close();
  }
 }finally{await browser.close();}

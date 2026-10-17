@@ -99,3 +99,13 @@ describe('saved betslip ownership, final-state locks and retained results',()=>{
   await alice.mutation(anyApi.betslip.deleteHistory,{id});expect(await alice.query(anyApi.betslip.history,{})).toEqual([]);
  });
 });
+
+ it('saves unpriced selections and calculates only the quoted subset in draft and history',async()=>{
+  const t=create(),alice=await member(t,'unpriced@example.test');await fixture(t);await fixture(t,'fixture-b');
+  const items=[selection(),{...selection('fixture-b'),bookmaker:'Unpriced selection',odds:0}];
+  await alice.mutation(anyApi.betslip.save,{items,stake:100,betType:'acca'});
+  const draft=await alice.query(anyApi.betslip.mine,{});expect(draft?.items).toHaveLength(2);expect(draft?.totalOdds).toBe(2.1);expect(draft?.potentialReturn).toBe(210);
+  const id=await alice.mutation(anyApi.betslip.saveHistory,{...input(),items,stake:100});
+  const saved=await t.run(ctx=>ctx.db.get(id));expect(saved?.items[1].odds).toBe(0);expect(saved?.totalOdds).toBe(2.1);
+  await expect(alice.mutation(anyApi.betslip.save,{items:[{...selection(),odds:1}],stake:100,betType:'acca'})).rejects.toThrow('valid odds');
+ });

@@ -13,11 +13,12 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter(),
+			adapter: adapter({routes:{include:['/api/*','/rss.xml','/sitemap.xml'],exclude:[]}}),
 			// Registered manually in #lib/pwa.svelte.ts so the app can surface
 			// an "update ready" prompt instead of swapping versions silently.
 			serviceWorker: { register: false },
 			prerender: {
+                entries: ['/', '/auth', '/board', '/account', '/admin', '/admin/members', '/admin/models', '/baseball', '/basketball', '/bet-machine', '/betslips', '/bookmakers', '/football', '/glossary', '/hockey', '/login', '/match', '/nba', '/reset-password', '/results', '/settings', '/signup', '/sports', '/subscribe', '/tester', '/value-bets'],
 				handleHttpError: ({ path, message }) => {
 					// Manifest screenshots are optional assets, not crawlable pages.
 					if (path.startsWith('/screenshots/')) return;
