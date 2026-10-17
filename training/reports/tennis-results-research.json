@@ -1,0 +1,286 @@
+{
+  "at": "2026-10-17T13:51:19.653447+00:00",
+  "mode": "retrospective_shadow",
+  "liveEnabled": false,
+  "source": "https://www.valuebetennis.com/donnees.htm",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "Valuebetennis, R\u00e9sultats et cotes de tennis depuis 2021, https://www.valuebetennis.com/donnees.htm",
+  "model": "Results-only global/surface Elo, K=24, 50/50 surface blend, minimum 10 prior matches per player",
+  "split": "2021\u20132023 initial history; 2024 calibration; 2025\u20132026 sequential out-of-sample evaluation",
+  "rawFiles": {
+    "valuebetennis-matchs-2021.csv": 63728,
+    "valuebetennis-matchs-2022.csv": 83381,
+    "valuebetennis-matchs-2023.csv": 89826,
+    "valuebetennis-matchs-2024.csv": 79910,
+    "valuebetennis-matchs-2025.csv": 80412,
+    "valuebetennis-matchs-2026.csv": 70086
+  },
+  "eligibleRows": 260072,
+  "excludedRows": 207271,
+  "segments": [
+    {
+      "tour": "ATP",
+      "market": "match_winner",
+      "year": 2025,
+      "calibrationRows": 20957,
+      "raw": {
+        "n": 22686,
+        "brier": 0.2140036208214884,
+        "logLoss": 0.6169611011705135,
+        "accuracy": 0.660627699903024
+      },
+      "calibrated": {
+        "n": 22686,
+        "brier": 0.21114012151614928,
+        "logLoss": 0.6093515340733366,
+        "accuracy": 0.6607599400511328
+      },
+      "calibrationError": 0.0110378176516894,
+      "openingOddsBenchmark": {
+        "n": 18365,
+        "brier": 0.20537877788307926,
+        "logLoss": 0.5968116992737189,
+        "accuracy": 0.6775387966240131
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 18365,
+        "brier": 0.22015207356051297,
+        "logLoss": 0.6299169367551899,
+        "accuracy": 0.639259460931119
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "ATP",
+      "market": "match_winner",
+      "year": 2026,
+      "calibrationRows": 20957,
+      "raw": {
+        "n": 10998,
+        "brier": 0.21653911393945183,
+        "logLoss": 0.6224181845210845,
+        "accuracy": 0.6568466993998909
+      },
+      "calibrated": {
+        "n": 10998,
+        "brier": 0.214525121764135,
+        "logLoss": 0.6172380796157624,
+        "accuracy": 0.6562102200400073
+      },
+      "calibrationError": 0.014252361144325801,
+      "openingOddsBenchmark": {
+        "n": 9804,
+        "brier": 0.1966625376384815,
+        "logLoss": 0.5762464856628937,
+        "accuracy": 0.7003263973888209
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 9804,
+        "brier": 0.21577305196088636,
+        "logLoss": 0.6200623022508833,
+        "accuracy": 0.6540187678498572
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "ATP",
+      "market": "first_set_winner",
+      "year": 2025,
+      "calibrationRows": 20957,
+      "raw": {
+        "n": 22686,
+        "brier": 0.226952987639729,
+        "logLoss": 0.6450901107489639,
+        "accuracy": 0.6247024596667549
+      },
+      "calibrated": {
+        "n": 22686,
+        "brier": 0.22655498406367797,
+        "logLoss": 0.6441320885555439,
+        "accuracy": 0.6254959005554086
+      },
+      "calibrationError": 0.009443131599645249,
+      "openingOddsBenchmark": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "ATP",
+      "market": "first_set_winner",
+      "year": 2026,
+      "calibrationRows": 20957,
+      "raw": {
+        "n": 10998,
+        "brier": 0.22877885198505635,
+        "logLoss": 0.6489573298456989,
+        "accuracy": 0.6215675577377705
+      },
+      "calibrated": {
+        "n": 10998,
+        "brier": 0.2286399910436672,
+        "logLoss": 0.6486219361709645,
+        "accuracy": 0.6217494089834515
+      },
+      "calibrationError": 0.013809576583119326,
+      "openingOddsBenchmark": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "WTA",
+      "market": "match_winner",
+      "year": 2025,
+      "calibrationRows": 16612,
+      "raw": {
+        "n": 17477,
+        "brier": 0.20887823145064704,
+        "logLoss": 0.6060519058966878,
+        "accuracy": 0.6806660181953424
+      },
+      "calibrated": {
+        "n": 17477,
+        "brier": 0.20405445436259165,
+        "logLoss": 0.5933064175866986,
+        "accuracy": 0.6799794014991131
+      },
+      "calibrationError": 0.016884308258493855,
+      "openingOddsBenchmark": {
+        "n": 12166,
+        "brier": 0.2033988557856383,
+        "logLoss": 0.5928661995714023,
+        "accuracy": 0.6838730889363801
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 12166,
+        "brier": 0.22326629921887153,
+        "logLoss": 0.6377179734527371,
+        "accuracy": 0.6369390103567318
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "WTA",
+      "market": "match_winner",
+      "year": 2026,
+      "calibrationRows": 16612,
+      "raw": {
+        "n": 7479,
+        "brier": 0.21222287646493204,
+        "logLoss": 0.6130237516230034,
+        "accuracy": 0.6693408209653697
+      },
+      "calibrated": {
+        "n": 7479,
+        "brier": 0.2084477768289508,
+        "logLoss": 0.6030101046275052,
+        "accuracy": 0.6682711592458885
+      },
+      "calibrationError": 0.01174630449642103,
+      "openingOddsBenchmark": {
+        "n": 6118,
+        "brier": 0.1909208268632293,
+        "logLoss": 0.5604268079878989,
+        "accuracy": 0.7036613272311213
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 6118,
+        "brier": 0.2137371345383009,
+        "logLoss": 0.6150407008523857,
+        "accuracy": 0.6564236678653155
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "WTA",
+      "market": "first_set_winner",
+      "year": 2025,
+      "calibrationRows": 16612,
+      "raw": {
+        "n": 17477,
+        "brier": 0.2200119273009389,
+        "logLoss": 0.6302645754347878,
+        "accuracy": 0.6490816501687933
+      },
+      "calibrated": {
+        "n": 17477,
+        "brier": 0.21822173780816428,
+        "logLoss": 0.6258292752397538,
+        "accuracy": 0.6498827029810609
+      },
+      "calibrationError": 0.016989955598323517,
+      "openingOddsBenchmark": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "bettingApproved": false
+    },
+    {
+      "tour": "WTA",
+      "market": "first_set_winner",
+      "year": 2026,
+      "calibrationRows": 16612,
+      "raw": {
+        "n": 7479,
+        "brier": 0.22538983947058733,
+        "logLoss": 0.6413673766665197,
+        "accuracy": 0.6311004144939163
+      },
+      "calibrated": {
+        "n": 7479,
+        "brier": 0.22470074727176775,
+        "logLoss": 0.6394760375594276,
+        "accuracy": 0.6286936756250836
+      },
+      "calibrationError": 0.012909796464435144,
+      "openingOddsBenchmark": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "modelOnSameQuotedMatches": {
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "accuracy": null
+      },
+      "bettingApproved": false
+    }
+  ],
+  "limitations": [
+    "Results-only model; no fabricated service-point statistics.",
+    "Export lacks actual completion/publication and quote-observation times. A seven-day label delay is a retrospective assumption, not verified historical availability.",
+    "Opening odds are a retrospective comparison; no executable-price, ROI or profitability claim.",
+    "Unsupported, incomplete and retirement scorelines excluded. Event formats and cross-provider identity mapping remain unverified.",
+    "Public source advertises CC BY 4.0; retain attribution and source license snapshots. No third-party non-commercial point corpus is included.",
+    "Live activation requires prospective forecasts, fresh quotes, provider/rule acceptance and independent validation."
+  ]
+}

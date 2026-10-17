@@ -1,0 +1,56 @@
+{
+  "at": "2026-10-17T13:45:17.013077+00:00",
+  "source": "https://www.valuebetennis.com/donnees.htm",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "Valuebetennis, R\u00e9sultats et cotes de tennis depuis 2021, https://www.valuebetennis.com/donnees.htm",
+  "files": [
+    {
+      "name": "valuebetennis-matchs-2021.csv",
+      "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2021.csv",
+      "bytes": 9473132,
+      "sha256": "818f722eecdfdfd4f7c1f0020623334755b44678a7a931888fa27e2005d51d34"
+    },
+    {
+      "name": "valuebetennis-matchs-2022.csv",
+      "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2022.csv",
+      "bytes": 12700835,
+      "sha256": "649b349712bbb975bfa5df4229345df44d67309e22bf281496bae5f064212ca8"
+    },
+    {
+      "name": "valuebetennis-matchs-2023.csv",
+      "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2023.csv",
+      "bytes": 13735805,
+      "sha256": "667cd498423a13c05634c42b43c4238803d2356f5b1999d4db3910eaaa98e882"
+    },
+    {
+      "name": "valuebetennis-matchs-2024.csv",
+      "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2024.csv",
+      "bytes": 12037898,
+      "sha256": "19e6252a8019b85afa69c75ab812a96649a1e2dd76db6a947dfc46f4064c1eab"
+    },
+    {
+      "name": "valuebetennis-matchs-2025.csv",
+      "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2025.csv",
+      "bytes": 12544683,
+      "sha256": "08204555cfb8cf0b6dac600bbdc57e109813671aecdc70c39830b636c1d62b3a"
+    },
+    {
+      "name": "valuebetennis-matchs-2026.csv",
+      "url": "https://www.valuebetennis.com/datasets/valuebetennis-matchs-2026.csv",
+      "bytes": 10953646,
+      "sha256": "aafbaccc400e96001365e001cf968f43361e5cb9961f252e31fbcba5016482ef"
+    },
+    {
+      "name": "source-license.html",
+      "url": "https://www.valuebetennis.com/donnees.htm",
+      "bytes": 22084,
+      "sha256": "d9bd2033eb8b606fda1430220fe9da4907fcd07c5baaff202caedeb5c4795ec3"
+    },
+    {
+      "name": "CC-BY-4.0.html",
+      "url": "https://creativecommons.org/licenses/by/4.0/",
+      "bytes": 31950,
+      "sha256": "8dda1ccec4be91fc80821d4e4fd5c568072b9a3a74b2fdc07c249a27e920ef01"
+    }
+  ]
+}

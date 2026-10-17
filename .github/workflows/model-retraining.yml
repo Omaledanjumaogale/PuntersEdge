@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs:
+      tennis_only:
+        description: 'Run tennis research without recollecting other sports from Convex'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -10,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   train:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.tennis_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
@@ -60,6 +66,15 @@ jobs:
           python-version: '3.12'
       - run: npm ci --legacy-peer-deps
       - run: python -m unittest discover -s training -p test_tennis_shadow.py
+      - run: python -m unittest discover -s training -p test_tennis_results.py
+      - name: Restore privately cached results-only tennis sources
+        run: node scripts/tennis-results.mjs restore
+      - name: Download licensed results and refresh the current season
+        run: python training/tennis_results.py fetch --refresh-current
+      - name: Evaluate results-only ratings with frozen calibration and delayed labels
+        run: python training/tennis_results.py train
+      - name: Retain source licenses and fitted results-only challenger privately in R2
+        run: node scripts/tennis-results.mjs store
       - name: Discover tennis without paid provider calls and load private R2 history
         run: node scripts/tennis-shadow.mjs collect
       - name: Fit point-stat models and evaluate chronological calibration holdout
