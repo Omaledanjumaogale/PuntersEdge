@@ -64,8 +64,8 @@ test('monthly odds allocate coverage across all active sports before extra compe
  const jobs=['football','basketball','nba','hockey','baseball'].flatMap((group,g)=>[0,1,2].map(i=>({id:`${group}-${i}`,ledger:'the-odds-api',cost:3,priority:g===0?9:13,group,every:0})));
  const ledgers={'the-odds-api':current('the-odds-api',undefined,firstDay)};
  const planned=planJobs(jobs,ledgers,{},firstDay);
- assert.equal(planned.run.length,5,'15-credit daily share buys five three-credit calls');
- assert.deepEqual(new Set(planned.run.map(j=>j.group)),new Set(['football','basketball','nba','hockey','baseball']));
+ assert.equal(planned.run.length,2,'Seven-credit daily share under the user cap buys two three-credit calls');
+ assert.equal(new Set(planned.run.map(j=>j.group)).size,2,'The first two calls cover different sports before buying extra competitions');
 });
 
 test('free-plan date denials do not spend another request on the same unsupported date today',async()=>{

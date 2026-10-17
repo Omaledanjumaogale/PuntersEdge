@@ -9,7 +9,7 @@
  *
  *   API-Sports    100 requests / day, separately per sport API → we use ≤ 90
  *   OddsPapi      250 requests / month                         → we use ≤ 240
- *   The Odds API  500 credits / month (markets × regions)      → we use ≤ 488
+ *   The Odds API  user cap 250 credits / month (markets × regions) → we use ≤ 238
  */
 
 /**
@@ -23,7 +23,7 @@
 export const LIMITS = {
   'api-sports': { window: 'day', limit: 100, reserve: 10 },
   oddspapi: { window: 'month', limit: 250, reserve: 10 },
-  'the-odds-api': { window: 'month', limit: 500, reserve: 12 }
+  'the-odds-api': { window: 'month', limit: 250, reserve: 12 }
 };
 
 /**

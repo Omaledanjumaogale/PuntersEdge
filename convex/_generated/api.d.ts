@@ -31,6 +31,7 @@ import type * as performance from "../performance.js";
 import type * as performanceArchive from "../performanceArchive.js";
 import type * as push from "../push.js";
 import type * as pushValidation from "../pushValidation.js";
+import type * as tennisShadow from "../tennisShadow.js";
 import type * as testers from "../testers.js";
 import type * as ticketRules from "../ticketRules.js";
 import type * as trainingData from "../trainingData.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   performanceArchive: typeof performanceArchive;
   push: typeof push;
   pushValidation: typeof pushValidation;
+  tennisShadow: typeof tennisShadow;
   testers: typeof testers;
   ticketRules: typeof ticketRules;
   trainingData: typeof trainingData;

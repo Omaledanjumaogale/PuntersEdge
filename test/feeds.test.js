@@ -25,22 +25,22 @@ test('budget: daily quota resets at midnight UTC and holds back a reserve', () =
 });
 
 test('budget: monthly quota is shared equally across the remaining days', () => {
-  // 12 October: 20 days left including today; 500 − 12 reserve − 188 used = 300 → 15 a day.
-  let e = { ...current('the-odds-api', undefined, T0), used: 188 };
-  assert.equal(allowance(e, T0).today, 15);
-  e = spend(e, 10, undefined, T0);
+  // 12 October: 20 days left including today; 250 − 12 reserve − 138 used = 100 → 5 a day.
+  let e = { ...current('the-odds-api', undefined, T0), used: 138 };
   assert.equal(allowance(e, T0).today, 5);
-  // Next day: 290 left over 19 days → 15.
+  e = spend(e, 3, undefined, T0);
+  assert.equal(allowance(e, T0).today, 2);
+  // Next day: 97 left over 19 days → 5.
   const next = current('the-odds-api', e, T0 + 24 * 3600_000);
   assert.equal(next.dayUsed, 0);
-  assert.equal(allowance(next, T0 + 24 * 3600_000).today, 15);
+  assert.equal(allowance(next, T0 + 24 * 3600_000).today, 5);
 });
 
 test('budget: provider headers win when they report more usage', () => {
   let e = current('the-odds-api', undefined, T0);
   e = spend(e, 2, { remaining: 300, used: 200 }, T0);
   assert.equal(e.used, 200);
-  assert.ok(allowance(e, T0).window <= 300 - LIMITS['the-odds-api'].reserve);
+  assert.equal(allowance(e, T0).window, 38); // A larger provider plan cannot raise the user's 250-credit ceiling.
   let p = current('oddspapi', undefined, T0);
   p = spend(p, 0, { remaining: 0 }, T0);
   assert.equal(allowance(p, T0).today, 0);
@@ -203,7 +203,7 @@ test('runner: a simulated month never exceeds any quota, and every day gets fres
   const perDay = Object.values(world.calls['api-sports']);
   assert.ok(Math.max(...perDay) <= 90, `API-Sports max per sport per day ${Math.max(...perDay)}`);
   assert.ok(world.calls.oddspapi <= 240, `OddsPapi month ${world.calls.oddspapi}`);
-  assert.ok(world.calls['the-odds-api'] <= 488, `The Odds API month ${world.calls['the-odds-api']}`);
+  assert.ok(world.calls['the-odds-api'] <= 238, `The Odds API month ${world.calls['the-odds-api']}`);
   // Spend is spread: no day goes without paid odds calls.
   for (let d = 1; d <= 31; d++) {
     const day = `2026-10-${String(d).padStart(2, '0')}`;
@@ -211,7 +211,7 @@ test('runner: a simulated month never exceeds any quota, and every day gets fres
     assert.ok((world.calls.byDay[`oddspapi:${day}`] ?? 0) > 0, `OddsPapi used on ${day}`);
   }
   // And the budgets are actually used, not hoarded.
-  assert.ok(world.calls['the-odds-api'] > 400, `The Odds API used ${world.calls['the-odds-api']}`);
+  assert.ok(world.calls['the-odds-api'] > 180, `The Odds API used ${world.calls['the-odds-api']}`);
   assert.ok(world.calls.oddspapi > 180, `OddsPapi used ${world.calls.oddspapi}`);
   // The pick ledger settled games along the way.
   // Unvalidated production inputs still settle their forecast archive, but may

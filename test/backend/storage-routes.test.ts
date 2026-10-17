@@ -1,8 +1,9 @@
+import {POST as tennisUpload}from'../../src/routes/api/admin/tennis/+server';
 import {it,expect,vi,afterEach} from 'vitest';
 import {env as nativeEnv} from './worker-env.mock';
 const identity=vi.hoisted(()=>({active:false,role:'guest',token:undefined as string|undefined}));
 vi.mock('#lib/server/membership.ts',()=>({membership:async()=>identity}));
-vi.mock('convex/browser',()=>({ConvexHttpClient:class{setAuth(){}async query(){return {blobKey:'feed/abc.gz',version:'abc'};}}}));
+vi.mock('convex/browser',()=>({ConvexHttpClient:class{setAuth(){}async mutation(){return {};}async query(){return {blobKey:'feed/abc.gz',version:'abc'};}}}));
 import {GET as feed}from'../../src/routes/api/feed/+server';
 import {GET as preview}from'../../src/routes/api/preview/+server';
 import {GET as archive}from'../../src/routes/api/archive/+server';
@@ -32,4 +33,12 @@ it('reads native SvelteKit 3 Cloudflare bindings when platform is absent',async(
  const e=event('/api/internal/blob/state/abc.gz',{headers:{Authorization:'Bearer secret'}});const bucket=e.platform.env.DATA_BUCKET;Object.assign(nativeEnv,e.platform.env);delete e.platform;
  expect((await getBlob(e)).status).toBe(200);expect(bucket.get).toHaveBeenCalledWith('state/abc.gz');
  const publicEvent=event('/api/preview');delete publicEvent.platform;expect((await preview(publicEvent)).headers.get('X-Data-Source')).toBe('r2');
+});
+
+it('tennis upload requires administrator identity, origin and explicit license before storing history',async()=>{
+ const e=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://example.test'},body:'{}'});expect((await tennisUpload(e)).status).toBe(403);expect(e.platform.env.DATA_BUCKET.put).not.toHaveBeenCalled();
+ identity.role='super_admin';identity.active=true;identity.token='token';
+ const wrong=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://wrong.test'},body:'{}'});expect((await tennisUpload(wrong)).status).toBe(403);
+ const missing=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://example.test'},body:JSON.stringify({rows:[{}]})});expect((await tennisUpload(missing)).status).toBe(400);expect(missing.platform.env.DATA_BUCKET.put).not.toHaveBeenCalled();
+ const good=event('/api/admin/tennis',{method:'POST',headers:{Origin:'https://example.test'},body:JSON.stringify({license:{source:'Test source',name:'Test only',commercialUseApproved:true},rows:[{id:'test'}]})});expect((await tennisUpload(good)).status).toBe(201);expect(good.platform.env.DATA_BUCKET.put).toHaveBeenCalledTimes(2);expect(good.platform.env.DATA_BUCKET.put.mock.calls[0][0].startsWith('archives/tennis/datasets/')).toBe(true);
 });

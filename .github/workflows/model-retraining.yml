@@ -38,3 +38,34 @@ jobs:
       - name: Record a failed run without changing serving models
         if: failure()
         run: node scripts/continuous-training.mjs failed
+
+  tennis-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      PUBLIC_CONVEX_URL: https://reliable-duck-539.eu-west-1.convex.cloud
+      EDGE_DATA_URL: https://puntersedge.ewinproject.org
+      EDGE_DATA_SECRET: ${{ secrets.EDGE_DATA_SECRET }}
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --legacy-peer-deps
+      - run: python -m unittest discover -s training -p test_tennis_shadow.py
+      - name: Discover tennis without paid provider calls and load private R2 history
+        run: node scripts/tennis-shadow.mjs collect
+      - name: Fit point-stat models and evaluate chronological calibration holdout
+        run: python training/tennis_shadow.py training/private/tennis-dataset.json training/private/tennis-result.json
+      - name: Publish compact shadow evidence with live markets disabled
+        run: node scripts/tennis-shadow.mjs publish
+      - name: Record failed tennis evaluation without activating markets
+        if: failure()
+        run: node scripts/tennis-shadow.mjs failed

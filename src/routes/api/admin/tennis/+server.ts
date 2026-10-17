@@ -1,0 +1,15 @@
+import type {RequestHandler} from './$types';
+import {membership} from '#lib/server/membership.ts';
+import {dataBucket,runtimeEnv} from '#lib/server/blob-store.ts';
+import {ConvexHttpClient} from 'convex/browser';
+import {anyApi} from 'convex/server';
+export const POST:RequestHandler=async event=>{
+ const headers={'Cache-Control':'private, no-store'};
+ if(event.request.headers.get('Origin')!==event.url.origin)return new Response('Origin required',{status:403,headers});
+ const access=await membership(event);if(access.role!=='super_admin'||!access.token)return new Response('Administrator access required',{status:403,headers});
+ try{if(Number(event.request.headers.get('Content-Length')??0)>8*1024*1024)return new Response('Dataset exceeds 8 MB',{status:413,headers});const reader=event.request.body?.getReader();if(!reader)return new Response('Dataset required',{status:400,headers});const chunks:Uint8Array[]=[];let size=0;for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>8*1024*1024){await reader.cancel();return new Response('Dataset exceeds 8 MB',{status:413,headers});}chunks.push(value);}const joined=new Uint8Array(size);let offset=0;for(const chunk of chunks){joined.set(chunk,offset);offset+=chunk.length;}const text=new TextDecoder().decode(joined);if(new TextEncoder().encode(text).length>8*1024*1024)return new Response('Dataset exceeds 8 MB',{status:413,headers});const data=JSON.parse(text);
+ if(!Array.isArray(data.rows)||data.rows.length<1||data.rows.length>5000||data.license?.commercialUseApproved!==true||typeof data.license?.source!=='string'||!data.license.source.trim()||typeof data.license?.name!=='string'||!data.license.name.trim())return new Response('Provide 1–5000 rows, an identified source and approved license metadata',{status:400,headers});
+ const bucket=dataBucket(event.platform);if(!bucket)return new Response('Private storage unavailable',{status:503,headers});const bytes=new TextEncoder().encode(text),fingerprint=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(b=>b.toString(16).padStart(2,'0')).join('');const key=`archives/tennis/datasets/${fingerprint}.json.gz`;const compressed=await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();await bucket.put(key,compressed,{httpMetadata:{contentType:'application/gzip'}});const meta=new TextEncoder().encode(JSON.stringify({key,fingerprint,rows:data.rows.length,at:Date.now()}));await bucket.put('archives/tennis/dataset-meta.json',meta.buffer);
+ const env=runtimeEnv(event.platform) as Record<string,string|undefined>,cloud=env.PUBLIC_CONVEX_URL||import.meta.env.PUBLIC_CONVEX_URL;if(!cloud)throw Error('Backend unavailable');const client=new ConvexHttpClient(cloud);client.setAuth(access.token);await client.mutation(anyApi.tennisShadow.uploaded,{rows:data.rows.length,fingerprint});return Response.json({rows:data.rows.length,fingerprint,status:'Queued for offline evaluation; live markets remain disabled'},{status:201,headers});
+ }catch{return new Response('Dataset could not be queued. Check the JSON format and retry.',{status:400,headers});}
+};
