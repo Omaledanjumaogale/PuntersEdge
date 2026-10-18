@@ -1,3 +1,4 @@
+import {enrichFixtureMetadata} from '#lib/fixture-metadata.js';
 import {recordActivity} from '#lib/activity.ts';
 /**
  * Application state (Svelte 5 runes).
@@ -33,7 +34,7 @@ export interface Settings {
 }
 
 export interface SlipItem {
- league?:string;country?:string;
+ league?:string;tournament?:string;country?:string;
 	pushProb?: number;
 	marketKey?: string;
 	id: string;
@@ -198,7 +199,7 @@ class AppState {
 	gameById(id: string) {
 		const game=this.games.find((g) => g.id === id);if(game)return game;
 		const tennis=this.tennisFixtures.find(f=>f.id===id);
-		return tennis?{id:tennis.id,sport:'tennis' as const,league:tennis.league,country:undefined,home:tennis.playerA,away:tennis.playerB,kickoff:new Date(tennis.kickoff).toISOString(),status:{state:'scheduled' as const,home:undefined,away:undefined},books:0,priced:false,availabilityReason:'Experimental tennis analysis is available in the tennis workspace.'}:undefined;
+		return tennis?{id:tennis.id,sport:'tennis' as const,league:tennis.tour,tournament:tennis.league,country:undefined,home:tennis.playerA,away:tennis.playerB,kickoff:new Date(tennis.kickoff).toISOString(),status:{state:'scheduled' as const,home:undefined,away:undefined},books:0,priced:false,availabilityReason:'Experimental tennis analysis is available in the tennis workspace.'}:undefined;
 	}
 	/** Experimental tennis stays separate from validated score-sport engines. */
 	toggleTennis(fixture:TennisFixture,market:{key:string;title:string},option:TennisOption){
@@ -206,9 +207,10 @@ class AppState {
 		if(this.inSlip(id)){this.remove(id);return;}
 		const now=Date.now();
 		if(!this.tennisFixtures.some(f=>f.id===fixture.id)||fixture.kickoff<=now||fixture.publishedAt>now||now-fixture.publishedAt>86400000||!Number.isFinite(option.modelProb)||option.modelProb<=0||option.modelProb>=1)return;
-		this.slip=[...this.slip,{id,fixtureId:fixture.id,sport:'tennis',marketKey:`${market.key}:${option.side}`,matchTitle:`${fixture.playerA} vs ${fixture.playerB}`,league:fixture.league,market:market.title,selection:option.selection,bookmaker:'Unpriced experimental estimate',odds:0,modelProb:option.modelProb,edgePercent:0,pushProb:0}];recordActivity('slip_added');
+		this.slip=[...this.slip,{id,fixtureId:fixture.id,sport:'tennis',marketKey:`${market.key}:${option.side}`,matchTitle:`${fixture.playerA} vs ${fixture.playerB}`,league:fixture.tour,tournament:fixture.league,market:market.title,selection:option.selection,bookmaker:'Unpriced experimental estimate',odds:0,modelProb:option.modelProb,edgePercent:0,pushProb:0}];recordActivity('slip_added');
 	}
 
+	get resolvedSlip():SlipItem[]{return this.slip.map(item=>enrichFixtureMetadata(item,this.gameById(item.fixtureId)));}
 	inSlip(id: string) {
 		return this.slip.some((s) => s.id === id);
 	}
@@ -227,7 +229,7 @@ class AppState {
 			fixtureId: v.fixtureId,
 			sport: v.sport as SportKey,
 			matchTitle: v.matchTitle,
- league:game.league,country:game.country,
+ league:game.league,tournament:game.tournament,country:game.country,
 			market: v.market,
 			selection: v.selection,
 			bookmaker: v.pricing==='quoted'?v.bookmaker:'Unpriced selection',

@@ -152,3 +152,7 @@ calls or extra client polling are added.
 Scheduled ingestion and tennis training now use the authenticated R2 control API
 directly, avoiding application Worker invocations for retained-file transfers.
 Browser APIs still require available Worker capacity.
+
+Ticket metadata, saved-history recovery, PDF/WhatsApp output and quota-aware API
+availability are documented in [the release notes](docs/TICKETS-AND-API-AVAILABILITY.md).
+Public previews use a separate sanitized R2 domain; private data remains protected.

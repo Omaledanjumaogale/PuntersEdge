@@ -20,5 +20,5 @@ if(bytes.length>256*1024)throw Error('Tennis snapshot exceeds size limit');
 await blobs.put('archives/tennis/live-information.json.gz',bytes);
 await blobs.put('archives/tennis/prospective/'+snapshot.at+'.json.gz',bytes);
 const client=new ConvexHttpClient(process.env.PUBLIC_CONVEX_URL);client.setAdminAuth(process.env.CONVEX_DEPLOY_KEY);
-await client.mutation(makeFunctionReference('tennisSchedule:publish'),{at:snapshot.at,fixtures:snapshot.fixtures.map(f=>({id:f.id,kickoff:f.kickoff}))});
+await client.mutation(makeFunctionReference('tennisSchedule:publish'),{at:snapshot.at,fixtures:snapshot.fixtures.map(f=>({id:f.id,kickoff:f.kickoff,league:f.tour,tournament:f.league}))});
 console.log(JSON.stringify({fixtures:snapshot.fixtures.length,bytes:bytes.length,bettingApproved:false}));

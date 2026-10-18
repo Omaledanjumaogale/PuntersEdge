@@ -16,6 +16,7 @@ import type { SportKey } from '#lib/sports.ts';
 
 export interface FeedGame {
  country?:string;
+ tournament?:string;
 	id: string;
 	sport: SportKey;
 	league: string;
@@ -176,7 +177,9 @@ class FeedState {
 
  async #loadPreview(){
   const generation=this.#generation;this.status='checking';
-  try{const response=await fetch('/api/preview',{signal:AbortSignal.timeout(20000)});if(!response.ok)throw new Error('Board previews are temporarily unavailable.');const data=await gunzipJson(await response.arrayBuffer()) as LiveFeed;if(data.access!=='preview'||!Array.isArray(data.previewFixtures))throw new Error('Unexpected preview format.');if(generation!==this.#generation)return;this.data=data;this.mode='live';this.status='ready';this.version=response.headers.get('X-Preview-Version');this.error=null;}catch(error){if(generation!==this.#generation)return;this.error=(error as Error).message;this.status='error';}
+  try{const direct=import.meta.env.PUBLIC_PREVIEW_URL;let response:Response|undefined;
+  if(direct)try{const url=new URL(direct);if(url.protocol!=='https:'||url.hostname!=='data.puntersedge.ewinproject.org')throw Error('Unexpected public preview origin');url.searchParams.set('v',String(Math.floor(Date.now()/300000)));const candidate=await fetch(url,{credentials:'omit',signal:AbortSignal.timeout(10000)});if(candidate.ok)response=candidate;}catch{/* The private Worker remains a bounded fallback. */}
+  response??=await fetch('/api/preview',{signal:AbortSignal.timeout(20000)});if(!response.ok)throw new Error('Board previews are temporarily unavailable.');const data=await gunzipJson(await response.arrayBuffer()) as LiveFeed;if(data.access!=='preview'||!Array.isArray(data.previewFixtures))throw new Error('Unexpected preview format.');if(generation!==this.#generation)return;this.data=data;this.mode='live';this.status='ready';this.version=response.headers.get('X-Preview-Version');this.error=null;}catch(error){if(generation!==this.#generation)return;this.error=(error as Error).message;this.status='error';}
  }
 
 	async refresh() {

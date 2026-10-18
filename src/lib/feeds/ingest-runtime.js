@@ -60,7 +60,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
      const frozen={...publication};delete frozen.priorPublication;delete frozen.publicationHistory;
      const blobKey=await put(`archives/${p.fixtureId}`,frozen);
      if(publication===p){const {fixtureId,sport,family,match,league,kickoff,publishedAt,modelVersion,state:fixtureState}=p;
-      records.push({fixtureId,sport,family,match,league,kickoff,publishedAt,modelVersion,state:fixtureState,observedAt:p.observedAt??publishedAt,blobKey,contributions:contributionsFor(p),fingerprint:hash(frozen),recent:recentRows(p),...(p.finishedAt?{finishedAt:p.finishedAt}:{}),...(p.score?{score:p.score}:{})});
+      records.push({fixtureId,sport,family,match,league,...(p.country?{country:p.country}:{}),...(p.tournament?{tournament:p.tournament}:{}),kickoff,publishedAt,modelVersion,state:fixtureState,observedAt:p.observedAt??publishedAt,blobKey,contributions:contributionsFor(p),fingerprint:hash(frozen),recent:recentRows(p),...(p.finishedAt?{finishedAt:p.finishedAt}:{}),...(p.score?{score:p.score}:{})});
      }
      publications.push({fixtureId:p.fixtureId,publishedAt:publication.publishedAt,modelVersion:publication.modelVersion,blobKey,...(publication.artifactVersion?{artifactVersion:publication.artifactVersion}:{})});
     }

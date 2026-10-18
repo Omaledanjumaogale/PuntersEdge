@@ -1,3 +1,4 @@
+import {enrichFixtureMetadata} from '../src/lib/fixture-metadata.js';
 import {slipPricing,validSlipOdds} from '../src/lib/slip-pricing.js';
 import { requireSubscription } from "./access";
 import { getCurrentUser } from "./auth";
@@ -9,7 +10,7 @@ const item = v.object({
   fixtureId: v.string(),
   sport: v.string(),
   matchTitle: v.string(),
- league:v.optional(v.string()),country:v.optional(v.string()),
+ league:v.optional(v.string()),tournament:v.optional(v.string()),country:v.optional(v.string()),
   market: v.string(),
   selection: v.string(),
   bookmaker: v.string(),
@@ -73,10 +74,10 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { itemOutcome, slipOutcome } from '../src/lib/slips.js';
 
 const fixtureState = v.object({
-  fixtureId: v.string(), kickoff: v.number(), status: v.string(), family: v.string(),
+  fixtureId: v.string(), kickoff: v.number(), status: v.string(), family: v.string(),league:v.optional(v.string()),tournament:v.optional(v.string()),country:v.optional(v.string()),
   score: v.optional(v.union(v.null(), v.object({ home: v.number(), away: v.number(), regHome: v.optional(v.number()), regAway: v.optional(v.number()) }))),
 });
-type State = { fixtureId: string; kickoff: number; status: string; family: string; score?: { home: number; away: number; regHome?: number; regAway?: number } | null };
+type State = {league?:string;tournament?:string;country?:string; fixtureId: string; kickoff: number; status: string; family: string; score?: { home: number; away: number; regHome?: number; regAway?: number } | null };
 async function fixtureStates(ctx: QueryCtx | MutationCtx, ids: string[]): Promise<State[]> {
   const unique = [...new Set(ids)];
   const groups: string[][] = [];
@@ -104,7 +105,7 @@ function decorate(selections: typeof item.type[], states: State[]) {
   return selections.map(selection => {
     const state = lookup.get(selection.fixtureId);
     if (!state || !Number.isFinite(state.kickoff)) throw new Error('A fixture could not be verified against the live schedule. Refresh and try again.');
-    return { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, family: state.family, ...(state.score ? { score: state.score } : {}) };
+    return { ...enrichFixtureMetadata(selection,state), kickoff: state.kickoff, fixtureStatus: state.status, family: state.family, ...(state.score ? { score: state.score } : {}) };
   });
 }
 function isFinal(selection: { fixtureStatus?: string }) { return selection.fixtureStatus === 'finished' || selection.fixtureStatus === 'cancelled'; }
@@ -128,7 +129,7 @@ export const history = query({ args: {}, handler: async ctx => {
     const items = slip.items.map(selection => {
       const state = lookup.get(selection.fixtureId);
       const merged = state && (!isFinal(selection) || ['finished','cancelled'].includes(state.status)) ? { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.score ? { score: state.score } : {}) } : selection;
-      return { ...merged, result: itemOutcome(merged) };
+      return { ...enrichFixtureMetadata(merged,state), result: itemOutcome(merged) };
     });
     return { ...slip, items, locked: completed(items), outcome: slipOutcome(items, slip.betType) };
   });

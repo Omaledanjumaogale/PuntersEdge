@@ -13,6 +13,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
  }
  const response = await resolve(event);
+ if(path.startsWith('/api/')){
+  if(response.headers.get('Content-Type')?.includes('text/html'))return new Response(JSON.stringify({error:'The API endpoint is unavailable. Please try again shortly.'}),{status:response.status>=400?response.status:502,headers:{'Content-Type':'application/json','Cache-Control':'private, no-store','X-PuntersEdge-API':'1','X-Content-Type-Options':'nosniff'}});
+  response.headers.set('X-PuntersEdge-API','1');
+ }
  response.headers.set('X-Content-Type-Options', 'nosniff');
  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
  if (privateRoute(event.url.pathname)) {

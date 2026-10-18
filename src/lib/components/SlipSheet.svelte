@@ -1,4 +1,5 @@
 <script lang="ts">
+ import {fixtureMetadataLines} from '#lib/fixture-metadata.js';
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { toast } from '#lib/toast.svelte.ts';
@@ -21,9 +22,9 @@
 	let exporting = $state(false);
 	async function pdf(){exporting=true;try{await downloadSlipPdf(exportSlip);}catch{toast.error('PDF download failed.');}finally{exporting=false;}}
 
-	const items = $derived(app.slip);
+	const items = $derived(app.resolvedSlip);
 	const econ = $derived(app.slipEconomics);
-	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.filter(hasQuotedOdds).reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,country:item.country??game?.country,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
+	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.filter(hasQuotedOdds).reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,tournament:item.tournament??game?.tournament,country:item.country??game?.country,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
 	const isAcca = $derived(mode === 'acca' && items.length > 1);
 
 	const singlesEv = $derived(items.filter(hasQuotedOdds).reduce((acc, i) => acc + stake * (i.modelProb * i.odds - 1), 0));
@@ -34,6 +35,7 @@
 		app.slipOpen = false;
 	}
 
+	async function share(){try{if(navigator.share)await navigator.share({title:exportSlip.name,text:shareSlipText(exportSlip)});else await copySlip();}catch(reason){if((reason as Error).name!=='AbortError')toast.error('Sharing could not open. Use Copy slip instead.');}}
 	async function copySlip() {
 		try {
 			await navigator.clipboard.writeText(shareSlipText(exportSlip));
@@ -48,7 +50,7 @@
 		if (!auth.client) { toast.error('Log in to save a named slip.'); return; }
 		savingHistory = true;
 		try {
-			const selections = items.map(({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+			const selections = items.map(({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
 			await auth.client.mutation(api.betslip.saveHistory, { name: slipName.trim() || `My slip ${new Date().toLocaleDateString('en-NG')}`, items: selections, stake, betType: mode });
 			toast.success('Named slip saved to your history.'); slipName = '';
 		} catch (reason) { toast.error((reason as Error).message); }
@@ -88,7 +90,7 @@
 			{#each items as i (i.id)}
 				<div class="ticket flex items-center gap-3 px-4 py-3" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">
-						<p class="text-xs text-haze">{i.matchTitle}</p>
+						<p class="break-words text-xs text-haze">{i.matchTitle}</p><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(i).join(' · ')}</p>
 						{#if app.gameById(i.fixtureId)}<p class="mt-1 text-xs text-haze">{new Date(app.gameById(i.fixtureId)!.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}
 						<p class="truncate font-semibold text-chalk">{i.selection}</p>
 						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}{#if (i.pushProb??0)>0}, refund {pct(i.pushProb??0,1)}{/if}</p>
@@ -161,7 +163,7 @@
 					<label class="grid gap-1 text-sm text-haze">Name this slip<input class="rounded-xl bg-ink px-3 py-2 text-chalk ring-1 ring-line" maxlength="80" bind:value={slipName} placeholder="Weekend picks" /></label>
 					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
 				{/if}
-				<div class="grid gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button></div>
+				<button class="btn-secondary w-full" onclick={share}>Share ticket · WhatsApp & more</button><div class="grid gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button></div>
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">
 					{#if copied}<Check class="h-4 w-4" /> Copied{:else}<Copy class="h-4 w-4" /> Copy slip for your bookmaker{/if}
 				</button>

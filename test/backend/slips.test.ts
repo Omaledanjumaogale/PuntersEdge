@@ -120,3 +120,12 @@ it('persists experimental tennis picks without inventing odds, payout or a settl
  const id=await signed.mutation(anyApi.betslip.saveHistory,{name:'Tennis review',items:[pick],stake:1000,betType:'acca'});
  const saved=await t.run(ctx=>ctx.db.get(id));expect(saved).toMatchObject({items:[{sport:'tennis',odds:0}],totalOdds:0,potentialReturn:0});
 });
+
+it('backfills known competition metadata on legacy histories and preserves it when edited',async()=>{
+ const t=create(),signed=await member(t,'metadata@example.test');const fid=await fixture(t);
+ await t.run(ctx=>ctx.db.patch(fid,{league:'Premier League',country:'England',tournament:'League season'}));
+ const id=await signed.mutation(anyApi.betslip.saveHistory,input());
+ let history=await signed.query(anyApi.betslip.history,{});expect(history[0].items[0]).toMatchObject({sport:'football',league:'Premier League',country:'England',tournament:'League season'});
+ await signed.mutation(anyApi.betslip.updateHistory,{...input(),id,name:'Edited'});
+ history=await signed.query(anyApi.betslip.history,{});expect(history[0].items[0]).toMatchObject({league:'Premier League',country:'England',tournament:'League season'});
+});

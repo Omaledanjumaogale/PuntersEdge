@@ -1,4 +1,6 @@
 <script lang="ts">
+ import {enrichFixtureMetadata,fixtureMetadataLines} from '#lib/fixture-metadata.js';
+ import {shareSlipText} from '#lib/slips.js';
  import { auth } from '#lib/auth.svelte.ts';
  import { app, type SlipItem } from '#lib/state.svelte.ts';
  import { ngn, odds } from '#lib/format.ts';
@@ -8,6 +10,7 @@
  import type { Doc } from '../../../convex/_generated/dataModel';
  type Saved = Doc<'saved_slips'> & { outcome: string; items: (Doc<'saved_slips'>['items'][number] & {result: string})[] };
  let slips = $state<Saved[]>([]);
+ const resolvedSlips=$derived(slips.map(s=>({...s,items:s.items.map(item=>enrichFixtureMetadata(item,app.gameById(item.fixtureId)))})) as Saved[]);
  let loading = $state(true);
  let error = $state('');
  let busy = $state('');
@@ -30,7 +33,7 @@
   editing = slip._id; name = slip.name; stake = slip.stake; betType = slip.betType;
   editItems = slip.items.map(item => ({ ...item, id: `${item.fixtureId}:${item.marketKey ?? item.selection}`, sport: item.sport as SlipItem['sport'], modelProb: item.modelProb ?? (item.odds>1?1/item.odds:0) }));
  }
- const payload = (items: (SlipItem | Doc<'saved_slips'>['items'][number])[]) => items.map(({ fixtureId,sport,matchTitle,market,selection,bookmaker,odds,modelProb,pushProb,edgePercent,marketKey }) => ({fixtureId,sport,matchTitle,market,selection,bookmaker,odds,modelProb,pushProb,edgePercent,marketKey}));
+ const payload = (items: (SlipItem | Doc<'saved_slips'>['items'][number])[]) => items.map(({ fixtureId,sport,matchTitle,league,tournament,country,market,selection,bookmaker,odds,modelProb,pushProb,edgePercent,marketKey }) => ({fixtureId,sport,matchTitle,league,tournament,country,market,selection,bookmaker,odds,modelProb,pushProb,edgePercent,marketKey}));
  function addDraft() {
   const existing = new Set(editItems.map(item => `${item.fixtureId}:${item.marketKey ?? item.selection}`));
   editItems = [...editItems, ...app.slip.filter(item => !existing.has(`${item.fixtureId}:${item.marketKey ?? item.selection}`))];
@@ -50,7 +53,7 @@
  }
  async function pdf(slip: Saved) {
   busy=slip._id;
-  try { await downloadSlipPdf({...slip,items:slip.items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,country:item.country??game?.country};})}); } catch { toast.error('PDF download failed. Try again.'); } finally { busy=''; }
+  try { await downloadSlipPdf({...slip,items:slip.items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,tournament:item.tournament??game?.tournament,country:item.country??game?.country};})}); } catch { toast.error('PDF download failed. Try again.'); } finally { busy=''; }
  }
 </script>
 <svelte:head><title>Saved betslips — PuntersEdge</title><meta name="robots" content="noindex" /></svelte:head>
@@ -66,7 +69,7 @@
  {:else if !slips.length}<section class="surface p-8 text-center"><h2 class="text-xl font-bold">Your first slip starts with a pick</h2><p class="mt-2 text-haze">Add scheduled or live picks from a dashboard, then name and save your working slip before games finish.</p><a href="/value-bets" class="btn-primary mt-4 inline-flex">Explore value bets</a></section>
  {:else}
   <p class="text-sm text-haze">{slips.length} saved slip{slips.length===1?'':'s'} · up to 100 per account</p>
-  {#each slips as slip (slip._id)}
+  {#each resolvedSlips as slip (slip._id)}
    <details class="surface group overflow-hidden">
     <summary class="flex cursor-pointer list-none flex-wrap items-start justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
      <div><h2 class="text-xl font-bold">{slip.name} <span class="inline-block text-haze transition-transform group-open:rotate-180">⌄</span></h2><p class="mt-1 text-sm text-haze">{slip.betType==='acca'?'Accumulator':'Singles'} · {slip.items.length} picks · {new Date(slip._creationTime).toLocaleDateString('en-NG')}</p></div>
@@ -76,15 +79,15 @@
      <form class="space-y-4 p-5" onsubmit={event=>{event.preventDefault();void saveEdit(slip);}}>
       <label class="grid gap-1 text-sm">Slip name<input class="rounded-xl bg-ink p-3 ring-1 ring-line" maxlength="80" bind:value={name} required /></label>
       <div class="grid gap-3 sm:grid-cols-2"><label class="grid gap-1 text-sm">Stake (NGN)<input class="rounded-xl bg-ink p-3 ring-1 ring-line" type="number" min="0" max="1000000000" step="100" bind:value={stake} required /></label><label class="grid gap-1 text-sm">Type<select class="rounded-xl bg-ink p-3 ring-1 ring-line" bind:value={betType}><option value="acca">Accumulator</option><option value="singles">Singles</option></select></label></div>
-      {#each editItems as item,index}<div class="flex items-center gap-3 rounded-xl bg-ink p-3"><div class="min-w-0 flex-1"><p class="text-xs text-haze">{item.matchTitle}</p><p class="font-medium">{item.selection} · {item.odds>1?odds(item.odds):'Unpriced'}</p></div><button type="button" class="p-2 text-loss disabled:opacity-40" disabled={item.fixtureStatus==='finished'||item.fixtureStatus==='cancelled'} onclick={()=>editItems=editItems.filter((_,i)=>i!==index)} aria-label="Remove {item.selection}">Remove</button></div>{/each}
+      {#each editItems as item,index}<div class="flex items-center gap-3 rounded-xl bg-ink p-3"><div class="min-w-0 flex-1"><p class="text-xs text-haze">{item.matchTitle}</p><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(item).join(' · ')}</p><p class="font-medium">{item.selection} · {item.odds>1?odds(item.odds):'Unpriced'}</p></div><button type="button" class="p-2 text-loss disabled:opacity-40" disabled={item.fixtureStatus==='finished'||item.fixtureStatus==='cancelled'} onclick={()=>editItems=editItems.filter((_,i)=>i!==index)} aria-label="Remove {item.selection}">Remove</button></div>{/each}
       <button type="button" class="btn-secondary" disabled={!app.slip.length} onclick={addDraft}>Add picks from working slip</button>
       <p class="text-xs text-haze">Every retained or new selection is checked against the live schedule when you save.</p>
       <div class="flex flex-wrap gap-2"><button class="btn-primary" disabled={busy===slip._id||!editItems.length}>{busy===slip._id?'Saving…':'Save changes'}</button><button type="button" class="btn-secondary" onclick={()=>editing=null}>Cancel</button></div>
      </form>
     {:else}
-     <ul class="divide-y divide-line px-5">{#each slip.items as item}<li class="py-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><a class="text-sm text-haze hover:text-chalk" href="/match?id={encodeURIComponent(item.fixtureId)}">{item.matchTitle}</a><p class="mt-1 font-semibold">{item.selection} <span class="text-book">@ {odds(item.odds)}</span></p><p class="mt-1 text-xs text-haze">{item.market} · {item.bookmaker} · Model {((item.modelProb??0)*100).toFixed(1)}%</p>{#if item.kickoff}<p class="mt-1 text-xs text-haze">{new Date(item.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}</div><span class="shrink-0 text-sm {item.result==='won'?'text-model':item.result==='lost'?'text-loss':'text-haze'}">{item.result==='pending'?(item.fixtureStatus==='live'?'Live':'Pending'):item.result}</span></div>{#if item.score}<p class="mt-2 rounded-lg bg-ink px-3 py-2 text-sm">{item.fixtureStatus==='finished'?'Final score':'Live score'}: <strong>{item.score.home}–{item.score.away}</strong>{#if item.score.regHome!==undefined && item.score.regAway!==undefined && (item.score.regHome!==item.score.home || item.score.regAway!==item.score.away)}<span class="text-haze"> · regulation {item.score.regHome}–{item.score.regAway}</span>{/if}</p>{/if}</li>{/each}</ul>
+     <ul class="divide-y divide-line px-5">{#each slip.items as item}<li class="py-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><a class="text-sm text-haze hover:text-chalk" href="/match?id={encodeURIComponent(item.fixtureId)}">{item.matchTitle}</a><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(item).join(' · ')}</p><p class="mt-1 font-semibold">{item.selection} <span class="text-book">@ {item.odds>1?odds(item.odds):'Unpriced'}</span></p><p class="mt-1 text-xs text-haze">{item.market} · {item.bookmaker} · Model {((item.modelProb??0)*100).toFixed(1)}%</p>{#if item.kickoff}<p class="mt-1 text-xs text-haze">{new Date(item.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}</div><span class="shrink-0 text-sm {item.result==='won'?'text-model':item.result==='lost'?'text-loss':'text-haze'}">{item.result==='pending'?(item.fixtureStatus==='live'?'Live':'Pending'):item.result}</span></div>{#if item.score}<p class="mt-2 rounded-lg bg-ink px-3 py-2 text-sm">{item.fixtureStatus==='finished'?'Final score':'Live score'}: <strong>{item.score.home}–{item.score.away}</strong>{#if item.score.regHome!==undefined && item.score.regAway!==undefined && (item.score.regHome!==item.score.home || item.score.regAway!==item.score.away)}<span class="text-haze"> · regulation {item.score.regHome}–{item.score.regAway}</span>{/if}</p>{/if}</li>{/each}</ul>
      <div class="grid grid-cols-2 gap-3 border-t border-line p-5 text-sm"><div><p class="text-haze">Stake {slip.betType==='singles'?'per pick':''}</p><p class="mt-1 font-semibold">{ngn(slip.stake)}</p></div><div><p class="text-haze">{slip.items.some(i=>i.odds===0)?'Quoted subset return · full ticket unknown':'Potential return'}</p><p class="mt-1 font-semibold">{ngn(slip.potentialReturn)}</p></div></div>
-     <div class="flex flex-wrap gap-2 border-t border-line p-5"><button class="btn-secondary" disabled={locked(slip)||busy===slip._id} onclick={()=>startEdit(slip)}>{locked(slip)?'Selections locked':'Edit slip'}</button><button class="btn-secondary" disabled={busy===slip._id} onclick={()=>pdf(slip)}>Download PDF</button><button class="rounded-full px-4 py-2 text-sm text-loss" onclick={()=>deleting=slip._id}>Delete</button></div>
+     <div class="flex flex-wrap gap-2 border-t border-line p-5"><button class="btn-secondary" disabled={locked(slip)||busy===slip._id} onclick={()=>startEdit(slip)}>{locked(slip)?'Selections locked':'Edit slip'}</button><button class="btn-secondary" disabled={busy===slip._id} onclick={()=>pdf(slip)}>Download PDF</button><a class="btn-secondary" target="_blank" rel="noopener noreferrer" href={'https://wa.me/?text='+encodeURIComponent(shareSlipText(slip))}>Share WhatsApp</a><button class="rounded-full px-4 py-2 text-sm text-loss" onclick={()=>deleting=slip._id}>Delete</button></div>
      {#if deleting===slip._id}<div class="border-t border-line bg-ink p-5"><p class="text-sm">Delete “{slip.name}” from your history?</p><div class="mt-3 flex gap-3"><button class="btn-secondary text-loss" disabled={busy===slip._id} onclick={()=>remove(slip)}>Delete slip</button><button class="btn-secondary" onclick={()=>deleting=null}>Keep slip</button></div></div>{/if}
     {/if}
    </details>

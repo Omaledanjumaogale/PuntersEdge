@@ -6,7 +6,7 @@ import { api } from '../../convex/_generated/api.js';
 
 const ownerGet = (key:string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const ownerSet = (key:string,value:string) => { try { localStorage.setItem(key,value); } catch { /* session-only state */ } };
-const payload = (items: SlipItem[]) => items.map(({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+const payload = (items: SlipItem[]) => items.map(({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
 export function startSlipSync(): () => void {
  if (typeof window === 'undefined' || auth.mode !== 'convex') return () => {};
  let timer: ReturnType<typeof setTimeout> | undefined;
@@ -37,7 +37,7 @@ export function startSlipSync(): () => void {
   });
   $effect(() => {
    const client = auth.client, userId = auth.viewer?.id;
-   const items = payload($state.snapshot(app.slip));
+   const items = payload($state.snapshot(app.resolvedSlip));
    clearTimeout(timer);
    if (!client || !userId || !ready || JSON.stringify(items) === remoteJson) return;
    timer = setTimeout(() => {

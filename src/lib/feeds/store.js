@@ -13,6 +13,7 @@ import { bestMatch } from './matching.js';
  * @typedef {Object} StoredGame
  * @property {string} uid `${sport}-${src}-${id}`, stable and URL-safe
  * @property {SportKey} sport
+ * @property {string} [tournament]
  * @property {string} [country]
  * @property {string} league
  * @property {string | number} [leagueId] API-Sports league id

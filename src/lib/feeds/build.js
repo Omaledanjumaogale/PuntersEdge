@@ -133,6 +133,7 @@ export function updateRecord(store, now) {
         changed.push(snapshot);
       } catch { /* Invalid input is reported as unavailable, never invented. */ }
     }
+    if(snapshot){let metadataChanged=false;for(const field of /** @type {const} */(['country','tournament']))if(g[field]&&snapshot[field]!==g[field]){snapshot[field]=g[field];metadataChanged=true;}if(metadataChanged){snapshot.observedAt=now;if(!changed.includes(snapshot))changed.push(snapshot);}}
     if (!snapshot) continue;
     if(g.status.state === 'scheduled' && g.kickoff > now) {
       const latestInput=inputFor(store,g,now);
@@ -221,6 +222,7 @@ export function buildFeed(store, now, usage) {
       id: g.uid,
       sport: g.sport,
       league: g.league,
+      ...(g.tournament?{tournament:g.tournament}:{}),
       ...(g.country?{country:g.country}:{}),
       home: g.home,
       away: g.away,
