@@ -51,7 +51,7 @@
 		<header class="flex items-start gap-3 px-5 pb-3 pt-3">
 			<div class="min-w-0 flex-1">
 				<p class="text-sm font-medium text-haze">{sportEmoji[p.sport]} {p.league}</p>
-				<h2 id="picker-title" class="truncate text-xl font-bold text-chalk">{p.matchTitle}</h2>
+				<h2 id="picker-title" class="fixture-name truncate text-xl font-bold">{p.matchTitle}</h2>
 			</div>
 			<button onclick={close} class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-raised text-chalk ring-1 ring-line hover:ring-pop" aria-label="Close markets"><X class="h-5 w-5" /></button>
 		</header>

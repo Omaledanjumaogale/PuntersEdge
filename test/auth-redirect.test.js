@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {accountReturnPath} from '../src/lib/auth-redirect.js';
+test('tester invitation survives personal-account verification without an external redirect',()=>{assert.equal(accountReturnPath('/tester'),'/tester');assert.equal(accountReturnPath('/tennis'),'/tennis');for(const value of [null,'https://example.com','//example.com','/\\example.com','/\n/example.com'])assert.equal(accountReturnPath(value),'/account');});

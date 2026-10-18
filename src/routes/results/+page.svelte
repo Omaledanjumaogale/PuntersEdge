@@ -66,7 +66,7 @@
    {#each [...pendingProjections, ...viewableFinished].slice(0, visible) as projection (projection.fixtureId)}
     <li><a href={`/match?id=${encodeURIComponent(projection.fixtureId)}&review=1`} class="surface block p-4 transition hover:ring-1 hover:ring-pop focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pop">
      <div class="flex items-center justify-between gap-3 text-xs text-haze"><span>{sportEmoji[projection.sport]} {SPORTS[projection.sport].label}</span><span class={projection.state === 'live' ? 'text-loss' : 'text-model'}>{projection.state === 'finished' ? 'Finished' : projection.state === 'live' ? 'Live' : 'Published'}</span></div>
-     <h3 class="mt-2 font-semibold text-chalk">{projection.match}</h3>
+     <h3 class="fixture-name mt-2 font-semibold">{projection.match}</h3>
      <p class="mt-1 text-sm text-haze">{projection.league} · {kickoff(projection.kickoff, app.now)}</p>
      <div class="mt-3 flex flex-wrap justify-between gap-2 text-xs"><span class="text-haze">Published <time datetime={new Date(projection.publishedAt).toISOString()}>{new Date(projection.publishedAt).toLocaleString('en-NG', { timeZone: 'Africa/Lagos', dateStyle: 'medium', timeStyle: 'short' })} WAT</time></span><span class="font-semibold text-model">View recorded projection →</span></div>
      {#if projection.score}<p class="mt-2 text-sm text-chalk">Final score: {projection.score}</p>{/if}
@@ -113,7 +113,7 @@
 			{#each record?.recent.slice(0, 20) ?? [] as r (r.uid)}
 				<li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl bg-deep px-3.5 py-2.5 ring-1 ring-line">
 					<span class="min-w-0">
-						<span class="block truncate text-xs text-haze">{sportEmoji[r.sport]} {r.match} · {r.score}</span>
+						<span class="fixture-name block truncate text-xs">{sportEmoji[r.sport]} {r.match} · {r.score}</span>
 						<span class="block truncate font-semibold text-chalk">{r.selection} <span class="font-normal text-book">@ {odds(r.odds)}</span> <span class="text-xs font-normal text-haze">{r.bookmaker}, {r.grade}</span></span>
 					</span>
 					<span class="text-right font-display font-bold {resultTone[r.result] ?? 'text-haze'}">{r.result.replace('-', ' ')}<span class="block text-xs font-normal">{signed(r.profit, 2)}u</span></span>

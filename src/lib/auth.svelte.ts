@@ -1,4 +1,5 @@
 import {clearActivity} from '#lib/activity.ts';
+import {accountReturnPath} from '#lib/auth-redirect.js';
 import type { Settings } from '#lib/state.svelte.ts';
 import { convexUrl } from '#lib/convex.ts';
 import { createAuthClient } from 'better-auth/client';
@@ -71,10 +72,10 @@ class AuthState {
     });
   }
   #clear() { clearActivity();this.viewer = null; this.status = 'signedOut'; this.#unsubscribe?.(); this.#unsubscribe = null; this.#client?.setAuth(async () => null); }
-  async signUp(input: { name: string; email: string; password: string }) {
+  async signUp(input: { name: string; email: string; password: string },next='/account') {
     if (!convexUrl) throw new Error('Account services are not configured.');
     const issue = passwordIssues(input.password); if (issue) throw new Error(issue);
-    const result = await authClient.signUp.email({ ...input, name: input.name.trim() || input.email.split('@')[0], callbackURL: `${window.location.origin}/account` });
+    const result = await authClient.signUp.email({ ...input, name: input.name.trim() || input.email.split('@')[0], callbackURL: `${window.location.origin}${accountReturnPath(next)}` });
     if (result.error) throw new Error(result.error.message || 'Could not create your account.');
     return { verificationRequired: true };
   }

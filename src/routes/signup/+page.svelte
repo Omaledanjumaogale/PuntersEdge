@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { auth, passwordStrength, PASSWORD_RULE } from '#lib/auth.svelte.ts';
+ import {accountReturnPath} from '#lib/auth-redirect.js';
 	import AuthShell from '#lib/components/AuthShell.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 
@@ -14,7 +15,7 @@
 	let busy = $state(false);
 	let verificationSent = $state(false);
 
-	const next = $derived(browser&&(page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
+	const next = $derived(accountReturnPath(browser?page.url.searchParams.get('next'):null));
 	const strength = $derived(passwordStrength(password));
 	const strengthLabel = ['Too short', 'Okay', 'Good', 'Strong', 'Excellent'];
 	const strengthTone = ['bg-loss', 'bg-book', 'bg-model', 'bg-model', 'bg-pop'];
@@ -32,7 +33,7 @@
 		}
 		busy = true;
 		try {
-			await auth.signUp({ name, email, password });
+			await auth.signUp({ name, email, password },next);
 			verificationSent = true;
 		} catch (err) {
 			error = (err as Error).message;

@@ -73,7 +73,7 @@
 			<tbody>
 				{#each arbs as a (a.p.fixtureId)}
 					<tr class="border-t border-line">
-						<td class="p-3"><a href="/match?id={a.p.fixtureId}" class="hover:text-model">{a.p.matchTitle}</a></td>
+						<td class="p-3"><a href="/match?id={a.p.fixtureId}" class="fixture-name hover:text-model">{a.p.matchTitle}</a></td>
 						<td class="p-3"><span class="text-book">{odds(a.bestHome.odds)}</span> <span class="text-xs text-haze">{a.bestHome.bookmaker}</span></td>
 						<td class="p-3"><span class="text-book">{odds(a.bestDraw.odds)}</span> <span class="text-xs text-haze">{a.bestDraw.bookmaker}</span></td>
 						<td class="p-3"><span class="text-book">{odds(a.bestAway.odds)}</span> <span class="text-xs text-haze">{a.bestAway.bookmaker}</span></td>

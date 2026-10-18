@@ -49,7 +49,7 @@
 			<span>{info.emoji} {p.league}, ⏰ {kickoff(p.kickoffTime, app.now)}{#if p.status.state === 'scheduled'} ({countdown(p.kickoffTime, app.now)}){/if}</span>
 			<StatusPill status={p.status} />
 		</p>
-		<h1 class="mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
+		<h1 class="fixture-name mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
 			{p.homeTeam} <span class="text-haze">vs</span>
 			{p.awayTeam}
 		</h1>
@@ -78,7 +78,7 @@
 
 	{#if p.family === 'basketball'}
 		<section class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-			<div class="surface p-4"><p class="text-sm text-haze">Projected score</p><p class="font-display text-3xl font-semibold">{Math.round(p.projectedScore.home)}–{Math.round(p.projectedScore.away)}</p></div>
+			<div class="surface p-4"><p class="text-sm text-haze">Projected score</p><p class="projection-score font-display text-3xl font-semibold">{Math.round(p.projectedScore.home)}–{Math.round(p.projectedScore.away)}</p></div>
 			<div class="surface p-4"><p class="text-sm text-haze">Pace estimate</p><p class="font-display text-3xl font-semibold">{p.paceMetrics.possessionsPer48}</p></div>
 			<div class="surface p-4"><p class="text-sm text-haze">Total vs line</p><p class="font-display text-3xl font-semibold">{p.projectedScore.total} <span class="text-lg text-book">{p.marketLines.total}</span></p></div>
 			<div class="surface p-4"><p class="text-sm text-haze">{p.homeTeam.split(' ').at(-1)} win</p><p class="font-display text-3xl font-semibold text-model">{pct(p.probabilities.homeWin)}</p></div>
@@ -97,7 +97,7 @@
 				<ol class="mt-3 space-y-2">
 					{#each p.topScorelines.slice(0, 6) as s, i (`${s.home}-${s.away}`)}
 						<li class="grid grid-cols-[3rem_1fr_3.5rem] items-center gap-3 text-sm">
-							<span class="font-display text-base font-semibold">{s.home}–{s.away}</span>
+							<span class="projection-score font-display text-base font-semibold">{s.home}–{s.away}</span>
 							<span class="h-2 rounded-full bg-ink"><span class="block h-2 rounded-full bg-model" style="width: {(s.prob / p.topScorelines[0].prob) * 100}%; opacity: {1 - i * 0.1}"></span></span>
 							<span class="text-right text-haze">{pct(s.prob, 1)}</span>
 						</li>
@@ -112,7 +112,7 @@
 					</dl>
 				{:else}
 					<dl class="mt-5 grid grid-cols-2 gap-3 border-t border-line pt-4 text-sm">
-						<div><dt class="text-haze">Expected {p.summary.unit}</dt><dd class="font-display text-lg font-semibold">{p.projectedScore.home.toFixed(2)} – {p.projectedScore.away.toFixed(2)}</dd></div>
+						<div><dt class="text-haze">Expected {p.summary.unit}</dt><dd class="projection-score font-display text-lg font-semibold">{p.projectedScore.home.toFixed(2)} – {p.projectedScore.away.toFixed(2)}</dd></div>
 						<div><dt class="text-haze">Total vs line</dt><dd class="font-display text-lg font-semibold">{p.projectedScore.total.toFixed(1)} <span class="text-base text-book">{p.marketLines.total}</span></dd></div>
 						{#if p.family === 'hockey'}
 							<div><dt class="text-haze">Tied after 60 min</dt><dd>{pct(p.probabilities.draw)}</dd></div>
@@ -199,7 +199,7 @@
 
 		</p>
  {#if game.availabilityReason}<p class="mt-4 rounded-xl bg-ink p-4 text-sm text-haze">{game.availabilityReason}</p>{/if}
-		<h1 class="mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
+		<h1 class="fixture-name mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
 			{game.home} <span class="text-haze">vs</span>
 			{game.away}
 		</h1>

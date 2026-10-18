@@ -26,17 +26,20 @@
 	let stackOpen = $state(false);
 
 	const features = [
-		{ emoji: '📊', title: 'Why this pick?', text: 'Every tip shows what the odds need, what our model says and the reasons behind it.', href: '/board' },
-		{ emoji: '🎯', title: 'Every market', text: 'Tap + and pick from double chance, handicaps, totals, BTTS and more.', href: '/football' },
-		{ emoji: '🧾', title: 'Smart slip', text: 'Stakes from your bankroll, win chance and expected profit for singles or accas.', href: '/value-bets' },
+		{ emoji: '📊', title: 'Understand each choice', text: 'Compare estimated probabilities, projected scores and choice notes in compact, ranked markets.', href: '/board' },
+		{ emoji: '🎯', title: 'Build from your rules', text: 'Choose sports, markets, kickoff window and a combined odds target. Save your rules for next time.', href: '/bet-machine' },
+		{ emoji: '🧾', title: 'Tickets to keep and share', text: 'Add priced or unpriced choices, save tickets and share a PDF with competition details. Combined odds use quoted selections only.', href: '/betslips' },
 		{ emoji: '🏦', title: 'Bookmaker check', text: 'See which book keeps the biggest cut and where the best price sits.', href: '/bookmakers' },
 		{ emoji: '🔒', title: 'Your account', text: 'Log in to keep your slip and settings on every device.', href: '/signup' },
-		{ emoji: '📲', title: 'Works offline', text: 'Install it like an app. Opens instantly, even with bad network.', href: '/settings' }
+		{ emoji: '📲', title: 'Install the app', text: 'Keep PuntersEdge on your home screen. Saved screens help on weak connections; fresh fixtures and account services need internet.', href: '/settings' },
+  { emoji: '🎾', title: 'Explore tennis forecasts', text: 'Compare experimental ATP and WTA match-winner and first-set estimates, with evaluation and coverage notes.', href: '/tennis' },
+  { emoji: '📈', title: 'Review published results', text: 'Check settled picks and recorded performance. Model estimates are assessed as new match results become available.', href: '/results' },
+  { emoji: '🔑', title: 'Invited to test?', text: 'Activate your invitation through a verified personal account and keep your own profile and tickets.', href: '/tester' }
 	];
 </script>
 
 <svelte:head>
-	<title>PuntersEdge — bet smarter on football, NBA, hockey and baseball</title>
+	<title>PuntersEdge — sports forecasts, market analysis and smarter tickets</title>
 </svelte:head>
 
 <TLDRBlock answer="PuntersEdge compares sports model probabilities with bookmaker prices across football, NBA, basketball, ice hockey and baseball. Check the provider data badge and its refresh timestamp. Predictions are estimates, and no outcome or return is guaranteed." />
@@ -53,7 +56,7 @@
 			Bet smarter,<br /><span class="brand-text">not harder.</span>
 		</h1>
 		<p class="mt-5 max-w-xl text-lg leading-relaxed text-chalk">
-			Compare available bookmaker prices with sport-specific model projections. Explore the numbers behind each market, save your rules and track published results.
+			Understand the match before you choose. Compare ranked market probabilities and projected scores, build tickets from saved rules, and review published results across five sports. Explore experimental tennis forecasts in a separate workspace.
 		</p>
 		<div class="mt-6 flex flex-wrap gap-3">
 			<a href="/board" class="btn-primary text-base">🔥 See today's picks</a>
@@ -89,7 +92,7 @@
 				class="surface absolute inset-x-0 z-20 block p-4 shadow-[0_30px_60px_-30px_rgb(0_0_0/0.6)] transition-transform duration-700 ease-[var(--ease-spring)]"
 				style="top: {stackOpen ? i * 7.6 : 2.5 + i * 1.1}rem; transform: rotateX({stackOpen ? 0 : 18}deg) rotateZ({stackOpen ? 0 : (i - 1) * -5}deg) translateZ({(3 - i) * 20}px); z-index: {30 - i}"
 			>
-				<p class="truncate text-xs font-medium text-haze">{sportEmoji[v.sport]} {v.matchTitle}</p>
+				<p class="fixture-name truncate text-xs font-medium">{sportEmoji[v.sport]} {v.matchTitle}</p>
 				<p class="mt-1 truncate font-display text-lg font-bold text-chalk">{v.selection}</p>
 				<p class="mt-1 text-sm">
 					<span class="font-semibold text-book">{v.bestOdds?odds(v.bestOdds):'Price unavailable'}</span> <span class="text-haze">Published board projection</span>
@@ -110,7 +113,7 @@
 <!-- Sports -->
 <section class="mt-8" aria-labelledby="sports-title">
 	<div class="flex items-baseline justify-between gap-3">
-		<h2 id="sports-title" class="text-3xl font-extrabold text-chalk">Five sports, five engines</h2>
+		<h2 id="sports-title" class="text-3xl font-extrabold text-chalk">Your sports, one clear board</h2>
 		<a href="/sports" class="text-sm font-semibold text-pop hover:underline">All sports</a>
 	</div>
 	<ul class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -139,7 +142,7 @@
 	<h2 id="how-title" class="text-3xl font-extrabold text-chalk">How it works</h2>
 	<ol class="mt-5 grid gap-3 sm:grid-cols-3">
 		{#each [
-			{ emoji: '🔍', title: 'Spot the value', text: 'We price every match and flag odds better than fair.', href: '/board', cta: 'Open the board' },
+			{ emoji: '🔍', title: 'Compare the choices', text: 'Open a fixture to compare ranked estimates and available bookmaker prices.', href: '/board', cta: 'Open the board' },
 			{ emoji: '📊', title: 'Check the why', text: 'Open “Why this pick?” to see the numbers behind each tip.', href: '/board', cta: 'See an example' },
 			{ emoji: '🧾', title: 'Build your slip', text: 'Tap + to add picks and explore every other market on the match.', href: '/value-bets', cta: 'Browse value bets' }
 		] as step, i (step.title)}
@@ -161,11 +164,11 @@
 <!-- Features -->
 <section class="mt-14" aria-labelledby="features-title">
 	<h2 id="features-title" class="text-3xl font-extrabold text-chalk">What's inside</h2>
-	<p class="mt-1 text-haze">{marketsPriced} selections priced across {app.all.length} matches right now.</p>
+	<p class="mt-1 text-haze">{marketsPriced} market options across {app.all.length} published matches in your current board. Coverage depends on available data and account access.</p>
 	<ul class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 		{#each features as f (f.title)}
 			<li>
-				{#if f.title === 'Works offline' && pwa.canInstall}
+				{#if f.title === 'Install the app' && pwa.canInstall}
 					<button onclick={() => pwa.install()} class="surface flex h-full w-full flex-col gap-1 p-5 text-left hover:ring-1 hover:ring-pop">
 						<span class="text-3xl" aria-hidden="true">{f.emoji}</span>
 						<span class="mt-1 text-lg font-bold text-chalk">{f.title}</span>

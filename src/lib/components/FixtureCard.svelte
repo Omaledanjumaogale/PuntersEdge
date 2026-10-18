@@ -39,11 +39,11 @@
 
 	<a href="/match?id={p.fixtureId}" class="-m-1 block rounded-xl p-1" aria-label="Open {p.matchTitle}">
 		<div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
-			<h3 class="truncate text-lg font-bold leading-tight text-chalk sm:text-xl">{p.homeTeam}</h3>
-			<span class="rounded-full bg-ink px-3 py-1 font-display text-base font-bold text-chalk ring-1 ring-line">
+			<h3 class="fixture-name truncate text-lg font-bold leading-tight sm:text-xl">{p.homeTeam}</h3>
+			<span class="projection-score rounded-full bg-ink px-3 py-1 font-display text-base font-bold ring-1 ring-line">
 				{p.summary.scoreline}
 			</span>
-			<h3 class="truncate text-right text-lg font-bold leading-tight text-chalk sm:text-xl">{p.awayTeam}</h3>
+			<h3 class="fixture-name truncate text-right text-lg font-bold leading-tight sm:text-xl">{p.awayTeam}</h3>
 		</div>
 		<p class="mt-1 text-center text-xs text-haze">
 			{p.summary.caption}

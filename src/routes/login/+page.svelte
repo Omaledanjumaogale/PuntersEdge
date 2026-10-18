@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { auth } from '#lib/auth.svelte.ts';
+ import {accountReturnPath} from '#lib/auth-redirect.js';
 	import AuthShell from '#lib/components/AuthShell.svelte';
 	import PasswordField from '#lib/components/PasswordField.svelte';
 
@@ -11,7 +12,7 @@
 	let error = $state('');
 	let busy = $state(false);
 
-	const next = $derived(browser&&(page.url.searchParams.get('next')?.startsWith('/') && !page.url.searchParams.get('next')?.startsWith('//')) ? page.url.searchParams.get('next')! : '/account');
+	const next = $derived(accountReturnPath(browser?page.url.searchParams.get('next'):null));
 
 	$effect(() => {
 		if (auth.signedIn && !busy) goto(next, { replaceState: true });
@@ -35,6 +36,7 @@
 <svelte:head><title>Log in — PuntersEdge</title></svelte:head>
 
 <AuthShell title="Welcome back 👋" subtitle="Log in to pick up your slip where you left it.">
+ <aside class="mb-5 rounded-xl bg-raised p-4 text-sm"><strong>Have tester invitation credentials?</strong><p class="mt-1 text-haze">Activate them with your own verified personal account. Use your personal email and password in this sign-in form.</p><a class="btn-ghost mt-3 inline-flex" href="/tester">Activate tester invitation →</a></aside>
 	<form onsubmit={submit} class="grid gap-4" novalidate>
 		<label class="grid gap-1.5" for="login-email">
 			<span class="text-sm font-semibold text-chalk">Email</span>

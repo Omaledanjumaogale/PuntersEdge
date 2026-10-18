@@ -90,7 +90,7 @@
 			{#each items as i (i.id)}
 				<div class="ticket flex items-center gap-3 px-4 py-3" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">
-						<p class="break-words text-xs text-haze">{i.matchTitle}</p><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(i).join(' · ')}</p>
+						<p class="fixture-name break-words text-xs">{i.matchTitle}</p><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(i).join(' · ')}</p>
 						{#if app.gameById(i.fixtureId)}<p class="mt-1 text-xs text-haze">{new Date(app.gameById(i.fixtureId)!.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}
 						<p class="truncate font-semibold text-chalk">{i.selection}</p>
 						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}{#if (i.pushProb??0)>0}, refund {pct(i.pushProb??0,1)}{/if}</p>

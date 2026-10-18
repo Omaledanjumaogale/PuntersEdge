@@ -12,7 +12,7 @@
 <div class="ticket flex min-w-0 items-stretch">
 	<div class="min-w-0 flex-1 px-4 py-3">
 		{#if showMatch}
-			<a href="/match?id={pick.fixtureId}" class="block truncate text-xs font-medium text-haze hover:text-chalk">{pick.matchTitle}</a>
+			<a href="/match?id={pick.fixtureId}" class="fixture-name block truncate text-xs font-medium hover:underline">{pick.matchTitle}</a>
 		{/if}
 		<div class="flex items-center gap-2">
 			<span class="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-bold {gradeTone[pick.grade]}" title={gradeMeaning[pick.grade]}><span aria-hidden="true">{gradeEmoji[pick.grade]}</span> {pick.grade}</span>

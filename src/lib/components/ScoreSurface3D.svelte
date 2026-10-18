@@ -290,7 +290,7 @@
 	{/if}
 
 	<div class="pointer-events-none absolute left-3 top-3 rounded-full bg-deep/80 px-2.5 py-1 text-xs font-medium text-haze backdrop-blur">
-		Rows: <span class="text-chalk">{homeTeam}</span> goals. Columns: <span class="text-chalk">{awayTeam}</span> goals.
+		Rows: <span class="fixture-name">{homeTeam}</span> goals. Columns: <span class="fixture-name">{awayTeam}</span> goals.
 	</div>
 	{#if hovered}
 		<div class="pointer-events-none absolute right-3 top-10 rounded-full bg-deep/90 px-3 py-1 text-sm text-chalk ring-1 ring-line backdrop-blur sm:top-3">
