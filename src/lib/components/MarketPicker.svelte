@@ -68,7 +68,7 @@
 		</div>
 
 		<div class="flex-1 overflow-y-auto px-5 pb-4">
-			<MarketList groups={p.markets.filter((g) => g.selections.length > 0)} {valueOnly} />
+			<MarketList home={p.homeTeam} away={p.awayTeam} groups={p.markets.filter((g) => g.selections.length > 0)} {valueOnly} />
 			<p class="mt-4 text-xs text-haze">
 				Green marks a model projection lean or estimated value, as labelled on each choice. Projection grades reflect model likelihood, not a verified win rate. Validated value also requires fresh quoted prices and approved evidence. Fair prices are estimates.
 				Confirm the price at the bookmaker before you bet.

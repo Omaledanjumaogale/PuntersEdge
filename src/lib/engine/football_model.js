@@ -214,6 +214,7 @@ export function headlineProbabilities(lambda, mu, rho = -0.05) {
   return { home: home / mass, away: away / mass, over2_5: over / mass };
 }
 
+const coarseProbabilityGrids = new Map();
 /**
  * Fit λ / μ so the model reproduces de-vigged market probabilities
  * (home win and over 2.5). Coarse grid then local refinement — robust,
@@ -224,19 +225,15 @@ export function headlineProbabilities(lambda, mu, rho = -0.05) {
  */
 export function fitGoalParametersFromProbabilities(target, rho = -0.05) {
   /** @param {number} l @param {number} m */
-  const loss = (l, m) => {
-    const p = headlineProbabilities(l, m, rho);
+    const loss = (l, m, p = headlineProbabilities(l, m, rho)) => {
     const totals = target.over2_5 === undefined ? 0.01 * ((l + m - 2.6) / 2.6) ** 2 : (p.over2_5 - target.over2_5) ** 2;
     return (p.home - target.home) ** 2 + (p.away - target.away) ** 2 + totals;
   };
 
   let best = { l: 1.4, m: 1.1, e: Infinity };
-  for (let l = 0.3; l <= 3.6; l += 0.15) {
-    for (let m = 0.3; m <= 3.0; m += 0.15) {
-      const e = loss(l, m);
-      if (e < best.e) best = { l, m, e };
-    }
-  }
+    let grid=coarseProbabilityGrids.get(rho);
+    if(!grid){grid=[];for(let l=.3;l<=3.6;l+=.15)for(let m=.3;m<=3.0;m+=.15)grid.push({l,m,p:headlineProbabilities(l,m,rho)});if(coarseProbabilityGrids.size>=32)coarseProbabilityGrids.clear();coarseProbabilityGrids.set(rho,grid);}
+    for(const {l,m,p} of grid){const e=loss(l,m,p);if(e<best.e)best={l,m,e};}
   let step = 0.075;
   while (step > 0.002) {
     let improved = false;

@@ -2,7 +2,8 @@
  import {app} from '#lib/state.svelte.ts';
  import type {MarketGroup} from '#lib/engine/market_book.js';
  import {odds,pct,signed} from '#lib/format.ts';
- let {groups,valueOnly=false}:{groups:MarketGroup[];valueOnly?:boolean}=$props();
+ import SelectionIdentity from './SelectionIdentity.svelte';
+ let {groups,valueOnly=false,home='',away=''}:{groups:MarketGroup[];valueOnly?:boolean;home?:string;away?:string}=$props();
  let feedback=$state('');
  const shown=$derived(groups.map(g=>({...g,selections:[...(valueOnly?g.selections.filter(s=>(s as any).opportunity?.green):g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id))})).filter(g=>g.selections.length));
 </script>
@@ -14,7 +15,7 @@
  {@const inSlip=app.inSlip(s.id)}{@const selectable=app.gameById(s.fixtureId)?.status.state==='scheduled'&&Date.parse(app.gameById(s.fixtureId)?.kickoff??'')>app.now}{@const opportunity=(s as any).opportunity}
  <li class:selected={inSlip}>
  <div class="market-choice">
- <span class="choice-name">{#if opportunity?.green}<span class="choice-light" aria-hidden="true"></span>{/if}{s.selection}</span>
+ <span class="choice-name">{#if opportunity?.green}<span class="choice-light" aria-hidden="true"></span>{/if}<SelectionIdentity selection={s} {home} {away}/></span>
  <span class="choice-prob">{pct(s.modelProb,1)}<small>Model</small></span>
  <span class="choice-meta">Projection {(s as any).projectionGrade??'—'} · {s.pricing==='quoted'?s.bookmaker:'Fair estimate'}<span class="choice-price">{odds(s.pricing==='quoted'?s.bestOdds:s.fairOdds)}</span></span>
  <button class="choice-add" disabled={!selectable&&!inSlip} aria-pressed={inSlip} aria-label={inSlip?`Remove ${s.selection} from betslip`:selectable?`Add ${s.selection} to betslip`:`Cannot add ${s.selection}: pre-match selection closed`} title={inSlip?'Remove from betslip':selectable?'Add to betslip':'Pre-match selection closed'} onclick={()=>{app.toggle(s);feedback=app.inSlip(s.id)?`${s.selection} added to betslip.`:`${s.selection} removed from betslip.`;}}><span aria-hidden="true">{inSlip?'✓':'+'}</span></button>

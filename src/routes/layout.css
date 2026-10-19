@@ -21,6 +21,8 @@
 	--color-pop: #b39dff;
 	--color-glow: #232c74;
  --color-fixture: #fde047;
+ --color-side-home: #86efac;
+ --color-side-away: #93c5fd;
 
 	--font-display: 'Instrument Sans Variable', system-ui, sans-serif;
 	--font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -46,11 +48,15 @@
 	--color-pop: #6233d6;
 	--color-glow: #dcdfff;
  --color-fixture: #854d0e;
+ --color-side-home: #166534;
+ --color-side-away: #1d4ed8;
 	color-scheme: light;
 }
 
 /* Yellow fixture identity and projected scores; deeper gold stays readable in daylight. */
 .fixture-name, .projection-score { color: var(--color-fixture); }
+.side-home { color: var(--color-side-home); }
+.side-away { color: var(--color-side-away); }
 
 /*
  * Page root. Deliberately unlayered and slightly more specific than a bare

@@ -10,6 +10,7 @@ export function machineCandidates(predictions, options, now = Date.now()) {
   if(p.probabilities && ((p.probabilities.homeWin??0)+(p.probabilities.awayWin??0)+(p.probabilities.draw??0)>1.03))continue;
   if(options.direction==='home' && p.probabilities && p.probabilities.homeWin <= Math.max(p.probabilities.awayWin,p.probabilities.draw??0))continue;
   if(options.direction==='away' && p.probabilities && p.probabilities.awayWin <= Math.max(p.probabilities.homeWin,p.probabilities.draw??0))continue;
+  const rankedAlternatives=p.markets.flatMap((/** @type {any} */g)=>g.selections).filter((/** @type {any} */s)=>s.pricing==='quoted'&&Number.isFinite(s.modelProb)&&Number.isFinite(s.bestOdds)).sort((/** @type {any} */a,/** @type {any} */b)=>b.modelProb-a.modelProb).slice(0,4).map((/** @type {any} */s)=>({id:s.id,selection:s.selection,modelProb:s.modelProb,odds:s.bestOdds,market:s.market}));
   for(const group of p.markets) for(const pick of group.selections) {
    const observedAt=p.quoteObservedAt?.[pick.bookmaker];
    if(observedAt && (observedAt>now+60000 || now-observedAt>86400000))continue;
@@ -20,7 +21,7 @@ export function machineCandidates(predictions, options, now = Date.now()) {
    const key=pick.id.slice(p.fixtureId.length+1);
    const direction= /^(?:o\d|over)/.test(key)?'over':/^(?:u\d|under)/.test(key)?'under':/^(?:home|h$|sph|th)/.test(key)?'home':/^(?:away|a$|spa|ta)/.test(key)?'away':key==='draw'?'draw':'other';
    if(options.direction!=='all'&&direction!==options.direction)continue;
-   const alternatives=p.markets.flatMap((/** @type {any} */ g)=>g.selections).filter((/** @type {any} */ s)=>s.id!==pick.id&&s.pricing==='quoted'&&Number.isFinite(s.modelProb)&&Number.isFinite(s.bestOdds)).sort((/** @type {any} */ a,/** @type {any} */ b)=>b.modelProb-a.modelProb).slice(0,3).map((/** @type {any} */ s)=>({id:s.id,selection:s.selection,modelProb:s.modelProb,odds:s.bestOdds,market:s.market}));
+   const alternatives=rankedAlternatives.filter((/** @type {any} */s)=>s.id!==pick.id).slice(0,3);
    const marketProbability=Number.isFinite(pick.marketProb)?pick.marketProb:null;
    const divergence=marketProbability===null?null:100*Math.abs(pick.modelProb-marketProbability);
    const cohort=options.sportStats?.[p.sport];
@@ -30,30 +31,35 @@ export function machineCandidates(predictions, options, now = Date.now()) {
  }
  return rows.sort((a,b)=>b.successProbability-a.successProbability||b.edgePercent-a.edgePercent||a.id.localeCompare(b.id));
 }
-/** @param {Pick[]} candidates @param {{minTotal:number;maxTotal:number}} options */
+/** Fixture combinations, rather than a different market on the same matches. @param {Pick[]} picks */
+export const ticketFixtureKey=picks=>JSON.stringify(picks.map(p=>p.fixtureId).sort());
+/** @param {Pick[]} candidates @param {{minTotal:number;maxTotal:number;excludeFixtures?:string[]}} options */
 export function buildMachineTicket(candidates, options) {
  if(!Number.isFinite(options.minTotal)||!Number.isFinite(options.maxTotal)||options.minTotal<=1||options.maxTotal<options.minTotal)throw new Error('Choose a valid combined odds range greater than 1.');
  // Keep market alternatives across fixtures rather than allowing one match to monopolize the search.
  const counts=new Map();const pool=candidates.filter(p=>p.pricing==='quoted'&&Number.isFinite(p.bestOdds)&&p.bestOdds>1).filter(p=>{const count=counts.get(p.fixtureId)??0;counts.set(p.fixtureId,count+1);return count<8;}).slice(0,200);
+ const excluded=new Set(options.excludeFixtures??[]);let evaluated=0;const maxEvaluations=300000;
  let beam=[{picks:/** @type {Pick[]} */([]),odds:1,probability:1,last:-1}];
  const maximum=Math.min(30,new Set(pool.map(p=>p.fixtureId)).size);
  let best=/** @type {typeof beam[number]|undefined} */(undefined);
  for(let depth=0;depth<maximum;depth++) {
   const next=[];
   for(const state of beam) for(let i=state.last+1;i<pool.length;i++) {
+   if(++evaluated>maxEvaluations)break;
    const pick=pool[i];
    if(state.picks.some(p=>p.fixtureId===pick.fixtureId))continue;
    const odds=state.odds*pick.bestOdds;
    if(!Number.isFinite(odds)||odds>options.maxTotal)continue;
    const probability=state.probability*pick.modelProb*(1-(pick.pushProb??0));
    const candidate={picks:[...state.picks,pick],odds,probability,last:i};
-   if(odds>=options.minTotal){if(!best||probability>best.probability||(probability===best.probability&&candidate.picks.length<best.picks.length))best=candidate;}
+   const valid=odds>=options.minTotal&&!excluded.has(ticketFixtureKey(candidate.picks));
+   if(valid){if(!best||probability>best.probability||(probability===best.probability&&candidate.picks.length<best.picks.length))best=candidate;}
    else if(!best||probability>best.probability)next.push(candidate);
   }
   // Extending a valid ticket only reduces its all-win probability; extend unfinished paths only.
   next.sort((a,b)=>b.probability-a.probability);
   const kept=new Map();beam=next.filter(state=>{if(best&&state.probability<=best.probability)return false;const band=Math.floor(Math.log(state.odds)*15);const n=kept.get(band)??0;kept.set(band,n+1);return n<12;}).slice(0,400);
-  if(!beam.length)break;
+  if(!beam.length||evaluated>maxEvaluations)break;
  }
- return best?{picks:best.picks,combinedOdds:best.odds,combinedProbability:best.probability,considered:pool.length}:null;
+ return best?{picks:best.picks,combinedOdds:best.odds,combinedProbability:best.probability,considered:pool.length,fixtureKey:ticketFixtureKey(best.picks),searchLimited:evaluated>maxEvaluations}:null;
 }

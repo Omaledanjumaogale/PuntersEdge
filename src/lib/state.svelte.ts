@@ -84,6 +84,8 @@ function save(key: string, value: unknown) {
 }
 
 class AppState {
+ #predictionCache = new WeakMap<object,{key:string;value:Prediction|null}>();
+ #publishedIds = $derived(new Set((feed.data?.projections??[]).map(p=>p.fixtureId)));
 	tennisFixtures = $state<TennisFixture[]>([]);
 	settings = $state<Settings>(load(SETTINGS_KEY, DEFAULT_SETTINGS));
 	slip = $state<SlipItem[]>(loadArray<SlipItem>(SLIP_KEY));
@@ -101,15 +103,16 @@ class AppState {
 
 	/** Engine inputs per sport: the live feed when present, an empty board otherwise. */
 	#inputs(sport: SportKey): any[] {
-		const ids=new Set((feed.data?.projections??[]).map(p=>p.fixtureId));return feed.data?(feed.data.inputs?.[sport]??[]).filter(i=>ids.has(i.fixtureId)):[];
+		return feed.data?(feed.data.inputs?.[sport]??[]).filter(i=>this.#publishedIds.has(i.fixtureId)):[];
 	}
 
 	#build(sport: SportKey, input: any): Prediction | null {
 		const opts = { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
+  const key=`${sport}:${opts.modelWeight}:${opts.kellyFraction}:${opts.now}`;
+  const cached=this.#predictionCache.get(input);if(cached?.key===key)return cached.value;
 		try {
-      if (sport === 'football') return withModelOnlyMarkets(buildFootballPrediction(input, opts),input.quoteObservedAt,input,this.now);
-      if (sport === 'basketball' || sport === 'nba') return withModelOnlyMarkets(buildBasketballPrediction(input, { ...opts, sport }),input.quoteObservedAt,input,this.now);
-      return withModelOnlyMarkets(buildScoreSportPrediction(input, sport, { ...opts, sport }),input.quoteObservedAt,input,this.now);
+      const value=withModelOnlyMarkets(sport==='football'?buildFootballPrediction(input,opts):sport==='basketball'||sport==='nba'?buildBasketballPrediction(input,{...opts,sport}):buildScoreSportPrediction(input,sport,{...opts,sport}),input.quoteObservedAt,input,this.now);
+      this.#predictionCache.set(input,{key,value});return value;
 		} catch (err) {
 			// One malformed game must never take the board down.
 			console.warn(`Skipped ${input?.fixtureId}:`, err);
@@ -150,7 +153,7 @@ class AppState {
 	/** Schedule and results: every game the feed knows about (empty until the provider feed arrives). */
 	games = $derived<FeedGame[]>(
 		feed.data
-			? feed.data.games.filter(g=>(feed.data?.projections??[]).some(p=>p.fixtureId===g.id))
+			? feed.data.games.filter(g=>this.#publishedIds.has(g.id))
 			: this.all.map((p) => ({
 					id: p.fixtureId,
 					sport: p.sport as SportKey,
@@ -163,6 +166,7 @@ class AppState {
 					priced: true
 				}))
 	);
+ #gameIndex = $derived(new Map(this.games.map(g=>[g.id,g])));
 
 	slipEconomics = $derived.by(()=>{const priced=this.slip.filter(hasQuotedOdds);const summary=slipPricing(this.slip);return {...evaluateAccumulator(priced.map(s=>({odds:s.odds,modelProb:s.modelProb*(1-(s.pushProb??0))}))),...summary,combinedOdds:summary.totalOdds,evPercent:summary.complete?100*(priced.reduce((n,s)=>n*(s.odds*s.modelProb*(1-(s.pushProb??0))+(s.pushProb??0)),1)-1):0};});
 
@@ -193,11 +197,13 @@ class AppState {
         } catch {return undefined;}
 	}
 	byId(id: string): Prediction | undefined {
-		return this.all.find((p) => p.fixtureId === id);
+  if(!this.#publishedIds.has(id))return undefined;
+  for(const sport of SPORT_ORDER){const input=feed.data?.inputs?.[sport]?.find(i=>i.fixtureId===id);if(input)return this.#build(sport,input)??undefined;}
+  return undefined;
 	}
 
 	gameById(id: string) {
-		const game=this.games.find((g) => g.id === id);if(game)return game;
+		const game=this.#gameIndex.get(id);if(game)return game;
 		const tennis=this.tennisFixtures.find(f=>f.id===id);
 		return tennis?{id:tennis.id,sport:'tennis' as const,league:tennis.tour,tournament:tennis.league,country:undefined,home:tennis.playerA,away:tennis.playerB,kickoff:new Date(tennis.kickoff).toISOString(),status:{state:'scheduled' as const,home:undefined,away:undefined},books:0,priced:false,availabilityReason:'Experimental tennis analysis is available in the tennis workspace.'}:undefined;
 	}

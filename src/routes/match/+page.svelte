@@ -50,7 +50,7 @@
 			<StatusPill status={p.status} />
 		</p>
 		<h1 class="fixture-name mt-1 text-[clamp(2rem,6vw,3.5rem)] font-bold leading-[0.95]">
-			{p.homeTeam} <span class="text-haze">vs</span>
+			<span class="side-home">{p.homeTeam}</span> <span class="text-haze">vs</span>
 			{p.awayTeam}
 		</h1>
 		{#if p.status.state === 'live'}
@@ -150,7 +150,7 @@
 			<p class="mt-1 text-sm text-haze">
 				Every market we price for this match. Model is our blended estimate ({Math.round(p.modelWeight * 100)}% model, rest market), fair is the price it implies, and the amber price is the best across {p.bookmakers.join(', ')}.
 			</p>
-			<div class="mt-4"><MarketList groups={p.markets.filter((g) => g.selections.length > 0)} /></div>
+			<p class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs"><span class="side-home">Home · {p.homeTeam}</span><span class="side-away">Away · {p.awayTeam}</span></p><div class="mt-4"><MarketList home={p.homeTeam} away={p.awayTeam} groups={p.markets.filter((g) => g.selections.length > 0)} /></div>
 		{:else}
 			<p class="mt-1 text-haze">Markets appear here as soon as a bookmaker posts prices.</p>
 		{/if}
