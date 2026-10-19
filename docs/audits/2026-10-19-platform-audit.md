@@ -109,5 +109,6 @@ Severity denotes the consequence before repair, not a claim that an exploit occu
 - Backend release `b47bdd5` passed application tests (153), backend tests (60), backend type checking and production deploy: [release job](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39298156078).
 - Both live unpaid initialization probes succeeded: Flutterwave temporary bank transfer total NGN 10,200 (NGN 10,000 membership plus NGN 200 provider fee); Korapay hosted checkout total NGN 10,000. No funds moved and no membership was granted by these probes.
 - Fee-aware localhost browser QA passed at 390px and 1440px, including the visible fee breakdown, independent member changes, pending-to-paid instruction removal and no horizontal overflow.
-- Matching frontend release: [Pages build/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39298393152). Final job status must be checked before declaring this frontend release deployed.
+- Matching frontend release: [Pages build/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39298393152). Completed successfully. Post-deploy page-shell checks and both API response checks passed.
+- Production Flutterwave and Korapay webhook endpoints both reject unsigned requests with HTTP 401. No forged callback granted access.
 - The payment records created by diagnostics are marked `diagnostic`; they are unpaid integration checks, not customer revenue. Provider dashboard webhook configuration/delivery and a real paid settlement remain unverified.
