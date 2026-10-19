@@ -63,3 +63,17 @@ export function buildMachineTicket(candidates, options) {
  }
  return best?{picks:best.picks,combinedOdds:best.odds,combinedProbability:best.probability,considered:pool.length,fixtureKey:ticketFixtureKey(best.picks),searchLimited:evaluated>maxEvaluations}:null;
 }
+
+/** A probability-ranked research shortlist, never a claim that target odds were reached.
+ * The best selection per fixture prevents conflicting legs. Unquoted prices contribute no odds.
+ * @param {Pick[]} candidates @param {number} [limit]
+ */
+export function buildModelShortlist(candidates, limit = 10) {
+ const seen = new Set();
+ const picks = [...candidates].filter(p=>Number.isFinite(p.modelProb)&&p.modelProb>0&&p.modelProb<=1&&(p.pushProb??0)>=0&&(p.pushProb??0)<1)
+  .sort((a,b)=>b.modelProb*(1-(b.pushProb??0))-a.modelProb*(1-(a.pushProb??0))||a.id.localeCompare(b.id))
+  .filter(p=>{if(seen.has(p.fixtureId))return false;seen.add(p.fixtureId);return true;}).slice(0,Math.max(1,Math.min(30,limit)));
+ if(!picks.length)return null;
+ const quoted=picks.filter(p=>p.pricing==='quoted'&&Number.isFinite(p.bestOdds)&&p.bestOdds>1);
+ return {picks,combinedOdds:quoted.reduce((n,p)=>n*p.bestOdds,1),combinedProbability:picks.reduce((n,p)=>n*p.modelProb*(1-(p.pushProb??0)),1),considered:candidates.length,fixtureKey:ticketFixtureKey(picks),searchLimited:false};
+}

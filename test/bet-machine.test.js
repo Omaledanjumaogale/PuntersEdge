@@ -18,3 +18,17 @@ test('filters enforce minimum probability, pick odds, quote freshness and attach
 
 test('single odds target uses actual combined quotes within five percent and prefers higher all-win probability',()=>{const rows=[pick('a:h','a',.92,2),pick('b:h','b',.9,2.5),pick('c:h','c',.7,5.1)];const target=5;const r=buildMachineTicket(rows,{minTotal:target,maxTotal:target*1.05});assert.equal(r.combinedOdds,5);assert.equal(r.picks.length,2);assert.ok(Math.abs(r.combinedProbability-.828)<1e-9);assert.equal(buildMachineTicket(rows,{minTotal:9,maxTotal:9.45}),null);});
 test('repeated generation ranks unseen fixture combinations without randomness or relaxed odds',()=>{const rows=[pick('a:h','a',.9,2),pick('a:o','a',.89,2),{...pick('b:h','b',.85,2),sport:'hockey'},pick('c:h','c',.8,2)];const keys=[];let last=1;for(let i=0;i<3;i++){const ticket=buildMachineTicket(rows,{minTotal:4,maxTotal:4.2,excludeFixtures:keys});assert.ok(ticket);assert.ok(ticket.combinedProbability<=last);assert.equal(ticket.combinedOdds,4);assert.equal(new Set(ticket.picks.map(p=>p.fixtureId)).size,2);assert.ok(!keys.includes(ticketFixtureKey(ticket.picks)));keys.push(ticket.fixtureKey);last=ticket.combinedProbability;}assert.equal(buildMachineTicket(rows,{minTotal:4,maxTotal:4.2,excludeFixtures:keys}),null);assert.equal(keys.length,new Set(keys).size);});
+import {buildModelShortlist} from '../src/lib/bet-machine.js';
+test('minimum model thresholds still produce an honest unpriced preview without fabricated odds',()=>{
+ const fixtures=[.95,.88,.82,.72,.6].map((p,i)=>({fixtureId:`f${i}`,sport:'football',kickoffTime:new Date(now+3600000).toISOString(),status:{state:'scheduled'},markets:[{key:'totals',selections:[{...pick(`f${i}:u25`,`f${i}`,p,0),pricing:'derived'}]}]}));
+ for(const threshold of [.55,.7,.8,.9]){
+  const rows=machineCandidates(fixtures,{from:now,to:now+7200000,publishedIds:new Set(fixtures.map(f=>f.fixtureId)),sports:['football'],markets:[],direction:'all',minOdds:1.01,maxOdds:5.25,minProbability:threshold,includeUnpriced:true},now);
+  assert.equal(buildMachineTicket(rows,{minTotal:5,maxTotal:5.25}),null);
+  const preview=buildModelShortlist(rows);assert.ok(preview);assert.equal(preview.combinedOdds,1);assert.ok(preview.picks.every(p=>p.modelProb>=threshold));
+  assert.equal(preview.picks.length,new Set(preview.picks.map(p=>p.fixtureId)).size);
+ }
+});
+test('research shortlist ranks success probability, deduplicates fixtures and multiplies only quoted prices',()=>{
+ const rows=[{...pick('a:h','a',.99,0),pricing:'derived',pushProb:.5},pick('a:o','a',.9,1.2),{...pick('b:h','b',.95,0),pricing:'derived'},pick('c:h','c',.8,2)];
+ const r=buildModelShortlist(rows);assert.deepEqual(r.picks.map(p=>p.id),['b:h','a:o','c:h']);assert.equal(r.combinedOdds,2.4);assert.ok(Math.abs(r.combinedProbability-.95*.9*.8)<1e-10);assert.equal(buildModelShortlist([]),null);
+});

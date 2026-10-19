@@ -4,7 +4,7 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="description" content="Live fixtures, fair prices, value bets and stake sizes for football, NBA, basketball, ice hockey and baseball — sport-specific models checked against SportyBet, 1xBet, 22Bet and more." />
-		<meta name="theme-color" content="#0b0f26" />
+		<meta name="theme-color" content="#050505" />
 		<meta name="color-scheme" content="dark light" />
 		<script>
 			// Apply the saved theme before first paint (no flash of the wrong theme).
@@ -13,7 +13,7 @@
 				try { t = (JSON.parse(localStorage.getItem('qe:settings:v2') || '{}').theme) || 'system'; } catch (e) {}
 				var dark = t === 'dark' || (t === 'system' && !matchMedia('(prefers-color-scheme: light)').matches);
 				document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-				document.querySelector('meta[name=theme-color]').content = dark ? '#0b0f26' : '#f4f5ff';
+				document.querySelector('meta[name=theme-color]').content = dark ? '#050505' : '#f4f5ff';
 			})();
 		</script>
 		<meta name="mobile-web-app-capable" content="yes" />

@@ -19,7 +19,7 @@ class ThemeState {
 			$effect(() => {
 				const t = this.resolved;
 				document.documentElement.dataset.theme = t;
-				document.querySelector<HTMLMetaElement>('meta[name=theme-color]')?.setAttribute('content', t === 'dark' ? '#0b0f26' : '#f4f5ff');
+				document.querySelector<HTMLMetaElement>('meta[name=theme-color]')?.setAttribute('content', t === 'dark' ? '#050505' : '#f4f5ff');
 			});
 		});
 	}

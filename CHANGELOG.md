@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-19 — Ticket preview and black theme
+
+- Populate a clearly labelled probability-ranked shortlist when eligible forecasts exist but quoted combinations cannot meet target odds. Keep missing prices unpriced and exclude them from combined odds.
+- Move rule naming and saving beside the generator; link directly to saved rules and reuse against current fixtures.
+- Replace navy dark-theme surfaces with black and charcoal; preserve the daylight palette and add lightweight glass highlights, hover feedback and reduced-motion support.
+- Cover multiple model thresholds, unpriced shortlist deduplication, save/reuse and mobile/desktop theme behavior.
+
 ## [1.0.0.2] - 2026-10-16
 
 - Move scheduled fixture processing, hot state, feed delivery and new forecast archives to private Cloudflare R2 storage.
