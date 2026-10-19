@@ -9,6 +9,7 @@ try {
   const page=await browser.newPage({viewport:{width,height:900},colorScheme:'dark',reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForFunction(()=>document.documentElement.dataset.motion,null,{timeout:60000});
   const light=page.getByRole('button',{name:'Switch to light mode',exact:true});await light.waitFor({timeout:60000});
   const dark=await page.evaluate(()=>({ink:getComputedStyle(document.documentElement).getPropertyValue('--color-ink').trim(),meta:document.querySelector('meta[name="theme-color"]')?.content,overflow:document.documentElement.scrollWidth>innerWidth+1}));
   assert.equal(dark.ink,'#050505');assert.equal(dark.meta,'#050505');assert.equal(dark.overflow,false);
