@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import {bankTransferValidator} from './lib/paymentValidators';
 import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
@@ -7,6 +8,7 @@ export default defineSchema({
   ...authTables,
   users: defineTable({
     authSubject: v.optional(v.string()),
+    registeredAt:v.optional(v.number()),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     image: v.optional(v.string()),
@@ -204,14 +206,16 @@ export default defineSchema({
   }).index("by_key", ["key"]),
 
   push_subscriptions: defineTable({userId:v.id("users"),endpoint:v.string(),p256dh:v.string(),auth:v.string(),createdAt:v.number(),lastAlerts:v.optional(v.any()),lastTestAt:v.optional(v.number()),lastDelivery:v.optional(v.object({at:v.number(),outcome:v.union(v.literal("accepted"),v.literal("failed")),statusCode:v.optional(v.number())}))}).index("by_endpoint",["endpoint"]).index("by_user",["userId"]),
-  admin_audit: defineTable({ actorId: v.id("users"), targetId: v.id("users"), operation: v.string(), createdAt: v.number() }),
+  admin_audit: defineTable({ actorId: v.id("users"), targetId: v.id("users"), operation: v.string(), createdAt: v.number() }).index('by_target',['targetId']),
+  account_events: defineTable({userId:v.id('users'),event:v.string(),reference:v.optional(v.string()),provider:v.optional(v.string()),createdAt:v.number()}).index('by_user',['userId']),
   payments: defineTable({
     userId: v.id("users"), provider: v.union(v.literal("flutterwave"), v.literal("korapay")),
     reference: v.string(), amount: v.number(), currency: v.string(), status: v.string(),
     createdAt: v.number(), paidAt: v.optional(v.number()), providerTransactionId: v.optional(v.string()),
     apiVersion: v.optional(v.union(v.literal('v3'), v.literal('v4'))),
     lastCheckAt:v.optional(v.number()), providerCustomerId: v.optional(v.string()), virtualAccountId: v.optional(v.string()),
-  }).index("by_reference", ["reference"]).index("by_user", ["userId"]),
+    diagnostic:v.optional(v.boolean()),bankTransfer:v.optional(bankTransferValidator),checkoutUrl:v.optional(v.string()), checkoutExpiresAt:v.optional(v.number()), failureCode:v.optional(v.string()), customerEmail:v.optional(v.string()),
+  }).index("by_reference", ["reference"]).index("by_user", ["userId"]).index('by_provider_transaction',['provider','providerTransactionId']),
   subscriptions: defineTable({ userId: v.id("users"), expiresAt: v.number(), updatedAt: v.number() }).index("by_user", ["userId"]),
   ai_usage: defineTable({ userId: v.string(), day: v.string(), count: v.number(), cacheKey: v.optional(v.string()),
     result: v.optional(v.object({text: v.string(), provider: v.string(), generatedAt: v.number()})),

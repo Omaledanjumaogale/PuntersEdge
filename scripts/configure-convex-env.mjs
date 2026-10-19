@@ -1,7 +1,7 @@
 /** Copy injected deployment settings without logging credential values. */
 import { spawnSync } from 'node:child_process';
 const required = ['BETTER_AUTH_SECRET', 'SITE_URL', 'RESEND_FROM_EMAIL', 'PUNTERSEDGE_RESEND_API_KEY'];
-const optional = ['API_SPORTS_KEY', 'API_FOOTBALL_KEY', 'THE_ODDS_API_KEY', 'ODDSPAPI_KEY', 'AGNES_AI_KEY', 'AGNES_AI_MODEL', 'AIHUBMIX_API_KEY', 'AIHUBMIX_BASE_URL', 'FLW_CLIENT_ID', 'FLW_API_VERSION', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH',  'CONVEX_HTTP_ACTIONS_URL', 'SUPER_ADMIN_USER_ID', 'FLW_ENABLED', 'PUBLIC_VAPID_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT'];
+const optional = ['KORAPAY_ENABLED','KORAPAY_SECRET_KEY','API_SPORTS_KEY', 'API_FOOTBALL_KEY', 'THE_ODDS_API_KEY', 'ODDSPAPI_KEY', 'AGNES_AI_KEY', 'AGNES_AI_MODEL', 'AIHUBMIX_API_KEY', 'AIHUBMIX_BASE_URL', 'FLW_CLIENT_ID', 'FLW_API_VERSION', 'FLW_SECRET_KEY', 'FLW_SECRET_HASH',  'CONVEX_HTTP_ACTIONS_URL', 'SUPER_ADMIN_USER_ID', 'FLW_ENABLED', 'PUBLIC_VAPID_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT'];
 for (const name of ['CONVEX_DEPLOY_KEY', ...required]) {
  if (!process.env[name]) throw new Error(`Missing ${name}; add it securely in deployment settings.`);
 }

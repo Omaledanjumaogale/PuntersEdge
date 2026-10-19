@@ -13,12 +13,21 @@ export const explain = action({
   handler: async (ctx, args): Promise<{ text: string; provider: string; generatedAt: number }> => {
     const { userId } = await ctx.runQuery(makeFunctionReference<"query">("access:subscriptionAccess"), {});
     const meta = await ctx.runQuery(makeFunctionReference<"query">("feed:storageMeta"), {});
-    if (!meta?.url) throw new Error("Live fixture data is not available yet.");
+    if (!meta?.url&&!meta?.blobKey) throw new Error("Live fixture data is not available yet.");
     const requestedProvider = args.provider ?? "agnes";
     const cacheKey = `${process.env.ALLOW_GENERATIVE_EXPLANATIONS==='true'?'generated':'facts-v4'}:${args.provider ?? "agnes"}:${args.sport}:${args.fixtureId}:${meta.version}`;
     const reserved = await ctx.runMutation(makeFunctionReference<"mutation">("ai_usage:reserve"), { userId: String(userId), cacheKey, provider: requestedProvider });
     if (reserved.result) return reserved.result;
-    const response = await fetch(meta.url, { signal: AbortSignal.timeout(10_000) });
+    let source=meta.url;
+    const headers:Record<string,string>={};
+    if(meta.blobKey){
+      const origin=process.env.EDGE_DATA_URL,key=process.env.EDGE_DATA_SECRET;
+      if(!origin||!key||!/^feed\/[A-Za-z0-9_./-]{1,220}$/.test(meta.blobKey)||meta.blobKey.includes('..'))throw new Error('Private analysis feed is unavailable.');
+      const base=new URL(origin);
+      if(base.protocol!=='https:'||base.hostname!=='puntersedge.ewinproject.org'||base.username||base.password||base.port)throw new Error('Private analysis origin is not configured.');
+      source=new URL('/api/internal/blob/'+meta.blobKey,base).href;headers.Authorization=`Bearer ${key}`;
+    }
+    const response = await fetch(source!, {headers, signal: AbortSignal.timeout(10_000) });
     if (!response.ok) throw new Error("Live data download failed.");
     const bytes = Buffer.from(await response.arrayBuffer());
     const feed = JSON.parse(meta.encoding === "gzip" ? gunzipSync(bytes, { maxOutputLength: 8 * 1024 * 1024 }).toString("utf8") : bytes.toString("utf8"));

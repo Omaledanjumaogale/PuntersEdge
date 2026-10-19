@@ -18,6 +18,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set('X-PuntersEdge-API','1');
  }
  response.headers.set('X-Content-Type-Options', 'nosniff');
+ response.headers.set('X-Frame-Options','DENY');
+ response.headers.set('Content-Security-Policy',"frame-ancestors 'none'; base-uri 'self'; object-src 'none'");
+ response.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
  if (privateRoute(event.url.pathname)) {
   response.headers.set('X-Robots-Tag', 'noindex, nofollow');

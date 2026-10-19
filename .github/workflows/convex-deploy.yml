@@ -27,6 +27,8 @@ jobs:
       AGNES_AI_MODEL: ${{ vars.AGNES_AI_MODEL }}
       AIHUBMIX_API_KEY: ${{ secrets.AIHUBMIX_API_KEY }}
       AIHUBMIX_BASE_URL: ${{ vars.AIHUBMIX_BASE_URL }}
+      KORAPAY_ENABLED: ${{ vars.KORAPAY_ENABLED || 'false' }}
+      KORAPAY_SECRET_KEY: ${{ secrets.KORAPAY_SECRET_KEY }}
       FLW_ENABLED: ${{ vars.FLW_ENABLED || 'false' }}
       FLW_SECRET_KEY: ${{ secrets.FLW_SECRET_KEY }}
       FLW_CLIENT_ID: ${{ vars.FLW_CLIENT_ID }}

@@ -3,9 +3,10 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authComponent, createAuth } from "./auth";
 
-import { flutterwaveWebhook } from "./payments";
+import { flutterwaveWebhook,korapayWebhook } from "./payments";
 
 const http = httpRouter();
+http.route({path:"/payments/korapay",method:"POST",handler:korapayWebhook});
 http.route({ path: "/payments/flutterwave", method: "POST", handler: flutterwaveWebhook });
 
 http.route({path:"/feed",method:"GET",handler:httpAction(async(ctx)=>{

@@ -6,6 +6,7 @@
  import {pendingActivity,acknowledgeActivity} from '#lib/activity.ts';
  $effect(()=>{const client=auth.client;if(!client)return;const ping=()=>{if(document.visibilityState==='visible'){const events=pendingActivity();void client.mutation(anyApi.testers.presence,{route:window.location.pathname,events}).then(accepted=>{if(accepted)acknowledgeActivity(events);}).catch(()=>{});}};ping();const timer=setInterval(ping,300000);return ()=>clearInterval(timer);});
 	import VipInvitation from '#lib/components/VipInvitation.svelte';
+	import RenewalNotice from '#lib/components/RenewalNotice.svelte';
 	import AccessNotice from '#lib/components/AccessNotice.svelte';
 	import EcosystemBanner from '#lib/components/EcosystemBanner.svelte';
 	import SEO from '#lib/components/SEO.svelte';
@@ -61,6 +62,7 @@
 <main id="main" class:admin-main={page.url.pathname.startsWith('/admin')} class="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 md:pb-12">
 	{#if !['/login','/signup','/reset-password','/auth','/subscribe'].includes(page.url.pathname)}<PageSpotlight/>{/if}
 	{#if ['/bet-machine','/board','/value-bets','/football','/nba','/basketball','/hockey','/baseball','/results'].includes(page.url.pathname)}<AccessNotice />{/if}
+	{#if !['/login','/signup','/subscribe'].includes(page.url.pathname)}<RenewalNotice/>{/if}
 	{#if !premiumPath(page.url.pathname)||entitled}{@render children()}{:else}<p class="surface p-8 text-haze" role="status">Checking VIP membership…</p>{/if}
 </main>
 {#if !page.url.pathname.startsWith('/admin')}<BottomNav />{/if}

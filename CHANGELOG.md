@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-19 — Member access, billing and integration audit
+
+- Give every member independent access controls and preserve trial dates on status-only edits.
+- Add server-verified Korapay checkout alongside Flutterwave, restore transfer instructions, record payment attempts and reconcile callbacks with bounded retries.
+- Show renewal prompts, pending-verification signups and private account/payment histories in user management.
+- Patch authentication dependencies, persist sensitive-action rate limits, protect against framing, and exclude tester/tennis pages from shared offline caching.
+- Repair the explanation service after private R2 migration and add a platform audit with remaining acceptance gaps.
+
 ## 2026-10-19 — Ticket preview and black theme
 
 - Populate a clearly labelled probability-ranked shortlist when eligible forecasts exist but quoted combinations cannot meet target odds. Keep missing prices unpriced and exclude them from combined odds.

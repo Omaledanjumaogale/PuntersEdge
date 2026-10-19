@@ -2,13 +2,19 @@ import { createClient, type GenericCtx } from '@convex-dev/better-auth';
 import type { ComponentApi } from '@convex-dev/better-auth/_generated/component.js';
 import { convex } from '@convex-dev/better-auth/plugins';
 import { betterAuth } from 'better-auth/minimal';
-import { componentsGeneric } from 'convex/server';
+import { componentsGeneric, anyApi } from 'convex/server';
+import {syncAuthAccount,accountEvent} from './lib/accountEvents';
 import { internal } from './_generated/api';
 import type { DataModel, Doc } from './_generated/dataModel';
 import type { QueryCtx, MutationCtx, ActionCtx } from './_generated/server';
 import authConfig from './auth.config';
 
-export const authComponent = createClient<DataModel>(componentsGeneric().betterAuth as unknown as ComponentApi);
+export const authComponent = createClient<DataModel>(componentsGeneric().betterAuth as unknown as ComponentApi,{
+ authFunctions:{onCreate:anyApi.auth.onCreate,onUpdate:anyApi.auth.onUpdate},
+ triggers:{user:{onCreate:async(ctx,doc)=>{await syncAuthAccount(ctx,doc,true);},onUpdate:async(ctx,doc)=>{await syncAuthAccount(ctx,doc);}},
+ session:{onCreate:async(ctx,doc)=>{const user=await ctx.db.query('users').withIndex('by_auth_subject',q=>q.eq('authSubject',doc.userId)).unique();if(user)await accountEvent(ctx,user._id,'signed_in');}}}
+});
+export const {onCreate,onUpdate}=authComponent.triggersApi();
 
 async function sendMail(email: string, subject: string, url: string) {
   const key = process.env.PUNTERSEDGE_RESEND_API_KEY;
@@ -32,6 +38,13 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   trustedOrigins: (process.env.SITE_URL ?? 'http://localhost:5173').split(',').map((url) => url.trim()),
   database: authComponent.adapter(ctx),
   session: {expiresIn:60*60*24*365,updateAge:60*60*24},
+  // Persist protection for sensitive auth operations across server instances.
+  // Ordinary session/token reads do not write a rate-limit counter.
+  rateLimit:{enabled:true,storage:'database',window:60,max:30,customRules:{
+    '/get-session':false,'/convex/token':false,
+    '/sign-in/email':{window:60,max:5},'/sign-up/email':{window:60,max:5},
+    '/request-password-reset':{window:60,max:3},'/send-verification-email':{window:60,max:3}
+  }},
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,

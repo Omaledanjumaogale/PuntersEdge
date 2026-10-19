@@ -3,6 +3,8 @@ import { authComponent, getCurrentUser } from './auth';
 import { mutation, query, internalQuery, internalMutation } from './_generated/server';
 import { componentsGeneric } from 'convex/server';
 import { v } from 'convex/values';
+import {internal} from './_generated/api';
+import {syncAuthAccount} from './lib/accountEvents';
 
 export const syncProfile = mutation({ args: {}, handler: async (ctx) => {
   const account = await authComponent.getAuthUser(ctx);
@@ -40,6 +42,15 @@ export const updateSettings = mutation({args:{settings:v.object({bankroll:v.numb
  const user=await getCurrentUser(ctx);if(!user)throw new Error('Sign in to synchronize settings.');
  if(!Number.isFinite(settings.bankroll)||settings.bankroll<0||settings.bankroll>1e12||![settings.kellyFraction,settings.modelWeight].every(n=>Number.isFinite(n)&&n>=0&&n<=1))throw new Error('Invalid analysis settings.');
  if(JSON.stringify(user.settings)!==JSON.stringify(settings))await ctx.db.patch(user._id,{settings});
+}});
+
+/** One-time bounded migration of existing registrations, including unverified accounts.
+ * No email-only merges, no entitlement grants, no emails or session changes. */
+export const importRegistrations=internalMutation({args:{cursor:v.optional(v.string())},handler:async(ctx,{cursor}):Promise<{imported:number;isDone:boolean}>=>{
+ const page=await ctx.runQuery(componentsGeneric().betterAuth.adapter.findMany,{model:'user',paginationOpts:{numItems:25,cursor:cursor??null}});
+ for(const account of page.page)await syncAuthAccount(ctx,account);
+ if(!page.isDone)await ctx.scheduler.runAfter(0,internal.users.importRegistrations,{cursor:page.continueCursor});
+ return {imported:page.page.length,isDone:page.isDone};
 }});
 
 /** Deploy-key-only bootstrap binds the owner's confirmed signup to a local ID.

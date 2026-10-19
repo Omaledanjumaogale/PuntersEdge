@@ -81,7 +81,7 @@ sw.addEventListener('fetch', (event) => {
 
 	if (url.origin !== sw.location.origin) return;
 	// Auth, billing, administration and API responses must never enter the shared offline cache.
-	if (/^\/(?:api|admin|sports|football|nba|basketball|hockey|baseball|match|results|value-bets|bookmakers|glossary|settings|bet-machine|betslips|account|login|signup|subscribe|auth|reset-password)(?:\/|$)/.test(url.pathname)) return;
+	if (/^\/(?:api|admin|sports|football|nba|basketball|hockey|baseball|match|results|value-bets|bookmakers|glossary|settings|bet-machine|betslips|account|login|signup|subscribe|tester|tennis|auth|reset-password)(?:\/|$)/.test(url.pathname)) return;
 
 	if (PRECACHED.has(url.pathname) && request.mode !== 'navigate') {
 		event.respondWith(caches.match(url.pathname).then((hit) => hit ?? fetch(request)));
