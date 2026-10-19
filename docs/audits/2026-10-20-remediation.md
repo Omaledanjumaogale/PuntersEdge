@@ -42,12 +42,12 @@ Date: 20 October 2026 (Africa/Lagos). Follow-up to [the application and integrat
 - Targeted audit backend suite: 10/10 passed on the warm final run, including actual HTTP MFA enrollment/challenge and used recovery-code rejection. Earlier cold Windows runs timed out at the unchanged 5-second limit; no timeout was relaxed or hidden.
 - Backend TypeScript check passed before final deployment validation.
 - Production HTML/static route checks passed locally. Vite finished generation, but the local Windows build process remained alive after adapter completion and was stopped; finalization and shell checks were then run explicitly. CI must confirm the complete command exits normally.
-- Browser, CI, deployment, production enforcement and refreshed model outcomes: pending release verification below.
+- Browser, CI, deployment, production enforcement and refreshed model outcomes: verified in the release entries below. External gates remain explicitly open.
 
 ## Release acceptance
 
 - Application release `6439bdc`: [backend CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39340370521) and [Pages CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39340550035) both passed. The full build command exited normally in CI. Frontend type check: zero errors/warnings. CI application tests: 154 (including CSP generation); backend tests: 70.
-- Four additional direct HTTP boundary tests passed locally; final CI acceptance is recorded in the next release entry.
+- Four additional direct HTTP boundary tests passed locally and in the final 74-test backend CI suite.
 - Production `ADMIN_MFA_REQUIRED=true` is configured, with the matching production repository variable. Owner enrollment is deliberately personal: visit https://puntersedge.ewinproject.org/account/security, add the authenticator, verify its code, save recovery codes offline, and sign in again. Existing unenrolled owners cannot use privileged backend functions. This is not evidence that the owner has completed enrollment.
 - Five registrations were processed idempotently for search; no access grants changed. Initial bounded retention removed zero rows and reported five stale pending payments (including unpaid diagnostics). Stale count is not a revenue or incident count.
 - Local synthetic authenticated browser QA passed at 390px and 1440px: independent user changes, no reload loop, new payment/privacy/security pages, MFA enrollment gate, initially collapsed details, histories, payment return reconciliation, instruction removal, both gateway controls, renewal notice, and no horizontal overflow. No real customer account was changed.
@@ -66,3 +66,10 @@ Remaining external gates and partial implementations in the disposition table re
 ### Final full-suite release
 
 Release `56e0e8e` passed [backend CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39341339584) and [Pages CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39341347178). Both full suites, both type-check boundaries, static build and deployed route checks passed. An enrollment usability follow-up adds a private manual TOTP setup key alongside the collapsible full URI; this does not enable or enroll an account automatically.
+
+
+### Enrollment usability release
+
+Frontend `5f91956` passed [Pages CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39341524915). Full CI results for the preceding backend acceptance were 154/154 application and 74/74 backend tests, with seven backend test files. Synthetic enrollment UI checks passed at 390px and 1440px, including the exact manual setup key, collapsed full URI, recovery-code presentation and no overflow. Final live page-shell/CSP checks are retained in the local QA output; no real authenticator was enrolled by automation.
+
+The active production backend remains the tested `56e0e8e` release; the enrollment change affects only the frontend. The later documentation/QA-script commit does not alter application runtime code. The owner must still personally complete MFA enrollment and sign in again.
