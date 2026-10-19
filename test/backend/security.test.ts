@@ -129,7 +129,7 @@ describe('backend access and subscription security', () => {
   expect(await signed.action(anyApi.payments.checkStatus,{reference:next})).toEqual({paid:false});
   await expect(signed.action(anyApi.payments.checkStatus,{reference:next})).rejects.toThrow('30 seconds');
  });
- it('Korapay is gated behind configuration and authentication',async()=>{const t=create();expect((await t.fetch('/payments/korapay',{method:'POST',body:JSON.stringify({data:{}})})).status).toBe(503);await expect(t.action(anyApi.payments.checkout,{provider:'korapay'})).rejects.toThrow('Sign in');});
+ it('Korapay is gated behind configuration and authentication',async()=>{vi.stubEnv('KORAPAY_SECRET_KEY','');const t=create();expect((await t.fetch('/payments/korapay',{method:'POST',body:JSON.stringify({data:{}})})).status).toBe(503);await expect(t.action(anyApi.payments.checkout,{provider:'korapay'})).rejects.toThrow('Sign in');});
  it('rejects invalid webhook signatures without granting access', async () => {
   vi.stubEnv('BETTER_AUTH_SECRET',crypto.randomUUID()+crypto.randomUUID());
   vi.stubEnv('SITE_URL','https://puntersedge.example.test');
