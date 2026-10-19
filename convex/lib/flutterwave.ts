@@ -12,7 +12,7 @@ export function flutterwaveCompleted(event: { event?: string; type?: string; dat
   const apiVersion = event.type === 'charge.completed' ? 'v4' : event.event === 'charge.completed' ? 'v3' : null;
   if (!apiVersion || !d || d.status !== (apiVersion === 'v4' ? 'succeeded' : 'successful')) return null;
   const reference = apiVersion === 'v4' ? d.reference : d.tx_ref;
-  if (typeof reference !== 'string' || !reference.startsWith('pe_') || !d.id || !['string', 'number'].includes(typeof d.id)) throw new Error('Invalid payment callback.');
+  if (typeof reference !== 'string' || !/^pe(?:_[a-zA-Z0-9_-]{1,95}|[a-f0-9]{32})$/.test(reference) || !d.id || !['string', 'number'].includes(typeof d.id)) throw new Error('Invalid payment callback.');
   return { apiVersion, reference, transactionId: String(d.id) };
 }
 export function validateV4Charge(data: Record<string, unknown>, expected: { reference: string; providerCustomerId?: string; amount: number; currency: string }, transactionId: string) {

@@ -101,7 +101,8 @@ async function startCheckout(ctx:ActionCtx,userId:Id<'users'>,selectedProvider:'
  if(!ready(selectedProvider))throw new Error('This payment gateway is temporarily unavailable. Please choose another available gateway.');
  if(!account?.email)throw new Error('Your account needs an email address.');
  const origin=new URL(secret('SITE_URL').split(',')[0]);if(origin.protocol!=='https:')throw new Error('Secure checkout is not configured.');
- const reference=`pe_${crypto.randomUUID()}`,apiVersion=selectedProvider==='flutterwave'&&process.env.FLW_API_VERSION==='v4'?'v4':'v3';
+ const apiVersion=selectedProvider==='flutterwave'&&process.env.FLW_API_VERSION==='v4'?'v4':'v3';
+ const reference=apiVersion==='v4'?'pe'+crypto.randomUUID().replaceAll('-',''):`pe_${crypto.randomUUID()}`;
  await ctx.runMutation(refs.payments.create,{userId,provider:selectedProvider,reference,diagnostic,...(selectedProvider==='flutterwave'?{apiVersion}:{})});
  try {
   if(selectedProvider==='korapay'){

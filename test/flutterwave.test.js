@@ -8,6 +8,7 @@ test('v4 instructions bind customer reference amount and currency to temporary a
   for (const patch of [{ customer_id: 'cus_other' }, { reference: 'pe_other' }, { amount: 1 }, { amount: 10200 }, { currency: 'USD' }, { account_type: 'static' }, { status: 'disabled' }, { account_number: 'invalid' }, { account_expiration_datetime: 'invalid' }, { account_expiration_datetime: '2020-01-01T00:00:00Z' }]) assert.throws(() => bankTransferDetails({ ...account, ...patch }, 'pe_checkout', 'cus_member', 10000));
 });
 test('v4 callback requires type/succeeded; v3 retains event/successful', () => {
+  const reference='pe'+'a'.repeat(32);assert.deepEqual(flutterwaveCompleted({type:'charge.completed',data:{id:'chg_new',reference,status:'succeeded'}}),{apiVersion:'v4',reference,transactionId:'chg_new'});
   assert.deepEqual(flutterwaveCompleted({ type: 'charge.completed', data: { id: 'chg_mock', reference: 'pe_checkout', status: 'succeeded' } }), { apiVersion: 'v4', reference: 'pe_checkout', transactionId: 'chg_mock' });
   assert.deepEqual(flutterwaveCompleted({ event: 'charge.completed', data: { id: 42, tx_ref: 'pe_checkout', status: 'successful' } }), { apiVersion: 'v3', reference: 'pe_checkout', transactionId: '42' });
   assert.equal(flutterwaveCompleted({ type: 'charge.completed', data: { status: 'pending' } }), null);

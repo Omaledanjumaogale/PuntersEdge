@@ -49,6 +49,7 @@ Severity denotes the consequence before repair, not a claim that an exploit occu
 | F16 | Medium | Anti-framing/base/object protections were absent from shared responses. Added consistent static and runtime headers without blocking required app scripts. | `_headers`, `src/hooks.server.ts`. This is not a full script/style CSP. |
 | F17 | Medium | Sensitive auth rate-limit persistence was implicit/per-instance. Enabled database-backed limits for sensitive auth actions; ordinary session/token reads are excluded to limit I/O. | `convex/auth.ts`; HTTP signup integration test. Trusted edge-IP/rate-limit deployment acceptance remains an operational check. |
 | F18 | Medium | Live Flutterwave initialization exposed an existing-customer conflict (HTTP 409). Added exact-email resolution for legacy customers, account-bound cached IDs and a stable customer idempotency key for renewals. Unmatched customer records are rejected. | `payments.customerForCheckout/attachV4`; duplicate, mismatch and renewal-cache tests. |
+| F19 | Medium | Live Flutterwave virtual-account validation requires an alphanumeric reference. New v4 references now use cryptographically random alphanumeric IDs; callbacks accept both new and legacy formats. | Provider HTTP 400 field-level validation; v4 initialization and callback regression tests. |
 
 ## Open gaps and limits
 
@@ -73,7 +74,7 @@ Severity denotes the consequence before repair, not a claim that an exploit occu
 ## Evidence and testing
 
 - Full application test suite: 153 tests passed before final release validation.
-- Backend access, storage, billing and lifecycle suites: 58 tests passed in the final warm rerun. An earlier resource-constrained local run timed out; unchanged tests passed on the isolated rerun.
+- Backend suites: 58 tests passed before customer-reuse expansion; the expanded 60-test suite passed in production CI. Resource-constrained Windows runs hit 5-second timeouts in existing tests; these were not suppressed or relaxed. The three targeted Flutterwave initialization/cache/conflict tests passed locally.
 - Frontend type check: zero errors and zero warnings before final release validation; backend type check passed.
 - Dependency audit after patching: zero known advisories across the installed dependency tree at scan time. This is not a guarantee of absence of vulnerabilities.
 - Targeted tracked-file secret scan: 430 tracked files inspected; no matches for the checked live-key patterns. It is not a full Git-history or external-secret exposure audit.
@@ -95,7 +96,7 @@ Severity denotes the consequence before repair, not a claim that an exploit occu
 - Initial backend and frontend release at `3e8a40f` passed [backend CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39293737802) and [Pages CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39293992461).
 - Five existing registrations imported idempotently; no access grants changed and no verification emails sent.
 - Korapay live unpaid hosted-checkout initialization succeeded at checkout.korapay.com for NGN 10,000. No funds moved.
-- Flutterwave authenticated but first live checkout initialization returned HTTP 409, customer already exists. Follow-up repair and acceptance results are recorded below.
+- Flutterwave authenticated but first live checkout initialization returned HTTP 409, customer already exists. Customer reuse was repaired and deployed with the full 60-test CI passing. The next live request exposed an alphanumeric-reference validation requirement, now repaired with explicit initialization and callback tests. Final initialization acceptance is recorded below.
 - Expanded browser assertions at 390px and 1440px passed, including automatic removal of paid transfer instructions; final frontend type check found zero errors and warnings.
 - First CI run stopped before deployment on an environment-dependent test expectation. The test now explicitly clears the Korapay key for its unconfigured-gateway scenario; the corrected full CI passed.
 - Local production build and static application-shell/API routing checks passed. Provider dashboard webhook delivery and funded settlement still require a genuine payment.

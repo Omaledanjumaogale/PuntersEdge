@@ -59,7 +59,7 @@ describe('member-specific controls and billing lifecycle',()=>{
   vi.stubGlobal('fetch',vi.fn(async(url:string,init:RequestInit)=>{
    if(url.includes('openid-connect'))return Response.json({access_token:'unit-flw-token',expires_in:3600});
    if(url.endsWith('/customers'))return Response.json({status:'success',data:{id:'cus_checkout'}});
-   if(url.endsWith('/virtual-accounts')){const body=JSON.parse(String(init.body));return Response.json({status:'success',data:{...body,id:'vac_checkout',status:'active',account_number:'0123456789',account_bank_name:'QA Bank',account_expiration_datetime:new Date(Date.now()+3600000).toISOString()}});}
+   if(url.endsWith('/virtual-accounts')){const body=JSON.parse(String(init.body));expect(body.reference).toMatch(/^pe[a-f0-9]{32}$/);return Response.json({status:'success',data:{...body,id:'vac_checkout',status:'active',account_number:'0123456789',account_bank_name:'QA Bank',account_expiration_datetime:new Date(Date.now()+3600000).toISOString()}});}
    throw Error('Unexpected provider call');
   }));
   const result=await m.signed.action(anyApi.payments.checkout,{provider:'flutterwave'});expect(result).toMatchObject({kind:'bankTransfer',bankName:'QA Bank',accountNumber:'0123456789'});
