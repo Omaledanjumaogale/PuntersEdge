@@ -3,9 +3,11 @@
 	import { app, type ValueBet } from '#lib/state.svelte.ts';
 	import { odds, gradeTone, gradeEmoji, gradeMeaning, signed, ngn } from '#lib/format.ts';
 	import { Plus, Check } from 'lucide-svelte';
+ import SelectionIdentity from './SelectionIdentity.svelte';
 
 	let { pick, showMatch = false }: { pick: ValueBet; showMatch?: boolean } = $props();
 	const selected = $derived(app.inSlip(pick.id));
+ const game=$derived(app.gameById(pick.fixtureId));
 	const positive = $derived((pick as any).eligible===true && pick.grade!=='PASS' && pick.edgePercent > 0 && pick.pricing === 'quoted');
 </script>
 
@@ -16,7 +18,7 @@
 		{/if}
 		<div class="flex items-center gap-2">
 			<span class="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-bold {gradeTone[pick.grade]}" title={gradeMeaning[pick.grade]}><span aria-hidden="true">{gradeEmoji[pick.grade]}</span> {pick.grade}</span>
-			<span class="truncate font-display text-base font-bold text-chalk">{pick.selection}</span>
+			<span class="min-w-0 break-words font-display text-base font-bold text-chalk"><SelectionIdentity selection={pick} home={game?.home} away={game?.away}/></span>
 		</div>
 		<div class="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm">
 			<span><span class="text-book font-semibold">{pick.pricing==='quoted'?odds(pick.bestOdds):'Unpriced'}</span> <span class="text-haze">at {pick.bookmaker}</span></span>

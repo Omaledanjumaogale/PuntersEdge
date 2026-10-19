@@ -4,6 +4,7 @@
 	import { odds, ngn } from '#lib/format.ts';
 	import { app } from '#lib/state.svelte.ts';
 	import AIExplanation from '#lib/components/AIExplanation.svelte';
+ import SelectionIdentity from './SelectionIdentity.svelte';
 
 	let { p }: { p: Prediction } = $props();
 	const hub = new PuntersEdgeAIAgentHub();
@@ -38,7 +39,7 @@
 		<p class="text-sm font-semibold text-haze">{rec.action === 'BET' ? '✅ Verdict' : '✋ Verdict'}</p>
 		{#if rec.action === 'BET'}
 			<p class="mt-1 font-display text-2xl font-semibold">
-				{rec.selection} at <span class="text-book">{odds(rec.odds)}</span>
+				<SelectionIdentity selection={{selection:rec.selection}} home={p.homeTeam} away={p.awayTeam} showTag={false}/> at <span class="text-book">{odds(rec.odds)}</span>
 			</p>
 			<p class="mt-1 text-sm text-haze">
 				{rec.bookmaker}, grade {rec.grade}, stake {rec.stakePercent}% ({ngn(app.stakeFor(rec.stakePercent))})

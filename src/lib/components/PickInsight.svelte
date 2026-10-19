@@ -5,6 +5,7 @@
 	 * market consensus (outline). Drivers: the inputs that moved the number.
 	 */
 	import { app, type Prediction } from '#lib/state.svelte.ts';
+ import SelectionIdentity from './SelectionIdentity.svelte';
 	import { PuntersEdgeAIAgentHub } from '#lib/engine/ai_agent_orchestrator.js';
 	import { pct, odds, ngn, gradeEmoji, gradeMeaning } from '#lib/format.ts';
 
@@ -93,10 +94,10 @@
 		<p class="text-[15px] leading-snug text-chalk">
 			{#if positive}
 				<span aria-hidden="true">{gradeEmoji[v.grade]}</span>
-				<strong>{v.selection}</strong> lands {pct(v.modelProb)} of the time by our numbers. At <span class="font-semibold text-book">{odds(v.bestOdds)}</span> it only needs {pct(needs)} to pay off.
+				<strong><SelectionIdentity selection={v} home={p.homeTeam} away={p.awayTeam} showTag={false}/></strong> lands {pct(v.modelProb)} of the time by our numbers. At <span class="font-semibold text-book">{odds(v.bestOdds)}</span> it only needs {pct(needs)} to pay off.
 			{:else}
 				<span aria-hidden="true">✋</span>
-				<strong>No bet here.</strong> The best price, {v.selection} at <span class="font-semibold text-book">{odds(v.bestOdds)}</span>, needs {pct(needs)}; our number is {pct(v.modelProb)}.
+				<strong>No bet here.</strong> The best price, <SelectionIdentity selection={v} home={p.homeTeam} away={p.awayTeam} showTag={false}/> at <span class="font-semibold text-book">{odds(v.bestOdds)}</span>, needs {pct(needs)}; our number is {pct(v.modelProb)}.
 			{/if}
 		</p>
 
