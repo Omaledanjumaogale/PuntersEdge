@@ -61,3 +61,8 @@ Date: 20 October 2026 (Africa/Lagos). Follow-up to [the application and integrat
 Tennis refreshed 468,049 source rows, of which 260,187 passed the documented results-only eligibility rules. The retrospective surface/global model's 2026 match-winner accuracy was 65.62% ATP (11,074 matches) and 66.79% WTA (7,510); first-set accuracy was 62.16% and 62.84%. These are historical cohort results, not future confidence guarantees. On matched quoted fixtures, the opening-odds benchmark had lower Brier loss than the challenger; no bookmaker superiority was demonstrated. Completion/publication timestamps and executable odds remain unverified. Nine genuine informational fixtures were refreshed from one active competition using two discovery requests and zero charged odds credits. Current licensed service-point history remained unavailable, so broader point-stat markets stayed off.
 
 Remaining external gates and partial implementations in the disposition table remain open. This release does not certify funded settlement, financial refunds, key rotation, legal compliance, device behavior or positive ROI.
+
+
+### Final full-suite release
+
+Release `56e0e8e` passed [backend CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39341339584) and [Pages CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39341347178). Both full suites, both type-check boundaries, static build and deployed route checks passed. An enrollment usability follow-up adds a private manual TOTP setup key alongside the collapsible full URI; this does not enable or enroll an account automatically.
