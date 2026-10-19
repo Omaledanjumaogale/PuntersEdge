@@ -1,10 +1,11 @@
-import {getCurrentUser} from './auth';
+import {authComponent,getCurrentUser} from './auth';
 import {internalQuery,query} from './_generated/server';
 import type {QueryCtx,MutationCtx} from './_generated/server';
+import {componentsGeneric} from 'convex/server';
 import {entitlement} from './lib/entitlements';
 export async function requireUser(ctx:QueryCtx|MutationCtx){const userId=(await getCurrentUser(ctx))?._id;if(!userId)throw new Error('Sign in to continue.');const row=await ctx.db.query('account_access').withIndex('by_user',q=>q.eq('userId',userId)).unique();if(row&&row.status!=='active'&&userId!==process.env.SUPER_ADMIN_USER_ID)throw new Error('This account is '+row.status+'. Contact support.');return userId;}
 export async function isSuperAdmin(ctx:QueryCtx|MutationCtx){const id=(await getCurrentUser(ctx))?._id;return !!id&&!!process.env.SUPER_ADMIN_USER_ID&&id===process.env.SUPER_ADMIN_USER_ID;}
-export async function requireAdmin(ctx:QueryCtx|MutationCtx){if(!await isSuperAdmin(ctx))throw new Error('Administrator access required.');}
+export async function requireAdmin(ctx:QueryCtx|MutationCtx){if(!await isSuperAdmin(ctx))throw new Error('Administrator access required.');if(process.env.ADMIN_MFA_REQUIRED==='true'){const account=await authComponent.safeGetAuthUser(ctx);if(!account?.twoFactorEnabled)throw new Error('Enable authenticator security at /account/security before opening administration.');const local=await getCurrentUser(ctx);if(local?.mfaSinceAt){const identity=await ctx.auth.getUserIdentity();const session=await ctx.runQuery(componentsGeneric().betterAuth.adapter.findOne,{model:'session',where:[{field:'_id',value:String(identity?.sessionId??'')}]});if(!session||session.createdAt<=local.mfaSinceAt)throw new Error('Sign in again with your authenticator before opening administration.');}}}
 export async function requireSubscription(ctx:QueryCtx|MutationCtx){const userId=await requireUser(ctx);if(!(await entitlement(ctx,userId)).active)throw new Error('An active all-access subscription is required.');return userId;}
 export const subscriptionAccess=internalQuery({args:{},handler:async ctx=>({userId:await requireSubscription(ctx)})});
 export const role=query({args:{},handler:async ctx=>{const user=await getCurrentUser(ctx);if(!user)return {role:'guest',active:false,expiresAt:null};const access=await entitlement(ctx,user._id);return {...access,role:user._id===process.env.SUPER_ADMIN_USER_ID?'super_admin':access.active?'subscriber':'member'};}});

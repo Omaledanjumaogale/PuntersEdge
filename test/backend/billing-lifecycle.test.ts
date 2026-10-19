@@ -1,7 +1,8 @@
+import {registerAuth} from './auth-component';
 import {describe,it,expect,vi,afterEach,beforeEach} from 'vitest';
 import {convexTest} from 'convex-test';import betterAuth from '@convex-dev/better-auth/test';import {anyApi,componentsGeneric,createFunctionHandle} from 'convex/server';
 import schema from '../../convex/schema';import {signHmac,checkoutUrl,validateKoraCharge} from '../../convex/lib/paymentSecurity';
-const modules=import.meta.glob('../../convex/**/*.ts');const create=()=>{const t=convexTest(schema,modules);betterAuth.register(t);return t;};
+const modules=import.meta.glob('../../convex/**/*.ts');const create=()=>{const t=convexTest(schema,modules);registerAuth(t);return t;};
 async function member(t:ReturnType<typeof create>,email='member@example.test'){
  const a=componentsGeneric().betterAuth.adapter;
  const user=await t.mutation(a.create,{input:{model:'user',data:{name:'Member',email,emailVerified:true,createdAt:Date.now(),updatedAt:Date.now()}}});

@@ -39,6 +39,8 @@
 	<div class="mx-auto grid max-w-2xl gap-5">
 		<p class="text-sm text-haze">Account: {auth.viewer?.accountStatus??'active'} · {auth.viewer?.accessKind??'member'}{auth.viewer?.accessExpiresAt?' · Access until '+new Date(auth.viewer.accessExpiresAt).toLocaleString('en-NG'):''}</p>
 {#if auth.viewer?.personalProfile}<div class="surface p-4 text-sm"><h2 class="font-bold">Tester profile</h2><p class="mt-2">{auth.viewer.personalProfile.fullName}</p><p>{auth.viewer.personalProfile.whatsapp}</p><p>{auth.viewer.email}</p><p>{auth.viewer.personalProfile.state} / {auth.viewer.personalProfile.lga}</p><p>Date of birth: {auth.viewer.personalProfile.dob} · {auth.viewer.personalProfile.sex}</p></div>{/if}
+<a href="/account/security" class="btn-ghost">Authenticator & recovery codes ↗</a>
+<a href="/account/privacy" class="btn-ghost">Personal data & privacy requests ↗</a>
 <a href="/tester" class="btn-ghost">Tester invitation & profile ↗</a>
 <header class="flex items-center gap-4">
 			<span class="grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-pop to-model font-display text-3xl font-extrabold text-ink" style="animation: pop-in 400ms var(--ease-spring)">{auth.initial}</span>

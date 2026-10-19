@@ -1,3 +1,4 @@
+import {registerAuth} from './auth-component';
 import webpush from 'web-push';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
@@ -5,7 +6,7 @@ import betterAuth from '@convex-dev/better-auth/test';
 import { componentsGeneric, anyApi } from 'convex/server';
 import schema from '../../convex/schema';
 const modules = import.meta.glob('../../convex/**/*.ts');
-const create = () => { const t = convexTest(schema, modules); betterAuth.register(t); return t; };
+const create = () => { const t = convexTest(schema, modules); registerAuth(t); return t; };
 beforeEach(()=>{vi.stubEnv('BETTER_AUTH_SECRET',crypto.randomUUID()+crypto.randomUUID());vi.stubEnv('SITE_URL','https://puntersedge.example.test');vi.stubEnv('CONVEX_SITE_URL','https://backend.example.test');});
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 

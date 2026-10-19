@@ -5,13 +5,13 @@
  let inviteEnabled=$state(true),rows=$state<any[]>([]),cursor=$state<string|null>(null),done=$state(false),busy=$state(false),error=$state('');
  let drafts=$state<Record<string,{status:string;period:string}>>({}),saving=$state<Record<string,boolean>>({}),messages=$state<Record<string,string>>({}),failed=$state<Record<string,boolean>>({});
  let histories=$state<Record<string,any>>({}),historyErrors=$state<Record<string,string>>({});
- let gateways=$state<any>(null);
+ let gateways=$state<any>(null),search=$state('');
  const periods=[['keep','Keep current access'],['week','1 week from now'],['fortnight','2 weeks from now'],['month','1 month from now'],['quarter','3 months from now'],['halfyear','6 months from now'],['free','Permanent free'],['none','Remove complimentary access']];
  const date=(value:number)=>new Date(value).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'});
  async function toggleInvite(){if(!auth.client)return;try{await auth.client.mutation(anyApi.testers.setInvitation,{enabled:!inviteEnabled});inviteEnabled=!inviteEnabled;}catch(e){error=(e as Error).message;}}
  async function load(reset=false){if(!auth.client||busy)return;busy=true;error='';try{
   if(reset){inviteEnabled=(await auth.client.query(anyApi.testers.invitation,{})).enabled;gateways=await auth.client.query(anyApi.payments.configuration,{});}
-  const r=await auth.client.query(anyApi.testers.members,{paginationOpts:{numItems:25,cursor:reset?null:cursor}});
+  const r=await auth.client.query(anyApi.testers.members,{paginationOpts:{numItems:25,cursor:reset?null:cursor},...(search.trim()?{search:search.trim()}:{})});
   rows=reset?r.page:[...rows,...r.page];for(const user of r.page)if(!drafts[user.id])drafts[user.id]={status:user.access?.status??'active',period:'keep'};
   cursor=r.continueCursor;done=r.isDone;
  }catch(e){error=(e as Error).message;}finally{busy=false;}}
@@ -26,6 +26,7 @@
 <header><p class="text-sm font-semibold uppercase tracking-widest text-model">Account operations</p><h1 class="mt-2 text-3xl font-bold">Members & tester access</h1><p class="mt-3 max-w-3xl text-haze">Manage each person's status and access independently. Signup, billing and server-recorded access events appear alongside sampled client activity.</p><div class="mt-4 flex flex-wrap gap-3"><button class="btn-ghost" onclick={toggleInvite}>{inviteEnabled?'Pause new tester invitations':'Enable tester invitations'}</button><button class="btn-ghost" onclick={()=>load(true)} disabled={busy}>Refresh members</button></div></header>
 {#if gateways}<details class="surface mt-5 p-4"><summary class="min-h-11 cursor-pointer font-semibold">Payment gateway configuration</summary><div class="mt-3 grid gap-3 sm:grid-cols-2">{#each ['flutterwave','korapay'] as provider}<div class="rounded-xl border border-line p-4"><h2 class="font-semibold capitalize">{provider}</h2><p class="mt-1 text-sm text-haze">{gateways[provider].ready?'Enabled and configured':'Not ready for checkout'}</p><p class="mt-2 break-all text-xs text-haze">Webhook: {gateways[provider].webhook}</p><p class="mt-2 text-xs text-haze">{gateways[provider].detail}</p></div>{/each}</div><p class="mt-3 text-xs text-haze">Configuration alone does not prove a successful live payment. Verify provider delivery and a real settled transaction before treating acceptance as complete.</p></details>{/if}
 {#if error}<p role="alert" class="mt-4 rounded-xl tint-loss p-4 text-loss">{error}</p>{/if}
+<form class="surface mt-5 flex flex-wrap gap-3 p-4" onsubmit={e=>{e.preventDefault();void load(true);}}><label class="min-w-0 flex-1">Search members<input class="field mt-2 w-full" bind:value={search} placeholder="Name or personal email" maxlength="100"/></label><button class="btn-primary self-end" disabled={busy}>Search</button></form>
 <div class="mt-5 grid min-w-0 gap-4 lg:grid-cols-2">
 {#each rows as user(user.id)}
 <article class="surface min-w-0 break-words p-5" aria-label="Member {user.email}">

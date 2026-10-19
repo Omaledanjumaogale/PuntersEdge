@@ -11,6 +11,9 @@
 	let password = $state('');
 	let error = $state('');
 	let busy = $state(false);
+ let code=$state(''),backup=$state(false),notice=$state('');
+ async function resend(){if(!email.trim()){error='Enter your personal email first.';return;}busy=true;error='';try{await auth.resendVerification(email,next);notice='If this account needs verification, a message has been requested. Check your inbox and spam folder.';}catch(e){error=(e as Error).message;}finally{busy=false;}}
+ async function secondFactor(){busy=true;error='';try{await auth.verifyMfa(code,backup);await goto(next);}catch(e){error=(e as Error).message;}finally{busy=false;}}
 
 	const next = $derived(accountReturnPath(browser?page.url.searchParams.get('next'):null));
 
@@ -24,7 +27,7 @@
 		busy = true;
 		try {
 			await auth.logIn({ email, password });
-			await goto(next);
+			if(!auth.twoFactorPending)await goto(next);
 		} catch (err) {
 			error = (err as Error).message;
 		} finally {
@@ -37,6 +40,7 @@
 
 <AuthShell title="Welcome back 👋" subtitle="Log in to pick up your slip where you left it.">
  <aside class="mb-5 rounded-xl bg-raised p-4 text-sm"><strong>Have tester invitation credentials?</strong><p class="mt-1 text-haze">Activate them with your own verified personal account. Use your personal email and password in this sign-in form.</p><a class="btn-ghost mt-3 inline-flex" href="/tester">Activate tester invitation →</a></aside>
+ {#if auth.twoFactorPending}<form class="grid gap-4" onsubmit={e=>{e.preventDefault();void secondFactor();}}><label for="mfa-code">{backup?'Recovery code':'Authenticator code'}</label><input id="mfa-code" class="field" bind:value={code} autocomplete="one-time-code" inputmode={backup?'text':'numeric'}/><label><input type="checkbox" bind:checked={backup}/> Use a saved recovery code</label><button class="btn-primary" disabled={busy}>Verify and sign in</button>{#if error}<p role="alert" class="text-loss">{error}</p>{/if}</form>{:else}
 	<form onsubmit={submit} class="grid gap-4" novalidate>
 		<label class="grid gap-1.5" for="login-email">
 			<span class="text-sm font-semibold text-chalk">Email</span>
@@ -56,7 +60,8 @@
 
 		<button type="submit" class="btn-primary w-full text-base" disabled={busy}>{busy ? 'Logging in…' : 'Log in'}</button>
 		<a href="/reset-password" class="text-center text-sm text-model">Forgot your password?</a>
-	</form>
+<button type="button" class="btn-ghost" disabled={busy} onclick={resend}>Resend verification email</button>{#if notice}<p role="status" class="text-sm text-model">{notice}</p>{/if}
+	</form>{/if}
 	{#snippet footer()}
 		New here? <a href="/signup{next !== '/account' ? `?next=${encodeURIComponent(next)}` : ''}" class="font-semibold text-pop underline underline-offset-4">Create an account</a>
 	{/snippet}

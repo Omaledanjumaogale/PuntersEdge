@@ -85,6 +85,7 @@
 			<p class="rounded-xl tint-loss px-3 py-2 text-sm font-medium text-chalk ring-1 ring-loss/60" role="alert">⚠️ {error}</p>
 		{/if}
 
+		<p class="text-xs text-haze">We use account details as described in our <a href="/privacy" class="text-model underline">privacy and retention policy</a>.</p>
 		<button type="submit" class="btn-primary w-full text-base" disabled={busy}>{busy ? 'Creating your account…' : 'Create account'}</button>
 	</form>
 	{#snippet footer()}

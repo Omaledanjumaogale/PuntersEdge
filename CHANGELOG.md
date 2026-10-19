@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-20 — Audit remediation
+
+- Add authenticator enrollment, challenged sign-in, one-use recovery codes and server-enforced owner MFA with old-session revocation.
+- Add searchable members, bounded payment checks, an audited dispute inbox and independent access holds.
+- Add account exports, staged personal-data erasure, privacy notices and bounded daily retention.
+- Generate per-page script hash policies within Cloudflare limits and collect bounded, sanitized CSP reports.
+- Record dataset permissions, attribution and remaining external acceptance in the remediation report.
+
 ## 2026-10-19 — Member access, billing and integration audit
 
 - Give every member independent access controls and preserve trial dates on status-only edits.

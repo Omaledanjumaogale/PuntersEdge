@@ -1,0 +1,1 @@
+import schema from '../../convex/betterAuth/schema';const modules=import.meta.glob('../../convex/betterAuth/**/*.ts');export const registerAuth=(t:any)=>t.registerComponent('betterAuth',schema,modules);

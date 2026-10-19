@@ -3,11 +3,12 @@ import {accountReturnPath} from '#lib/auth-redirect.js';
 import type { Settings } from '#lib/state.svelte.ts';
 import { convexUrl } from '#lib/convex.ts';
 import { createAuthClient } from 'better-auth/client';
+import {twoFactorClient} from 'better-auth/client/plugins';
 import { convexClient } from '@convex-dev/better-auth/client/plugins';
 import { ConvexClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api.js';
 
-export interface Viewer { personalProfile?:{fullName:string;whatsapp:string;dob:string;sex:string;state:string;lga:string}|null; accountStatus?:string;accessKind?:string;accessExpiresAt?:number|null; id: string; name: string | null; email: string | null; image?:string|null; joined: number; emailVerified: boolean; superAdmin: boolean; role?: string; activeSubscription?: boolean; settings: Settings | null; }
+export interface Viewer {twoFactorEnabled?:boolean;adminMfaRequired?:boolean; personalProfile?:{fullName:string;whatsapp:string;dob:string;sex:string;state:string;lga:string}|null; accountStatus?:string;accessKind?:string;accessExpiresAt?:number|null; id: string; name: string | null; email: string | null; image?:string|null; joined: number; emailVerified: boolean; superAdmin: boolean; role?: string; activeSubscription?: boolean; settings: Settings | null; }
 export const PASSWORD_RULE = 'At least 8 characters, including a letter and a number.';
 export function passwordIssues(pw: string): string | null {
   if (pw.length < 8) return 'Use at least 8 characters.';
@@ -17,8 +18,9 @@ export function passwordIssues(pw: string): string | null {
 export function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   return Math.min(4, Number(pw.length >= 8) + Number(pw.length >= 12) + Number(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) + Number(/\d/.test(pw) && /[^a-zA-Z0-9]/.test(pw))) as 0 | 1 | 2 | 3 | 4;
 }
-const authClient = createAuthClient({ plugins: [convexClient()] });
+const authClient = createAuthClient({ plugins: [twoFactorClient(),convexClient()] });
 class AuthState {
+  twoFactorPending=$state(false);
   status = $state<'loading' | 'signedOut' | 'signedIn'>('loading');
   viewer = $state<Viewer | null>(null);
   readonly mode = convexUrl ? 'convex' : 'demo';
@@ -83,8 +85,13 @@ class AuthState {
     if (!convexUrl) throw new Error('Account services are not configured.');
     const result = await authClient.signIn.email(input);
     if (result.error) throw new Error(result.error.message || 'Email or password is incorrect.');
-    this.status = 'loading'; await this.#connect();
+    if((result.data as {twoFactorRedirect?:boolean}|null)?.twoFactorRedirect){this.twoFactorPending=true;return;}
+    this.twoFactorPending=false;this.status = 'loading'; await this.#connect();
   }
+  async resendVerification(email:string,next='/account') {const result=await authClient.sendVerificationEmail({email,callbackURL:window.location.origin+accountReturnPath(next)});if(result.error)throw new Error(result.error.message||'Could not send verification email.');}
+  async beginMfa(password:string){const result=await authClient.twoFactor.enable({password,issuer:'PuntersEdge'});if(result.error)throw new Error(result.error.message||'Authenticator setup failed.');return result.data;}
+  async verifyMfa(code:string,backup=false){const result=backup?await authClient.twoFactor.verifyBackupCode({code,trustDevice:false}):await authClient.twoFactor.verifyTotp({code,trustDevice:false});if(result.error)throw new Error(result.error.message||'Verification failed.');this.twoFactorPending=false;await this.#connect();}
+  async regenerateBackupCodes(password:string){const result=await authClient.twoFactor.generateBackupCodes({password});if(result.error)throw new Error(result.error.message||'Recovery failed.');return result.data;}
   async logOut() { const { pwa } = await import('#lib/pwa.svelte.ts'); if (pwa.pushEnabled) await pwa.disableNotifications(); await authClient.signOut();try{if(this.viewer?.id)localStorage.removeItem('pe:feed:v1:'+this.viewer.id);}catch{}this.#clear(); }
   async updateName(name: string) {
     const clean = name.trim().slice(0,40);

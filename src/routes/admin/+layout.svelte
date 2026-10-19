@@ -17,6 +17,6 @@
  <div class="admin-content">
   <div class="workspace-bar"><span>Private workspace <span aria-hidden="true">/</span> <strong>{ADMIN_NAV.find(n=>adminActive(page.url.pathname,page.url.search,n.section))?.label??'Administration'}</strong></span><a href="/board">Open application ↗</a></div>
   <nav class="mobile-workspaces" aria-label="Admin workspaces">{#each ADMIN_NAV as item}<a href={item.href} aria-current={adminActive(page.url.pathname,page.url.search,item.section)?'page':undefined}><span aria-hidden="true">{item.emoji}</span> {item.label}</a>{/each}</nav>
-  {@render children()}
+  {#if auth.viewer?.adminMfaRequired&&!auth.viewer.twoFactorEnabled}<section class="surface p-6"><h1 class="text-2xl font-bold">Secure your administrator account</h1><p class="mt-3 text-haze">Set up an authenticator and save recovery codes to continue. Application membership remains available.</p><a class="btn-primary mt-4 inline-flex" href="/account/security">Set up authenticator</a></section>{:else}{@render children()}{/if}
  </div>
 </div>

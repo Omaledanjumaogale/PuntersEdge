@@ -1,10 +1,11 @@
+import {registerAuth} from './auth-component';
 import { describe, expect, it, afterEach, vi } from 'vitest';
 import { convexTest } from 'convex-test';
 import betterAuth from '@convex-dev/better-auth/test';
 import { componentsGeneric, anyApi } from 'convex/server';
 import schema from '../../convex/schema';
 const modules = import.meta.glob('../../convex/**/*.ts');
-const create = () => { const t = convexTest(schema, modules); betterAuth.register(t); return t; };
+const create = () => { const t = convexTest(schema, modules); registerAuth(t); return t; };
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 async function member(t:ReturnType<typeof create>,email:string) {
  const component=componentsGeneric().betterAuth;

@@ -8,10 +8,10 @@ import {syncAuthAccount} from './lib/accountEvents';
 
 export const syncProfile = mutation({ args: {}, handler: async (ctx) => {
   const account = await authComponent.getAuthUser(ctx);
-  const existing = await getCurrentUser(ctx);
-  const profile = { name: account.name, email: account.email, image:account.image??undefined, emailVerificationTime: account.emailVerified ? existing?.emailVerificationTime ?? Date.now() : undefined };
+  const existing = await ctx.db.query('users').withIndex('by_auth_subject',q=>q.eq('authSubject',account._id)).unique();if(existing?.erasingAt)throw new Error('Account erasure is processing.');
+  const profile = {searchText:[account.name,account.email].filter(Boolean).join(' ').toLowerCase(),name: account.name, email: account.email, image:account.image??undefined, emailVerificationTime: account.emailVerified ? existing?.emailVerificationTime ?? Date.now() : undefined };
   if (existing) {
-    if (existing.name !== profile.name || existing.email !== profile.email || existing.image!==profile.image || existing.emailVerificationTime !== profile.emailVerificationTime) await ctx.db.patch(existing._id, profile);
+    if (existing.searchText!==profile.searchText || existing.name !== profile.name || existing.email !== profile.email || existing.image!==profile.image || existing.emailVerificationTime !== profile.emailVerificationTime) await ctx.db.patch(existing._id, profile);
     return existing._id;
   }
   // Never link an old account by email alone: a separate migration must prove ownership.
@@ -20,11 +20,12 @@ export const syncProfile = mutation({ args: {}, handler: async (ctx) => {
 export const viewer = query({ args: {}, handler: async (ctx) => {
   const user = await getCurrentUser(ctx);
   if (!user) return null;
+  const authAccount=await authComponent.safeGetAuthUser(ctx);
   const superAdmin=Boolean(process.env.SUPER_ADMIN_USER_ID && user._id === process.env.SUPER_ADMIN_USER_ID);
   const personalProfile=await ctx.db.query('member_profiles').withIndex('by_user',q=>q.eq('userId',user._id)).unique();
   const access=await entitlement(ctx,user._id);
   const activeSubscription=access.active;
-  return { personalProfile,accountStatus:access.status,accessKind:access.kind,accessExpiresAt:access.expiresAt,role:superAdmin?'super_admin':activeSubscription?'subscriber':'member', activeSubscription, id: user._id, name: user.name ?? null, email: user.email ?? null, image:user.image??null,
+  return {twoFactorEnabled:!!authAccount?.twoFactorEnabled,adminMfaRequired:process.env.ADMIN_MFA_REQUIRED==='true',personalProfile,accountStatus:access.status,accessKind:access.kind,accessExpiresAt:access.expiresAt,role:superAdmin?'super_admin':activeSubscription?'subscriber':'member', activeSubscription, id: user._id, name: user.name ?? null, email: user.email ?? null, image:user.image??null,
     favouriteSport: user.favouriteSport ?? null, settings: user.settings ?? null, joined: user._creationTime,
     emailVerified: Boolean(user.emailVerificationTime),
     superAdmin: Boolean(process.env.SUPER_ADMIN_USER_ID && user._id === process.env.SUPER_ADMIN_USER_ID), };
@@ -33,10 +34,10 @@ export const updateProfile = mutation({ args: { name: v.optional(v.string()), fa
   const user = await getCurrentUser(ctx);
   if (!user) throw new Error('Sign in to update your profile.');
   if (args.favouriteSport && !['football','basketball','nba','hockey','baseball','both'].includes(args.favouriteSport)) throw new Error('Invalid sport.');
-  await ctx.db.patch(user._id, { ...(args.name !== undefined ? { name: args.name.trim().slice(0,40) } : {}), ...(args.favouriteSport !== undefined ? { favouriteSport: args.favouriteSport } : {}) });
+  await ctx.db.patch(user._id, {searchText:[args.name??user.name,user.email].filter(Boolean).join(' ').toLowerCase(), ...(args.name !== undefined ? { name: args.name.trim().slice(0,40) } : {}), ...(args.favouriteSport !== undefined ? { favouriteSport: args.favouriteSport } : {}) });
 }});
 
-export const byAuthSubject = internalQuery({ args: { subject: v.string() }, handler: async (ctx, args) => ctx.db.query('users').withIndex('by_auth_subject', q => q.eq('authSubject', args.subject)).unique() });
+export const byAuthSubject = internalQuery({ args: { subject: v.string() }, handler: async (ctx, args) => {const user=await ctx.db.query('users').withIndex('by_auth_subject', q => q.eq('authSubject', args.subject)).unique();return user?.erasingAt?null:user;} });
 
 export const updateSettings = mutation({args:{settings:v.object({bankroll:v.number(),kellyFraction:v.number(),modelWeight:v.number(),motion:v.boolean(),theme:v.union(v.literal('system'),v.literal('light'),v.literal('dark'))})},handler:async(ctx,{settings})=>{
  const user=await getCurrentUser(ctx);if(!user)throw new Error('Sign in to synchronize settings.');

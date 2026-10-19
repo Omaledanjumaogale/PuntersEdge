@@ -8,7 +8,10 @@ export default defineSchema({
   ...authTables,
   users: defineTable({
     authSubject: v.optional(v.string()),
+    mfaSinceAt:v.optional(v.number()),
+    erasingAt:v.optional(v.number()),
     registeredAt:v.optional(v.number()),
+    searchText:v.optional(v.string()),
     flutterwaveCustomerId:v.optional(v.string()),
     flutterwaveCustomerEmail:v.optional(v.string()),
     name: v.optional(v.string()),
@@ -21,11 +24,11 @@ export default defineSchema({
     favouriteSport: v.optional(v.string()),
     notificationPreferences:v.optional(v.object({newMatches:v.boolean(),liveStarts:v.boolean(),scoreUpdates:v.boolean(),finishedGames:v.boolean(),activities:v.boolean()})),
     settings: v.optional(v.object({bankroll:v.number(),kellyFraction:v.number(),modelWeight:v.number(),motion:v.boolean(),theme:v.union(v.literal("system"),v.literal("light"),v.literal("dark"))})),
-  }).index("email", ["email"]).index("by_auth_subject", ["authSubject"]),
+  }).index("email", ["email"]).index("by_auth_subject", ["authSubject"]).searchIndex('search_members',{searchField:'searchText'}),
 
   member_profiles:defineTable({userId:v.id('users'),fullName:v.string(),whatsapp:v.string(),dob:v.string(),sex:v.string(),state:v.string(),lga:v.string(),updatedAt:v.number()}).index('by_user',['userId']),
   account_access:defineTable({userId:v.id('users'),status:v.string(),kind:v.string(),grant:v.string(),expiresAt:v.optional(v.number()),updatedAt:v.number()}).index('by_user',['userId']),
-  user_presence:defineTable({userId:v.id('users'),lastSeen:v.number(),route:v.string(),events:v.optional(v.array(v.object({event:v.string(),at:v.number(),route:v.string()})))}).index('by_user',['userId']),
+  user_presence:defineTable({userId:v.id('users'),lastSeen:v.number(),route:v.string(),events:v.optional(v.array(v.object({event:v.string(),at:v.number(),route:v.string()})))}).index('by_user',['userId']).index('by_seen',['lastSeen']),
   tester_attempts:defineTable({userId:v.id('users'),at:v.number(),count:v.number()}).index('by_user',['userId']),
   football_matches: defineTable({
     fixtureId: v.string(),
@@ -208,8 +211,8 @@ export default defineSchema({
   }).index("by_key", ["key"]),
 
   push_subscriptions: defineTable({userId:v.id("users"),endpoint:v.string(),p256dh:v.string(),auth:v.string(),createdAt:v.number(),lastAlerts:v.optional(v.any()),lastTestAt:v.optional(v.number()),lastDelivery:v.optional(v.object({at:v.number(),outcome:v.union(v.literal("accepted"),v.literal("failed")),statusCode:v.optional(v.number())}))}).index("by_endpoint",["endpoint"]).index("by_user",["userId"]),
-  admin_audit: defineTable({ actorId: v.id("users"), targetId: v.id("users"), operation: v.string(), createdAt: v.number() }).index('by_target',['targetId']),
-  account_events: defineTable({userId:v.id('users'),event:v.string(),reference:v.optional(v.string()),provider:v.optional(v.string()),createdAt:v.number()}).index('by_user',['userId']),
+  admin_audit: defineTable({ actorId: v.id("users"), targetId: v.id("users"), operation: v.string(), createdAt: v.number() }).index('by_target',['targetId']).index('by_created',['createdAt']),
+  account_events: defineTable({userId:v.id('users'),event:v.string(),reference:v.optional(v.string()),provider:v.optional(v.string()),createdAt:v.number()}).index('by_user',['userId']).index('by_created',['createdAt']),
   payments: defineTable({
     userId: v.id("users"), provider: v.union(v.literal("flutterwave"), v.literal("korapay")),
     reference: v.string(), amount: v.number(), baseAmount:v.optional(v.number()), currency: v.string(), status: v.string(),
@@ -217,7 +220,9 @@ export default defineSchema({
     apiVersion: v.optional(v.union(v.literal('v3'), v.literal('v4'))),
     lastCheckAt:v.optional(v.number()), providerCustomerId: v.optional(v.string()), virtualAccountId: v.optional(v.string()),
     diagnostic:v.optional(v.boolean()),bankTransfer:v.optional(bankTransferValidator),checkoutUrl:v.optional(v.string()), checkoutExpiresAt:v.optional(v.number()), failureCode:v.optional(v.string()), customerEmail:v.optional(v.string()),
-  }).index("by_reference", ["reference"]).index("by_user", ["userId"]).index('by_provider_transaction',['provider','providerTransactionId']),
+  }).index("by_reference", ["reference"]).index("by_user", ["userId"]).index('by_provider_transaction',['provider','providerTransactionId']).index('by_status_created',['status','createdAt']).index('by_created',['createdAt']),
+  payment_cases:defineTable({paymentId:v.id('payments'),userId:v.id('users'),reference:v.string(),provider:v.string(),kind:v.union(v.literal('refund'),v.literal('chargeback'),v.literal('payment_review')),status:v.union(v.literal('open'),v.literal('resolved')),reason:v.string(),resolution:v.optional(v.string()),previousStatus:v.optional(v.string()),actorId:v.id('users'),createdAt:v.number(),updatedAt:v.number()}).index('by_payment',['paymentId']).index('by_payment_status',['paymentId','status']).index('by_user_status',['userId','status']).index('by_status',['status','updatedAt']).index('by_user',['userId']).index('by_created',['createdAt']),
+  privacy_requests:defineTable({userId:v.id('users'),kind:v.literal('deletion'),status:v.union(v.literal('requested'),v.literal('processing'),v.literal('cancelled'),v.literal('completed')),createdAt:v.number(),updatedAt:v.number()}).index('by_user',['userId']).index('by_user_status',['userId','status']).index('by_status',['status']),
   subscriptions: defineTable({ userId: v.id("users"), expiresAt: v.number(), updatedAt: v.number() }).index("by_user", ["userId"]),
   ai_usage: defineTable({ userId: v.string(), day: v.string(), count: v.number(), cacheKey: v.optional(v.string()),
     result: v.optional(v.object({text: v.string(), provider: v.string(), generatedAt: v.number()})),

@@ -42,6 +42,8 @@ export function isActive(pathname: string, href: string, also: string[] = []) {
 
 /** Shared admin workspace links. The drawer and desktop rail render these same records. */
 export const ADMIN_NAV = [
+ {href:'/admin/payments',label:'Payment operations',emoji:'💳',hint:'Reconciliation and disputes',section:'payments'},
+ {href:'/admin/privacy',label:'Privacy operations',emoji:'🛡️',hint:'Requests and retention',section:'privacy'},
  {href:'/admin/members',label:'User management',emoji:'👥',hint:'Profiles and tester access',section:'users'},
  {href:'/admin',label:'Overview',emoji:'💎',hint:'Performance and coverage',section:'performance'},
  {href:'/admin?workspace=operations',label:'Data operations',emoji:'📡',hint:'Sources, budgets and refreshes',section:'operations'},
@@ -49,5 +51,5 @@ export const ADMIN_NAV = [
  {href:'/admin?workspace=memberships',label:'Members & payments',emoji:'🔑',hint:'Access and billing records',section:'memberships'}
 ] as const;
 export function adminActive(pathname:string,search:string,section:string){
- return pathname.startsWith('/admin/members')?section==='users':pathname.startsWith('/admin/models')?section==='models':pathname==='/admin'&&(new URLSearchParams(search).get('workspace')??'performance')===section;
+ return pathname.startsWith('/admin/payments')?section==='payments':pathname.startsWith('/admin/privacy')?section==='privacy':pathname.startsWith('/admin/members')?section==='users':pathname.startsWith('/admin/models')?section==='models':pathname==='/admin'&&(new URLSearchParams(search).get('workspace')??'performance')===section;
 }

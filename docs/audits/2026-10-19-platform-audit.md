@@ -112,3 +112,6 @@ Severity denotes the consequence before repair, not a claim that an exploit occu
 - Matching frontend release: [Pages build/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39298393152). Completed successfully. Post-deploy page-shell checks and both API response checks passed.
 - Production Flutterwave and Korapay webhook endpoints both reject unsigned requests with HTTP 401. No forged callback granted access.
 - The payment records created by diagnostics are marked `diagnostic`; they are unpaid integration checks, not customer revenue. Provider dashboard webhook configuration/delivery and a real paid settlement remain unverified.
+
+
+Follow-up implementation and remaining acceptance: [20 October remediation record](2026-10-20-remediation.md). Original findings above describe the audit-time state.
