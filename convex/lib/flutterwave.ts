@@ -1,11 +1,13 @@
 export type CheckoutResult = { kind: 'redirect'; url: string } | {
-  kind: 'bankTransfer'; reference: string; amount: number; currency: 'NGN';
+  kind: 'bankTransfer'; reference: string; amount: number; currency: 'NGN'; membershipAmount?:number;providerFee?:number;
   accountNumber: string; bankName: string; accountName: string; expiresAt: string;
 };
 export function bankTransferDetails(data: Record<string, unknown>, reference: string, customerId: string, amount: number): CheckoutResult {
-  if (data.reference !== reference || data.customer_id !== customerId || data.currency !== 'NGN' || Number(data.amount) !== amount || data.account_type !== 'dynamic' || data.status !== 'active') throw new Error('Bank transfer instructions do not match your checkout.');
+  const total=Number(data.amount),cents=Math.round(total*100);
+  if(!Number.isFinite(total)||total<amount||total>amount*1.05||Math.abs(total*100-cents)>0.000001)throw new Error('Unexpected provider transfer total. Choose another gateway or contact support.');
+  if (data.reference !== reference || data.customer_id !== customerId || data.currency !== 'NGN' || data.account_type !== 'dynamic' || data.status !== 'active') throw new Error('Bank transfer instructions do not match your checkout.');
   if (typeof data.account_number !== 'string' || !/^\d{10}$/.test(data.account_number) || typeof data.account_bank_name !== 'string' || !data.account_bank_name || typeof data.account_expiration_datetime !== 'string' || !Number.isFinite(Date.parse(data.account_expiration_datetime)) || Date.parse(String(data.account_expiration_datetime)) <= Date.now()) throw new Error('Invalid bank transfer instructions.');
-  return { kind: 'bankTransfer', reference, amount, currency: 'NGN', accountNumber: data.account_number, bankName: data.account_bank_name, accountName: String(data.narration ?? 'PuntersEdge membership'), expiresAt: data.account_expiration_datetime };
+  return { kind: 'bankTransfer', reference, amount:total,...(total>amount?{membershipAmount:amount,providerFee:Math.round((total-amount)*100)/100}:{}), currency: 'NGN', accountNumber: data.account_number, bankName: data.account_bank_name, accountName: String(data.narration ?? 'PuntersEdge membership'), expiresAt: data.account_expiration_datetime };
 }
 export function flutterwaveCompleted(event: { event?: string; type?: string; data?: { status?: string; reference?: string; tx_ref?: string; id?: string | number } }) {
   const d = event.data;

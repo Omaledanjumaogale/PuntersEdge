@@ -4,8 +4,9 @@ import { bankTransferDetails, flutterwaveCompleted, validateV4Charge } from '../
 const account = { id: 'van_mock', reference: 'pe_checkout', customer_id: 'cus_member', amount: 10000, currency: 'NGN', account_type: 'dynamic', status: 'active', account_number: '1234567890', account_bank_name: 'Mock bank', narration: 'PuntersEdge monthly membership', account_expiration_datetime: '2030-01-01T00:00:00Z' };
 test('v4 instructions bind customer reference amount and currency to temporary account', () => {
   const result = bankTransferDetails(account, 'pe_checkout', 'cus_member', 10000);
+  const feeQuote=bankTransferDetails({...account,amount:10200},'pe_checkout','cus_member',10000);assert.equal(feeQuote.amount,10200);assert.equal(feeQuote.membershipAmount,10000);assert.equal(feeQuote.providerFee,200);
   assert.equal(result.kind, 'bankTransfer'); assert.equal(result.accountNumber, '1234567890');
-  for (const patch of [{ customer_id: 'cus_other' }, { reference: 'pe_other' }, { amount: 1 }, { amount: 10200 }, { currency: 'USD' }, { account_type: 'static' }, { status: 'disabled' }, { account_number: 'invalid' }, { account_expiration_datetime: 'invalid' }, { account_expiration_datetime: '2020-01-01T00:00:00Z' }]) assert.throws(() => bankTransferDetails({ ...account, ...patch }, 'pe_checkout', 'cus_member', 10000));
+  for (const patch of [{ customer_id: 'cus_other' }, { reference: 'pe_other' }, { amount: 1 }, { amount: 10501 }, { amount: 10000.001 }, { currency: 'USD' }, { account_type: 'static' }, { status: 'disabled' }, { account_number: 'invalid' }, { account_expiration_datetime: 'invalid' }, { account_expiration_datetime: '2020-01-01T00:00:00Z' }]) assert.throws(() => bankTransferDetails({ ...account, ...patch }, 'pe_checkout', 'cus_member', 10000));
 });
 test('v4 callback requires type/succeeded; v3 retains event/successful', () => {
   const reference='pe'+'a'.repeat(32);assert.deepEqual(flutterwaveCompleted({type:'charge.completed',data:{id:'chg_new',reference,status:'succeeded'}}),{apiVersion:'v4',reference,transactionId:'chg_new'});
@@ -19,6 +20,7 @@ test('v4 callback requires type/succeeded; v3 retains event/successful', () => {
 test('v4 verification checks authoritative charge identity and customer ownership', () => {
   const expected = { reference: 'pe_checkout', providerCustomerId: 'cus_member', amount: 10000, currency: 'NGN' };
   const charge = { id: 'chg_mock', status: 'succeeded', reference: 'pe_checkout', customer_id: 'cus_member', amount: 10000, currency: 'NGN' };
+  assert.throws(()=>validateV4Charge(charge,{...expected,amount:10200},'chg_mock'));assert.doesNotThrow(()=>validateV4Charge({...charge,amount:10200},{...expected,amount:10200},'chg_mock'));
   assert.doesNotThrow(() => validateV4Charge(charge, expected, 'chg_mock'));
   for (const patch of [{ id: 'chg_other' }, { status: 'pending' }, { reference: 'pe_other' }, { customer_id: 'cus_other' }, { amount: 1 }, { currency: 'USD' }]) assert.throws(() => validateV4Charge({ ...charge, ...patch }, expected, 'chg_mock'));
   assert.throws(() => validateV4Charge(charge, { ...expected, providerCustomerId: undefined }, 'chg_mock'));

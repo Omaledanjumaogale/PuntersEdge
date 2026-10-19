@@ -212,7 +212,7 @@ export default defineSchema({
   account_events: defineTable({userId:v.id('users'),event:v.string(),reference:v.optional(v.string()),provider:v.optional(v.string()),createdAt:v.number()}).index('by_user',['userId']),
   payments: defineTable({
     userId: v.id("users"), provider: v.union(v.literal("flutterwave"), v.literal("korapay")),
-    reference: v.string(), amount: v.number(), currency: v.string(), status: v.string(),
+    reference: v.string(), amount: v.number(), baseAmount:v.optional(v.number()), currency: v.string(), status: v.string(),
     createdAt: v.number(), paidAt: v.optional(v.number()), providerTransactionId: v.optional(v.string()),
     apiVersion: v.optional(v.union(v.literal('v3'), v.literal('v4'))),
     lastCheckAt:v.optional(v.number()), providerCustomerId: v.optional(v.string()), virtualAccountId: v.optional(v.string()),

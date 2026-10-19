@@ -86,13 +86,14 @@ export const create=internalMutation({args:{userId:v.id('users'),provider,refere
  const access=await entitlement(ctx,args.userId);if(access.status!=='active')throw new Error('This account is '+access.status+'. Contact support.');
  const recent=await ctx.db.query('payments').withIndex('by_user',q=>q.eq('userId',args.userId)).order('desc').take(10);
  if(recent.filter(p=>p.createdAt>Date.now()-60000).length>=3)throw new Error('Please wait before creating another checkout.');
- const id=await ctx.db.insert('payments',{...args,customerEmail:account.email,amount:PRICE,currency:'NGN',status:'pending',createdAt:Date.now()});
+ const id=await ctx.db.insert('payments',{...args,customerEmail:account.email,baseAmount:PRICE,amount:PRICE,currency:'NGN',status:'pending',createdAt:Date.now()});
  await accountEvent(ctx,args.userId,'checkout_started',{reference:args.reference,provider:args.provider});return id;
 }});
 export const prepared=internalMutation({args:{reference:v.string(),url:v.optional(v.string()),bankTransfer:v.optional(bankTransferValidator),failed:v.optional(v.boolean())},handler:async(ctx,args)=>{
  const payment=await ctx.db.query('payments').withIndex('by_reference',q=>q.eq('reference',args.reference)).unique();
  if(!payment||payment.status==='paid')return;
- await ctx.db.patch(payment._id,args.failed?{status:'initialization_failed',failureCode:'provider_initialization_failed'}:{checkoutUrl:args.url,bankTransfer:args.bankTransfer,checkoutExpiresAt:Date.now()+3600000});
+ if(args.bankTransfer&&(args.bankTransfer.reference!==payment.reference||args.bankTransfer.amount<PRICE||args.bankTransfer.amount>PRICE*1.05))throw new Error('Invalid transfer quote.');
+ await ctx.db.patch(payment._id,args.failed?{status:'initialization_failed',failureCode:'provider_initialization_failed'}:{...(args.bankTransfer?{amount:args.bankTransfer.amount}:{}),checkoutUrl:args.url,bankTransfer:args.bankTransfer,checkoutExpiresAt:Date.now()+3600000});
  await accountEvent(ctx,payment.userId,args.failed?'checkout_initialization_failed':'checkout_ready',{reference:payment.reference,provider:payment.provider});
  if(!args.failed)await ctx.scheduler.runAfter(120000,refs.payments.reconcile,{reference:payment.reference,attempt:0});
 }});
@@ -135,7 +136,7 @@ export const checkout=action({args:{provider},handler:async(ctx,args):Promise<Ch
 export const probeCheckout=internalAction({args:{provider},handler:async(ctx,args)=>{
  const owner=process.env.SUPER_ADMIN_USER_ID;if(!owner)throw new Error('Configured owner required.');
  const result=await startCheckout(ctx,owner as Id<'users'>,args.provider,true);
- return {provider:args.provider,initialized:true,kind:result.kind,host:result.kind==='redirect'?new URL(result.url).hostname:null,amount:PRICE,currency:'NGN',moneyMoved:false};
+ return {provider:args.provider,initialized:true,kind:result.kind,host:result.kind==='redirect'?new URL(result.url).hostname:null,amount:result.kind==='bankTransfer'?result.amount:PRICE,baseAmount:PRICE,currency:'NGN',moneyMoved:false};
 }});
 export const attachV4 = internalMutation({ args: { reference: v.string(), providerCustomerId: v.string(), virtualAccountId: v.optional(v.string()) }, handler: async (ctx, args) => {
   const payment = await ctx.db.query('payments').withIndex('by_reference', q => q.eq('reference', args.reference)).unique();
