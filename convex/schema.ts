@@ -9,6 +9,8 @@ export default defineSchema({
   users: defineTable({
     authSubject: v.optional(v.string()),
     registeredAt:v.optional(v.number()),
+    flutterwaveCustomerId:v.optional(v.string()),
+    flutterwaveCustomerEmail:v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     image: v.optional(v.string()),

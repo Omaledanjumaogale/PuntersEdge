@@ -17,10 +17,11 @@ const ready=(name:'flutterwave'|'korapay')=>name==='korapay'?process.env.KORAPAY
 const PRICE = 10000;
 const refs = anyApi;
 const secret = (name: string) => { const value = process.env[name]; if (!value) throw new Error(`${name} is not configured.`); return value; };
+class ProviderRequestError extends Error { constructor(readonly status:number){super('Payment provider request failed. Please try again.');} }
 async function request(url: string, token: string, body?: unknown, idempotencyKey?: string) {
   const response = await fetch(url, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'PuntersEdge/1.0', 'X-Trace-Id': crypto.randomUUID(), ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20000) });
   const result = await response.json().catch(()=>{throw new Error('Payment provider returned an invalid response. Please try again later.');});
-  if (!response.ok || ['error', 'failed'].includes(result.status) || result.status === false) throw new Error('Payment provider request failed. Please try again.');
+  if (!response.ok || ['error', 'failed'].includes(result.status) || result.status === false) throw new ProviderRequestError(response.status);
   return result;
 }
 const V4_ORIGIN = 'https://f4bexperience.flutterwave.com';
@@ -33,6 +34,23 @@ async function oauth() {
   if (!response.ok || typeof data.access_token !== 'string' || !(Number(data.expires_in) > 60)) throw new Error('Flutterwave authentication is unavailable.');
   tokenCache = { token: data.access_token, expiresAt: Date.now() + Number(data.expires_in) * 1000 };
   return tokenCache.token;
+}
+/** Reuse the verified account's customer. A legacy duplicate is resolved only by exact email. */
+async function customerForCheckout(token:string,userId:Id<'users'>,account:{email?:string;flutterwaveCustomerId?:string;flutterwaveCustomerEmail?:string},names:string[]){
+ const email=account.email!.trim().toLowerCase();
+ if(account.flutterwaveCustomerId&&account.flutterwaveCustomerEmail===email)return {data:{id:account.flutterwaveCustomerId}};
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(userId+':'+email));
+ const idempotencyKey='pe_customer_'+Array.from(new Uint8Array(digest)).map(x=>x.toString(16).padStart(2,'0')).join('');
+ try{return await request(`${V4_ORIGIN}/customers`,token,{email:account.email,name:{first:names[0]||'PuntersEdge',last:names.slice(1).join(' ')||'Member'}},idempotencyKey);}
+ catch(error){if(!(error instanceof ProviderRequestError)||error.status!==409)throw error;}
+ for(let page=1;page<=10;page++){
+  const result=await request(`${V4_ORIGIN}/customers?page=${page}&size=50`,token);
+  if(!Array.isArray(result.data))break;
+  const found=result.data.find((row:{email?:string;id?:string})=>row.email?.trim().toLowerCase()===email&&typeof row.id==='string'&&row.id.startsWith('cus_'));
+  if(found)return {data:{id:found.id}};
+  if(result.data.length<50||Number(result.meta?.page_info?.total_pages)<=page)break;
+ }
+ throw new Error('Flutterwave customer could not be matched securely. Choose Korapay or contact support.');
 }
 /** Fixed, internal, read-only probe. Never returns credentials, tokens or provider bodies. */
 export const probeFlutterwaveV4 = internalAction({ args: {}, handler: async () => {
@@ -94,7 +112,7 @@ async function startCheckout(ctx:ActionCtx,userId:Id<'users'>,selectedProvider:'
   }
   if(apiVersion==='v4'){
    const token=await oauth(),names=String(account.name??'PuntersEdge Member').trim().split(/\s+/);
-   const customer=await request(`${V4_ORIGIN}/customers`,token,{email:account.email,name:{first:names[0]||'PuntersEdge',last:names.slice(1).join(' ')||'Member'}},`${reference}_customer`);
+   const customer=await customerForCheckout(token,userId,account,names);
    if(typeof customer.data?.id!=='string'||!customer.data.id.startsWith('cus_'))throw new Error('Could not prepare your bank transfer.');
    await ctx.runMutation(refs.payments.attachV4,{reference,providerCustomerId:customer.data.id});
    const virtual=await request(`${V4_ORIGIN}/virtual-accounts`,token,{reference,customer_id:customer.data.id,amount:PRICE,currency:'NGN',account_type:'dynamic',expiry:3600,narration:'PuntersEdge monthly membership'},`${reference}_account`);
@@ -122,6 +140,7 @@ export const attachV4 = internalMutation({ args: { reference: v.string(), provid
   const payment = await ctx.db.query('payments').withIndex('by_reference', q => q.eq('reference', args.reference)).unique();
   if (!payment || payment.provider !== 'flutterwave' || payment.apiVersion !== 'v4' || payment.status !== 'pending') throw new Error('Unknown bank transfer checkout.');
   if (payment.providerCustomerId && payment.providerCustomerId !== args.providerCustomerId) throw new Error('Checkout customer mismatch.');
+  const account=await ctx.db.get(payment.userId);if(account&&payment.customerEmail===account.email)await ctx.db.patch(account._id,{flutterwaveCustomerId:args.providerCustomerId,flutterwaveCustomerEmail:account.email?.trim().toLowerCase()});
   await ctx.db.patch(payment._id, { providerCustomerId: args.providerCustomerId, ...(args.virtualAccountId ? { virtualAccountId: args.virtualAccountId } : {}) });
 }});
 export const settle = internalMutation({ args: { provider, reference: v.string(), transactionId: v.string(), amount: v.number(), currency: v.string() }, handler: async (ctx, args) => {

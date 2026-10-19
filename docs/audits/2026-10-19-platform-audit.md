@@ -48,8 +48,7 @@ Severity denotes the consequence before repair, not a claim that an exploit occu
 | F15 | Medium | Tester and tennis routes were missing from shared-offline-cache exclusions. Added both. | `src/service-worker/index.ts`. |
 | F16 | Medium | Anti-framing/base/object protections were absent from shared responses. Added consistent static and runtime headers without blocking required app scripts. | `_headers`, `src/hooks.server.ts`. This is not a full script/style CSP. |
 | F17 | Medium | Sensitive auth rate-limit persistence was implicit/per-instance. Enabled database-backed limits for sensitive auth actions; ordinary session/token reads are excluded to limit I/O. | `convex/auth.ts`; HTTP signup integration test. Trusted edge-IP/rate-limit deployment acceptance remains an operational check. |
-
-The final independent coverage review additionally found stale transfer instructions after automatic settlement. The realtime checkout subscriber now removes instructions for a confirmed paid reference and shows the verified membership message.
+| F18 | Medium | Live Flutterwave initialization exposed an existing-customer conflict (HTTP 409). Added exact-email resolution for legacy customers, account-bound cached IDs and a stable customer idempotency key for renewals. Unmatched customer records are rejected. | `payments.customerForCheckout/attachV4`; duplicate, mismatch and renewal-cache tests. |
 
 ## Open gaps and limits
 
@@ -87,9 +86,16 @@ The final independent coverage review additionally found stale transfer instruct
 
 - [Korapay hosted checkout initialization and return verification](https://developers.korapay.com/docs/checkout-redirect): server initialization, unique reference, callback handling and verification.
 - [Korapay webhook signatures](https://developers.korapay.com/docs/webhooks): HMAC-SHA256 over the data object, hexadecimal signature header and duplicate-delivery handling.
+- [Flutterwave customer API](https://developer.flutterwave.com/v4/reference/customers_create) and [customer listing](https://developer.flutterwave.com/v4.0.0/reference/customers_list): conflict handling and server-side exact matching.
 - [Flutterwave webhook guidance](https://developer.flutterwave.com/v4.0/docs/webhooks): authenticate callbacks and verify provider transaction data before fulfillment.
 - [Auth.js advisory GHSA-7rqj-j65f-68wh](https://github.com/advisories/GHSA-7rqj-j65f-68wh), [Auth.js advisory GHSA-x445-f3h2-j279](https://github.com/advisories/GHSA-x445-f3h2-j279), [Better Auth advisory GHSA-qq9h-g4jm-xgf3](https://github.com/advisories/GHSA-qq9h-g4jm-xgf3): dependency patch rationale. Feature applicability was not treated as proof of exploitation.
 
 ## Release acceptance record
 
-Local production build and static application-shell/API routing checks passed. Deployment, registration import and unpaid provider-initialization outcomes will be recorded after release verification; none substitutes for funded settlement acceptance.
+- Initial backend and frontend release at `3e8a40f` passed [backend CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39293737802) and [Pages CI/deploy](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39293992461).
+- Five existing registrations imported idempotently; no access grants changed and no verification emails sent.
+- Korapay live unpaid hosted-checkout initialization succeeded at checkout.korapay.com for NGN 10,000. No funds moved.
+- Flutterwave authenticated but first live checkout initialization returned HTTP 409, customer already exists. Follow-up repair and acceptance results are recorded below.
+- Expanded browser assertions at 390px and 1440px passed, including automatic removal of paid transfer instructions; final frontend type check found zero errors and warnings.
+- First CI run stopped before deployment on an environment-dependent test expectation. The test now explicitly clears the Korapay key for its unconfigured-gateway scenario; the corrected full CI passed.
+- Local production build and static application-shell/API routing checks passed. Provider dashboard webhook delivery and funded settlement still require a genuine payment.

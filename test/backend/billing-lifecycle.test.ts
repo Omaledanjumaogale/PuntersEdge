@@ -64,6 +64,19 @@ describe('member-specific controls and billing lifecycle',()=>{
   }));
   const result=await m.signed.action(anyApi.payments.checkout,{provider:'flutterwave'});expect(result).toMatchObject({kind:'bankTransfer',bankName:'QA Bank',accountNumber:'0123456789'});
   expect((await m.signed.query(anyApi.payments.mine,{})).pendingInstructions).toEqual(result);expect(await t.run(ctx=>ctx.db.query('subscriptions').collect())).toEqual([]);
+  await m.signed.action(anyApi.payments.checkout,{provider:'flutterwave'});expect(vi.mocked(fetch).mock.calls.filter(([url])=>String(url).endsWith('/customers'))).toHaveLength(1);expect(await t.run(ctx=>ctx.db.get(m.localId))).toMatchObject({flutterwaveCustomerId:'cus_checkout',flutterwaveCustomerEmail:'member@example.test'});
+ });
+ for(const matched of [true,false])it(`handles legacy Flutterwave duplicate customers with exact-email matching: ${matched}`,async()=>{
+  const t=create(),m=await member(t);vi.stubEnv('FLW_ENABLED','true');vi.stubEnv('FLW_API_VERSION','v4');vi.stubEnv('FLW_SECRET_KEY','unit-flw-key');vi.stubEnv('FLW_CLIENT_ID','unit-flw-client');vi.stubEnv('FLW_SECRET_HASH','unit-flw-hash');
+  vi.stubGlobal('fetch',vi.fn(async(url:string,init:RequestInit)=>{
+   if(url.includes('openid-connect'))return Response.json({access_token:'unit-flw-token',expires_in:3600});
+   if(url.endsWith('/customers'))return Response.json({status:'failed',message:'Customer already exists'},{status:409});
+   if(url.includes('/customers?page='))return Response.json({status:'success',data:[{id:'cus_wrong',email:'other@example.test'},...(matched?[{id:'cus_legacy',email:'MEMBER@example.test'}]:[])]});
+   if(url.endsWith('/virtual-accounts')){const body=JSON.parse(String(init.body));expect(body.customer_id).toBe('cus_legacy');return Response.json({status:'success',data:{...body,id:'vac_legacy',status:'active',account_number:'0123456789',account_bank_name:'QA Bank',account_expiration_datetime:new Date(Date.now()+3600000).toISOString()}});}
+   throw Error('Unexpected provider call');
+  }));
+  const checkout=m.signed.action(anyApi.payments.checkout,{provider:'flutterwave'});
+  if(matched)expect(await checkout).toMatchObject({kind:'bankTransfer'});else{await expect(checkout).rejects.toThrow('matched securely');expect(vi.mocked(fetch).mock.calls.some(([url])=>String(url).endsWith('/virtual-accounts'))).toBe(false);}
  });
  it('keeps failed initialization visible and rejects provider redirect injection',async()=>{
   const t=create(),m=await member(t);vi.stubEnv('KORAPAY_ENABLED','true');vi.stubEnv('KORAPAY_SECRET_KEY','unit-secret');
