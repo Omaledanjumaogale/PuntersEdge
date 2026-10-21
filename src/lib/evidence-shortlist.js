@@ -1,3 +1,4 @@
+import {settleTwoConsecutive} from './engine/goal_sequence.js';
 /** Exact-market recurrence analysis of immutable published projections. No model is fitted here. */
 /** @param {any} s */
 const norm=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N}.]+/gu,' ').trim();
@@ -11,6 +12,7 @@ export function sourceClass(source){const s=String(source??'unknown').toLowerCas
 export function evidenceMarket(key,sport){
  let scope='full',kind='',side='',line=null,m;
  if((m=/^(?:forecast:full|period:(full|first_half|first_quarter|first_period|regulation|first_five|first_inning)):(total|home|away|handicap):(over|under|home|away):(-?\d+(?:\.\d+)?)$/.exec(key))){scope=m[1]??'full';kind=m[2]==='total'?'match-total':m[2]==='handicap'?'handicap':`team-${m[2]}`;side=m[3];line=Number(m[4]);}
+ else if(sport==='football'&&(m=/^sequence:regulation:two-consecutive:(home|away)$/.exec(key))){scope='regulation';kind='two-consecutive';side=m[1];}
  else if(['home','draw','away','homeMl','awayMl'].includes(key)){kind='winner';side=key.replace('Ml','');}
  else if(['regH','regX','regA'].includes(key)){kind='winner';scope='regulation';side={regH:'home',regX:'draw',regA:'away'}[key]??'';}
  else if(['over25','under25'].includes(key)){kind='match-total';side=key==='over25'?'over':'under';line=2.5;}
@@ -21,7 +23,7 @@ export function evidenceMarket(key,sport){
  else if(['bttsYes','bttsNo','dc1x','dc12','dcx2','dnbh','dnba','csh','csa'].includes(key)){kind='other';side=key;}
  else return null;
  if(line!==null&&(!Number.isFinite(line)||!Number.isInteger(line*4)))return null;
- const title=kind==='winner'?`${side==='home'?'Home winner':side==='away'?'Away winner':'Draw'}`:kind==='handicap'?`${side==='home'?'Home':'Away'} handicap ${Number(line)>=0?'+':''}${line}`:kind==='other'?({bttsYes:'Both teams score · Yes',bttsNo:'Both teams score · No',dc1x:'Home or draw (1X)',dc12:'Home or away (12)',dcx2:'Away or draw (X2)',dnbh:'Home draw-no-bet',dnba:'Away draw-no-bet',csh:'Home clean sheet',csa:'Away clean sheet'}[side]):`${kind==='match-total'?'Match total':kind==='team-home'?'Home team total':'Away team total'} · ${side==='over'?'Over':'Under'} ${line}`;
+ const title=kind==='two-consecutive'?`${side==='home'?'Home':'Away'} team · two consecutive goals`:kind==='winner'?`${side==='home'?'Home winner':side==='away'?'Away winner':'Draw'}`:kind==='handicap'?`${side==='home'?'Home':'Away'} handicap ${Number(line)>=0?'+':''}${line}`:kind==='other'?({bttsYes:'Both teams score · Yes',bttsNo:'Both teams score · No',dc1x:'Home or draw (1X)',dc12:'Home or away (12)',dcx2:'Away or draw (X2)',dnbh:'Home draw-no-bet',dnba:'Away draw-no-bet',csh:'Home clean sheet',csa:'Away clean sheet'}[side]):`${kind==='match-total'?'Match total':kind==='team-home'?'Home team total':'Away team total'} · ${side==='over'?'Over':'Under'} ${line}`;
  return {scope,kind,side,line,title,signature:JSON.stringify([scope,kind,side,line])};
 }
 /** @param {number} wins @param {number} n */
@@ -31,6 +33,7 @@ export function compactEvidence(snapshot){
  if(!snapshot||!Number.isFinite(snapshot.publishedAt)||!Number.isFinite(snapshot.kickoff)||snapshot.publishedAt>=snapshot.kickoff||!Array.isArray(snapshot.selections))return null;
  const map=new Map();
  for(const s of snapshot.selections){const market=evidenceMarket(s.key,snapshot.sport);if(!market||!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1)continue;
+  if(market.kind==='two-consecutive'&&snapshot.state==='finished'&&settleTwoConsecutive(snapshot.goalSequence,snapshot.score,market.side)!==s.result)continue;
   const row={...market,key:s.key,selection:s.selection,modelProb:s.modelProb,pushProb:s.pushProb??0,result:s.result??null,odds:s.pricing==='quoted'&&s.odds>1?s.odds:0,pricing:s.pricing==='quoted'?'quoted':'unpriced',artifact:s.modelVersion??snapshot.artifactVersion??'unversioned',source:sourceClass(snapshot.input?.ratingsSource),quoteObservedAt:s.quoteObservedAt??null};
   const old=map.get(market.signature);if(!old||old.pricing!=='quoted'&&row.pricing==='quoted')map.set(market.signature,row);
  }

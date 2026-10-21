@@ -71,3 +71,20 @@ test('football scoring, first-half lines and basketball team totals filter exact
  if(sport==='football'){for(const kind of ['team-05','bttsYes','bttsNo','first-half-u15','first-half-u25','match-over','match-under']){const rows=evidenceShortlist(r,{...rules,kind},now).rows;assert.equal(rows.length,kind==='team-05'?2:kind==='match-under'?3:1);}}
  else {const rows=evidenceShortlist(r,{...rules,kind:'basketball-team'},now).rows;assert.ok(rows.some(r=>r.kind==='team-home'&&r.side==='over'));assert.ok(rows.some(r=>r.kind==='team-away'&&r.side==='under'));assert.equal(evidenceShortlist(r,{...rules,kind:'team-05'},now).rows.length,0);}}
 });
+
+test('two consecutive goals requires a complete, score-reconciled regulation sequence, independently for each side',async()=>{
+ const {settleTwoConsecutive}=await import('../src/lib/engine/goal_sequence.js');
+ const seq=sides=>({complete:true,scope:'regulation',sides});
+ assert.equal(settleTwoConsecutive(seq(['home','away','home']),{home:2,away:1},'home'),'lost');
+ assert.equal(settleTwoConsecutive(seq(['away','home','home']),{home:2,away:1},'home'),'won');
+ assert.equal(settleTwoConsecutive(seq(['home','home','away','away']),{home:2,away:2},'away'),'won');
+ assert.equal(settleTwoConsecutive(seq(['home','home','away','away']),{home:2,away:2},'home'),'won');
+ assert.equal(settleTwoConsecutive(null,{home:3,away:0},'home'),null);
+ assert.equal(settleTwoConsecutive(seq(['home','home']),{home:3,away:0},'home'),null);
+ assert.equal(settleTwoConsecutive(seq([]),{home:0,away:0},'away'),'lost');
+ const key='sequence:regulation:two-consecutive:home',s=snap('sequence','won',{selections:[{key,selection:'Home two consecutive',modelProb:.75,result:'won'}]});
+ assert.equal(compactEvidence(s).rows.length,0);
+ s.goalSequence=seq(['home','home','home']);assert.equal(compactEvidence(s).rows.length,1);
+ assert.notEqual(evidenceMarket(key,'football').signature,evidenceMarket('h15','football').signature);
+ assert.equal(evidenceMarket(key,'basketball'),null);
+});
