@@ -61,3 +61,12 @@ export const reindexPage=internalQuery({args:{cursor:v.optional(v.string())},han
  const page=await ctx.db.query('projection_snapshots').paginate({numItems:50,cursor:args.cursor??null});
  return {...page,page:page.page.filter(p=>p.contributions?.summary?.n>0&&!Object.keys(p.contributions??{}).some(k=>k.startsWith('directions:')))};
 }});
+
+/** Apply a derived-dimension migration only if the source snapshot has not changed. */
+export const reindex=internalMutation({args:{fixtureId:v.string(),expectedFingerprint:v.string(),contributions:v.any()},handler:async(ctx,args)=>{
+ const old=await ctx.db.query('projection_snapshots').withIndex('by_fixture',q=>q.eq('fixtureId',args.fixtureId)).unique();
+ if(!old||old.fingerprint!==args.expectedFingerprint)return false;
+ const {_id,_creationTime,...record}=old,metrics=new Map();
+ await recordOne(ctx,{...record,contributions:args.contributions,observedAt:Math.max(Date.now(),(old.observedAt??old.publishedAt)+1),fingerprint:old.fingerprint+':directions-v2'},metrics);
+ await flushMetrics(ctx,metrics);return true;
+}});

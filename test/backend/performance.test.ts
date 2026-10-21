@@ -44,3 +44,9 @@ it('quota reservations do not rewrite the large ingest document or subscriber fe
  const before=await t.run(ctx=>ctx.db.query('feed_state').collect());await t.mutation(anyApi.feed.reserve,{ledgers:{provider:{used:5}}});
  const after=await t.run(ctx=>ctx.db.query('feed_state').collect());expect(after.filter(r=>r.key!=='quota')).toEqual(before);expect(after.find(r=>r.key==='quota')?.data.ledgers.provider.used).toBe(5);
 });
+
+it('rejects a stale dimension reindex rather than overwrite a newer result',async()=>{
+ const t=convexTest(schema,modules);const row={fixtureId:'reindex-race',sport:'football',family:'football',match:'Home v Away',league:'Test',kickoff:1,publishedAt:1,observedAt:3,modelVersion:'test',state:'finished',score:{home:1,away:2},blobKey:'archives/test.gz',fingerprint:'newer',contributions:{},recent:[]};await t.mutation(anyApi.performance.record,row);
+ expect(await t.mutation(anyApi.performance.reindex,{fixtureId:row.fixtureId,expectedFingerprint:'older',contributions:{}})).toBe(false);
+ expect((await t.query(anyApi.performance.fixtureStates,{ids:[row.fixtureId]}))[0].score).toEqual({home:1,away:2});
+});
