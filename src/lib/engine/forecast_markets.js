@@ -2,12 +2,18 @@ import {generateScoreMatrix} from './football_model.js';
 import {scoreDistribution,SCORE_SPORTS} from './score_sports.js';
 import {normalOutcomes} from './outcomes.js';
 /** Complete model projections without inventing executable odds. @param {any} input @param {any} p */
-export function addFullForecastMarkets(input,p){
+export function fullForecastOutcomes(input,p){
  const gaussian=p.family==='basketball',home=gaussian?p.projectedScore.home:p.family==='football'?p.expectedGoals.homeLambda:p.projectedScore.home,away=gaussian?p.projectedScore.away:p.family==='football'?p.expectedGoals.awayMu:p.projectedScore.away;
- if(!Number.isFinite(home+away))return p;
+ if(!Number.isFinite(home+away))return null;
  const model=gaussian?null:p.family==='football'?generateScoreMatrix(home,away,p.expectedGoals.rho,20):scoreDistribution(home,away,{...SCORE_SPORTS[/** @type {'hockey'|'baseball'} */(p.family)],...(input.scoreConfig??{}),finalScoreModel:true});
  const marginSd=input.fittedProjection?.marginSd??p.scoreDispersion?.marginSd??(gaussian?Math.sqrt(2)*11:1),totalSd=input.fittedProjection?.totalSd??p.scoreDispersion?.totalSd??(gaussian?Math.sqrt(2)*13:1),teamSd=Math.sqrt((marginSd**2+totalSd**2)/4);
  const outcomes=(/** @type {string} */kind,/** @type {number} */line)=>{if(gaussian)return normalOutcomes(kind==='total'?home+away:kind==='home'?home:kind==='away'?away:home-away,kind==='total'?totalSd:kind==='margin'?marginSd:teamSd,kind==='margin'?-line:line);if(!model)throw new Error('Score model missing');let win=0,push=0,lose=0;for(let h=0;h<model.matrix.length;h++)for(let a=0;a<model.matrix[h].length;a++){const value=kind==='total'?h+a:kind==='home'?h:kind==='away'?a:h-a,d=kind==='margin'?value+line:value-line;const mass=model.matrix[h][a];if(d>0)win+=mass;else if(d<0)lose+=mass;else push+=mass;}return {win,push,lose,conditional:win/(win+lose)};};
+ return outcomes;
+}
+/** Complete model projections without inventing executable odds. @param {any} input @param {any} p */
+export function addFullForecastMarkets(input,p){
+ const gaussian=p.family==='basketball',home=gaussian?p.projectedScore.home:p.family==='football'?p.expectedGoals.homeLambda:p.projectedScore.home,away=gaussian?p.projectedScore.away:p.family==='football'?p.expectedGoals.awayMu:p.projectedScore.away;
+ const outcomes=fullForecastOutcomes(input,p);if(!outcomes)return p;
  /** @type {any[]} */ const rows=[];const step=gaussian?5:1;
  for(const kind of ['total','home','away'])for(const offset of [-1,0,1]){
   const line=Math.max(.5,Math.floor(kind==='total'?home+away:kind==='home'?home:away)+.5+offset*step),o=outcomes(kind,line);

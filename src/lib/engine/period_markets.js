@@ -1,6 +1,17 @@
 import {generateScoreMatrix} from './football_model.js';
 import {scoreDistribution,SCORE_SPORTS} from './score_sports.js';
 import {normalOutcomes} from './outcomes.js';
+/** Exact separately-fitted period distribution at a fixed line. @param {any} a @param {number} home @param {number} away */
+export function periodForecastOutcomes(a,home,away){
+ const gaussian=['nba','basketball'].includes(a.sport);
+  /** @type {number[][]} */ let matrix=[];
+  if(!gaussian)matrix=a.sport==='football'?generateScoreMatrix(home,away,a.rho??0,20).matrix:scoreDistribution(home,away,{...SCORE_SPORTS[/** @type {'hockey'|'baseball'} */(a.sport)],...(a.scoreConfig??{}),finalScoreModel:false}).matrix;
+  return (/** @type {'total'|'home'|'away'|'margin'} */kind,/** @type {number} */line)=>{
+   if(gaussian)return normalOutcomes(kind==='total'?home+away:kind==='home'?home:kind==='away'?away:home-away,kind==='total'?a.totalSd:kind==='margin'?a.marginSd:a.teamSd,kind==='margin'?-line:line);
+   let win=0,push=0,lose=0;for(let x=0;x<matrix.length;x++)for(let y=0;y<matrix[x].length;y++){const v=kind==='total'?x+y:kind==='home'?x:kind==='away'?y:x-y;const d=kind==='margin'?v+line:v-line;if(d>0)win+=matrix[x][y];else if(d<0)lose+=matrix[x][y];else push+=matrix[x][y];}
+   return {win,push,lose,conditional:win/(win+lose)};
+  };
+}
 /** Separately fitted scope forecasts; no bookmaker quotes are fabricated.
  * @param {any} input @param {any} prediction */
 export function addPeriodMarkets(input,prediction) {
@@ -9,13 +20,7 @@ export function addPeriodMarkets(input,prediction) {
   let home=a.intercept+a.homeAdvantage+h.attack+w.defence,away=a.intercept+w.attack+h.defence;
   const gaussian=['nba','basketball'].includes(a.sport);if(!gaussian){home=Math.exp(home);away=Math.exp(away);}
   if(!Number.isFinite(home+away)||home<=0||away<=0||(!gaussian&&Math.max(home,away)>12))continue;
-  /** @type {number[][]} */ let matrix=[];
-  if(!gaussian)matrix=a.sport==='football'?generateScoreMatrix(home,away,a.rho??0,20).matrix:scoreDistribution(home,away,{...SCORE_SPORTS[/** @type {'hockey'|'baseball'} */(a.sport)],...(a.scoreConfig??{}),finalScoreModel:false}).matrix;
-  const outcomes=(/** @type {'total'|'home'|'away'|'margin'} */kind,/** @type {number} */line)=>{
-   if(gaussian)return normalOutcomes(kind==='total'?home+away:kind==='home'?home:kind==='away'?away:home-away,kind==='total'?a.totalSd:kind==='margin'?a.marginSd:a.teamSd,kind==='margin'?-line:line);
-   let win=0,push=0,lose=0;for(let x=0;x<matrix.length;x++)for(let y=0;y<matrix[x].length;y++){const v=kind==='total'?x+y:kind==='home'?x:kind==='away'?y:x-y;const d=kind==='margin'?v+line:v-line;if(d>0)win+=matrix[x][y];else if(d<0)lose+=matrix[x][y];else push+=matrix[x][y];}
-   return {win,push,lose,conditional:win/(win+lose)};
-  };
+  const outcomes=periodForecastOutcomes(a,home,away);
   const labels={first_half:'First half',first_quarter:'First quarter',first_period:'First period',regulation:'Regulation',first_five:'First five innings',first_inning:'First inning'};
   const title=/** @type {any} */(labels)[a.scope]??a.scope, rows=[];
   for(const kind of /** @type {const} */(['total','home','away'])){

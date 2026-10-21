@@ -42,3 +42,22 @@ class ChronologicalTrainingTests(unittest.TestCase):
    result=run({'rows':rows,'fingerprint':'f','collectedAt':10**14,'incumbents':[{'artifact':old}]})
    self.assertEqual(result['candidates'],[])
 if __name__=='__main__':unittest.main()
+
+
+class DirectionCohortTests(unittest.TestCase):
+ def test_directions_use_only_candidate_selected_sides_and_do_not_double_fixture_counts(self):
+  rows=[{'status':{'home':3,'away':2}}for _ in range(60)]
+  def probs(dist,line,kind,side):return [.8,0,0,0,.2]if side=='over'else[.2,0,0,0,.8]
+  with patch('continuous.parameters',return_value=(1.,1.)),patch('continuous.distributions',return_value={k:None for k in ('total','home','away','margin')}),patch('continuous.settlement',return_value='win'),patch('continuous.outcomes',side_effect=probs):
+   r=compare('candidate','incumbent',rows,'full')
+  self.assertEqual(r['selectedDirections']['total:over']['nFixtures'],60)
+  self.assertEqual(r['selectedDirections']['total:under']['nFixtures'],0)
+  self.assertEqual(r['selectedDirections']['home:over']['nFixtures'],60)
+  self.assertTrue(r['selectedDirectionsNonRegressing'])
+
+
+class DirectionPromotionTests(unittest.TestCase):
+ def test_an_over_under_regression_blocks_even_an_aggregate_improvement(self):
+  from continuous import qualifies_update
+  score={'n':70,'newTrainingRows':25,'candidateCutoff':1,'incumbentCutoff':1,'testStart':2,'candidateBrier':.1,'incumbentBrier':.2,'candidateLogLoss':.3,'incumbentLogLoss':.4,'candidateMae':1,'incumbentMae':1,'allMarketFamiliesNonRegressing':True,'selectedDirectionsNonRegressing':False,'pairedBrier':{'sufficient':True,'interval95':[-.12,-.05]}}
+  self.assertFalse(qualifies_update(score));score['selectedDirectionsNonRegressing']=True;self.assertTrue(qualifies_update(score));self.assertFalse(qualifies_update(score,True))

@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime,timezone
 import numpy as np
 from benchmark import fit
-from evaluation_diagnostics import paired_block_interval
+from evaluation_diagnostics import paired_block_interval,selected_direction_diagnostics
 from market_benchmark import parameters,distributions,outcomes,settlement
 
 def stamp(t):return datetime.fromtimestamp(t/1000,timezone.utc).isoformat()
@@ -19,7 +19,7 @@ def prepare(a,scope):
 
 def compare(candidate,incumbent,rows,scope):
  totals={'n':0,'candidateBrier':0.,'incumbentBrier':0.,'candidateLogLoss':0.,'incumbentLogLoss':0.,'candidateMae':0.,'incumbentMae':0.};counts=0
- states=['win','half_win','push','half_loss','loss'];markets={};paired=[]
+ states=['win','half_win','push','half_loss','loss'];markets={};paired=[];selected={f'{kind}:{side}':[] for kind in ('total','home','away')for side in ('over','under')}
  for r in rows:
   cm,im=parameters(candidate,r),parameters(incumbent,r)
   if cm is None or im is None:continue
@@ -31,6 +31,7 @@ def compare(candidate,incumbent,rows,scope):
    line=(math.floor(mean)+.5)if kind!='margin'else -(math.floor(mean)+.5)
    for side in (['home','away']if kind=='margin'else ['over','under']):
     actual=states.index(settlement(values[kind],line,kind,side));cp=outcomes(cd[kind],line,kind,side);ip=outcomes(idist[kind],line,kind,side)
+    if kind!='margin' and float(cp[0])>=.55:selected[f'{kind}:{side}'].append((float(cp[0]),float(ip[0]),int(actual==0)))
     market=markets.setdefault(kind,{'nOptions':0,'candidateBrier':0.,'incumbentBrier':0.,'candidateLogLoss':0.,'incumbentLogLoss':0.});market['nOptions']+=1
     losses={}
     for prefix,probs in [('candidate',cp),('incumbent',ip)]:
@@ -50,9 +51,14 @@ def compare(candidate,incumbent,rows,scope):
    if k!='n':totals[k]=None
  for market in markets.values():
   for metric in ('candidateBrier','incumbentBrier','candidateLogLoss','incumbentLogLoss'):market[metric]/=market['nOptions']
+ totals['selectedDirections']={name:selected_direction_diagnostics(values)for name,values in selected.items()}
+ totals['selectedDirectionsNonRegressing']=all(m['nonRegressing']for m in totals['selectedDirections'].values())
  totals['markets']=markets;totals['pairedBrier']=paired_block_interval(paired)
  totals['allMarketFamiliesNonRegressing']=bool(markets) and all(m['candidateBrier']<=m['incumbentBrier']*1.02 and m['candidateLogLoss']<=m['incumbentLogLoss']*1.02 for m in markets.values())
  return totals
+
+def qualifies_update(score,approved=False):
+ return score['n']>=40 and score['newTrainingRows']>=20 and score['candidateCutoff']<score['testStart'] and score['incumbentCutoff']<score['testStart'] and score['candidateBrier']<score['incumbentBrier']*.99 and score['candidateLogLoss']<=score['incumbentLogLoss'] and score['candidateMae']<=score['incumbentMae']*1.02 and score.get('allMarketFamiliesNonRegressing',False) and score.get('selectedDirectionsNonRegressing',False) and score.get('pairedBrier',{}).get('sufficient',False) and score['pairedBrier']['interval95'][1]<0 and not approved
 
 def run(data):
  reports=[];candidates=[];retained=[];seen=set();excluded=0
@@ -76,11 +82,11 @@ def run(data):
    test=[r for r in rows[split:]if r['kickoff']>incumbent_cutoff and r['availableAt']<=data['collectedAt']]
    score=compare(fitted,incumbent,test,scope);score.update(candidateCutoff=max(r['availableAt']for r in train),incumbentCutoff=incumbent_cutoff,testStart=test_start,newTrainingRows=sum(r['kickoff']>incumbent_cutoff for r in train))
    summary.update(evaluation=score,status='Refitted; waiting for unseen results'if score['n']<40 else'Refitted; serving model retained')
-   eligible=score['n']>=40 and score['newTrainingRows']>=20 and score['candidateCutoff']<test_start and incumbent_cutoff<test_start and score['candidateBrier']<score['incumbentBrier']*.99 and score['candidateLogLoss']<=score['incumbentLogLoss'] and score['candidateMae']<=score['incumbentMae']*1.02 and score.get('allMarketFamiliesNonRegressing',False) and score.get('pairedBrier',{}).get('sufficient',False) and score['pairedBrier']['interval95'][1]<0 and not record.get('approved')
+   eligible=qualifies_update(score,record.get('approved',False))
    if eligible:
     final=prepare(fit(rows,sport),scope);final['trainedThrough']=stamp(max(r['availableAt']for r in rows));identity=hashlib.sha256(json.dumps(rows,sort_keys=True).encode()).hexdigest()[:12];final['version']=f'{sport}-{scope}-continuous-{identity}';final['availabilityBasis']='Observed result times; historical seeds explicitly assume kickoff +48h';final['validated']=False;final['calibrated']=False
     candidates.append({'artifact':final,'evaluation':score,'incumbentVersion':old['version']});summary['status']='Qualified for unapproved serving update'
   except Exception as e:summary.update(status='Training failed; serving model retained',error=str(e)[:250])
- return {'report':{'status':'Evaluation complete','evaluatedAt':datetime.now(timezone.utc).isoformat(),'segments':reports,'qualifiedUpdates':len(candidates),'excludedUnavailableOrDuplicateRows':excluded,'policy':'Chronological split reserves latest30% of new results (at least40), 48h availability gap; >=40 unseen fixtures, >=20 new training results, >=1% Brier improvement, no log-loss regression, MAE within2%; each market family Brier/log-loss within2%, paired fixture-block Brier interval upper bound below0; never automatic betting approval'},'candidates':candidates,'fingerprint':data['fingerprint']}
+ return {'report':{'status':'Evaluation complete','evaluatedAt':datetime.now(timezone.utc).isoformat(),'segments':reports,'qualifiedUpdates':len(candidates),'excludedUnavailableOrDuplicateRows':excluded,'policy':'Chronological split reserves latest30% of new results (at least40), 48h availability gap; >=40 unseen fixtures, >=20 new training results, >=1% Brier improvement, no log-loss regression, MAE within2%; each market family and candidate-selected total/team Over/Under cohort with >=40 fixtures Brier/log-loss within2%, paired fixture-block Brier interval upper bound below0; never automatic betting approval'},'candidates':candidates,'fingerprint':data['fingerprint']}
 if __name__=='__main__':
  data=json.loads(Path(sys.argv[1]).read_text());result=run(data);Path(sys.argv[2]).write_text(json.dumps(result,allow_nan=False));print(json.dumps(result['report'],allow_nan=False))

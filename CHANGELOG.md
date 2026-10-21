@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-21 — Ranked shortlists and totals evaluation
+
+- Sort all machine output by the visible Model % descending while retaining the optimizer's chosen legs and push-adjusted combination calculation.
+- Extend fixed-line Under/Over and complementary team-total checks across football, NBA, other basketball, hockey, baseball and supported periods.
+- Preserve hockey/baseball options that fail the price-edge quality screen while retaining PASS/zero-stake safeguards.
+- Add candidate-selected Over/Under evaluation cohorts for match totals and each team, with paired serving comparisons, reliability bins, observed win rates and calibration gaps. Prevent sufficiently sampled directional regressions from qualifying a serving update.
+- Expose this direction evidence in the model registry; historical win rates do not imply executable-price ROI.
+
+
 ## 2026-10-21 — Complete shortlists and coupon market cards
 
 - Remove the ten-fixture fallback limit; show every matching event once, while keeping quoted accumulators subject to their actual odds target.

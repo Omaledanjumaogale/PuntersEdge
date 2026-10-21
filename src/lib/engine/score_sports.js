@@ -339,7 +339,7 @@ export function buildScoreSportPrediction(input, family, options = {}) {
       const pushProb = totalLine ? model.totalPush(Number(totalLine[1])) : 0;
       const edge = (1-pushProb) * (prob * best.odds - 1);
       const edgePercent = round(edge * 100, 2);
-      if (edgePercent > 25) return [];
+      // Preserve both outcomes; rankSelections applies the value-quality and stake gates.
       return [{
         id: `${ctx.fixtureId}:${c.key}`,
         ...ctx,

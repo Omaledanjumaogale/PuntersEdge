@@ -32,3 +32,18 @@ class DiagnosticsTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SelectedDirectionTests(unittest.TestCase):
+ def test_reports_separate_calibration_and_exposes_regression_on_same_selected_fixtures(self):
+  from evaluation_diagnostics import selected_direction_diagnostics
+  rows=[(.9,.65,1)]*26+[(.9,.65,0)]*14
+  report=selected_direction_diagnostics(rows)
+  self.assertEqual(report['nFixtures'],40);self.assertTrue(report['sufficient']);self.assertFalse(report['nonRegressing'])
+  self.assertAlmostEqual(report['observedWinRate'],.65);self.assertAlmostEqual(report['calibrationError'],.25)
+  self.assertEqual(sum(b['n']for b in report['reliability']),40)
+ def test_sparse_cohort_stays_explicitly_insufficient_and_invalid_probabilities_fail(self):
+  from evaluation_diagnostics import selected_direction_diagnostics
+  report=selected_direction_diagnostics([(.8,.7,1)])
+  self.assertFalse(report['sufficient']);self.assertEqual(report['nFixtures'],1)
+  with self.assertRaises(ValueError):selected_direction_diagnostics([(1.2,.5,1)])

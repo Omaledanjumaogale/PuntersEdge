@@ -71,3 +71,19 @@ test('duplicate line copies prefer the real quote and retain distinct periods an
  const rows=uniqueMachineOptions([derived,quoted,period]);assert.equal(rows.length,2);assert.equal(rows[0].pricing,'quoted');assert.equal(rows[1].scope,'first_half');
  const base={fixtureId:'same',sport:'football',kickoffTime:new Date(now).toISOString()};assert.notEqual(machineFixtureKey({...base,matchTitle:'東京 vs 大阪'}),machineFixtureKey({...base,matchTitle:'北京 vs 上海'}));
 });
+
+
+test('every displayed machine list follows Model % descending without changing the chosen legs or economics',async()=>{
+ const {rankMachineDisplay}=await import('../src/lib/bet-machine.js');const rows=[{...pick('a:h','a',.99,2),pushProb:.4},pick('b:h','b',.8,2),pick('c:h','c',.9,2)];
+ const before=rows.map(p=>p.id);assert.deepEqual(rankMachineDisplay(rows).map(p=>p.modelProb),[.99,.9,.8]);assert.deepEqual(rows.map(p=>p.id),before);
+ const ticket=buildMachineTicket(rows,{minTotal:8,maxTotal:8});assert.deepEqual(ticket.picks.map(p=>p.modelProb),[.99,.9,.8]);assert.ok(Math.abs(ticket.combinedProbability-.99*.6*.8*.9)<1e-9);assert.equal(ticket.combinedOdds,8);
+ assert.deepEqual(buildModelShortlist(rows).picks.map(p=>p.modelProb),[.99,.9,.8]);
+});
+
+
+test('visible percentage ordering cannot crowd the strongest outright option out of the search',async()=>{
+ const {rankMachineDisplay}=await import('../src/lib/bet-machine.js');
+ const crowded=Array.from({length:8},(_,i)=>({...pick(`a:push${i}`,'a',.99-i*.001,2),selection:`Home push line ${i}`,pushProb:.5}));
+ const clean={...pick('a:clean','a',.9,2),selection:'Home clean line'};const other=pick('b:h','b',.8,2);
+ const result=buildMachineTicket(rankMachineDisplay([...crowded,clean,other]),{minTotal:4,maxTotal:4});assert.ok(result.picks.some(p=>p.id==='a:clean'));assert.ok(Math.abs(result.combinedProbability-.72)<1e-9);
+});

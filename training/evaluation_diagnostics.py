@@ -49,3 +49,30 @@ def paired_block_interval(differences, block_size=7, repeats=1000):
     means.sort()
     result['interval95'] = [means[int(.025*repeats)], means[min(repeats-1, int(.975*repeats))]]
     return result
+
+
+def selected_direction_diagnostics(rows, minimum=40):
+    """Candidate-selected sides, with serving probabilities on the SAME fixtures.
+
+    One row per fixture/family; these are score-model diagnostics, not priced ROI.
+    Selection uses pre-result candidate win probability >= .55. Calibration here
+    is a diagnostic only; no calibrator is fitted on this holdout.
+    """
+    pairs = [(p, y) for p, _, y in rows]
+    serving = [(q, y) for _, q, y in rows]
+    bins = reliability(pairs)
+    reliability(serving)  # Validate the paired serving forecasts too.
+    n = len(rows)
+    score = lambda values: sum((p-y)**2 for p,y in values)/n if n else None
+    loss = lambda values: -sum(math.log(max(1e-12,p if y else 1-p)) for p,y in values)/n if n else None
+    candidate_brier, serving_brier = score(pairs), score(serving)
+    candidate_loss, serving_loss = loss(pairs), loss(serving)
+    return {'nFixtures': n, 'minimumFixtures': minimum, 'sufficient': n >= minimum,
+            'meanForecast': sum(p for p,_ in pairs)/n if n else None,
+            'observedWinRate': sum(y for _,y in pairs)/n if n else None,
+            'candidateBrier': candidate_brier, 'incumbentBrier': serving_brier,
+            'candidateLogLoss': candidate_loss, 'incumbentLogLoss': serving_loss,
+            'calibrationError': sum(b['n']*abs(b['meanForecast']-b['observedRate']) for b in bins)/n if n else None,
+            'reliability': bins,
+            'nonRegressing': n < minimum or (candidate_brier <= serving_brier*1.02 and candidate_loss <= serving_loss*1.02),
+            'basis': 'Pre-outcome candidate-selected >=55% outright win probability; same-line serving comparison. No prices or ROI.'}

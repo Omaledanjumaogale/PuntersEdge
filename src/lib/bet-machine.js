@@ -53,15 +53,17 @@ export function machineCandidates(predictions, options, now = Date.now()) {
    rows.push({...pick,eventKey:machineFixtureKey(p),evidence,kickoffTime:p.kickoffTime,group:group.key,successProbability:pick.modelProb*(1-(pick.pushProb??0))});
   }
  }
- return uniqueMachineOptions(rows).sort((a,b)=>b.successProbability-a.successProbability||b.edgePercent-a.edgePercent||a.id.localeCompare(b.id));
+ return rankMachineDisplay(uniqueMachineOptions(rows));
 }
+/** Display order follows the visible Model %, without changing selection or accumulator maths. @template {{modelProb:number;id:string;[key:string]:any}} T @param {T[]} picks @returns {T[]} */
+export const rankMachineDisplay=picks=>[...picks].sort((a,b)=>b.modelProb-a.modelProb||(b.modelProb*(1-(b.pushProb??0))-a.modelProb*(1-(a.pushProb??0)))||a.id.localeCompare(b.id));
 /** Fixture combinations, rather than a different market on the same matches. @param {Pick[]} picks */
 export const ticketFixtureKey=picks=>JSON.stringify(picks.map(p=>p.eventKey??machineFixtureKey(p)).sort());
 /** @param {Pick[]} candidates @param {{minTotal:number;maxTotal:number;excludeFixtures?:string[]}} options */
 export function buildMachineTicket(candidates, options) {
  if(!Number.isFinite(options.minTotal)||!Number.isFinite(options.maxTotal)||options.minTotal<=1||options.maxTotal<options.minTotal)throw new Error('Choose a valid combined odds range greater than 1.');
  // Keep market alternatives across fixtures rather than allowing one match to monopolize the search.
- const counts=new Map();const pool=uniqueMachineOptions(candidates).map(p=>({...p,eventKey:p.eventKey??machineFixtureKey(p)})).filter(p=>p.pricing==='quoted'&&Number.isFinite(p.bestOdds)&&p.bestOdds>1).filter(p=>{const count=counts.get(p.eventKey??machineFixtureKey(p))??0;counts.set(p.eventKey??machineFixtureKey(p),count+1);return count<8;});
+ const counts=new Map();const pool=uniqueMachineOptions(candidates).sort((a,b)=>b.modelProb*(1-(b.pushProb??0))-a.modelProb*(1-(a.pushProb??0))||b.edgePercent-a.edgePercent||a.id.localeCompare(b.id)).map(p=>({...p,eventKey:p.eventKey??machineFixtureKey(p)})).filter(p=>p.pricing==='quoted'&&Number.isFinite(p.bestOdds)&&p.bestOdds>1).filter(p=>{const count=counts.get(p.eventKey??machineFixtureKey(p))??0;counts.set(p.eventKey??machineFixtureKey(p),count+1);return count<8;});
  const excluded=new Set(options.excludeFixtures??[]);let evaluated=0;const maxEvaluations=300000;
  let beam=[{picks:/** @type {Pick[]} */([]),odds:1,probability:1,last:-1}];
  const maximum=Math.min(30,new Set(pool.map(p=>p.eventKey??machineFixtureKey(p))).size);
@@ -85,7 +87,7 @@ export function buildMachineTicket(candidates, options) {
   const kept=new Map();beam=next.filter(state=>{if(best&&state.probability<=best.probability)return false;const band=Math.floor(Math.log(state.odds)*15);const n=kept.get(band)??0;kept.set(band,n+1);return n<12;}).slice(0,400);
   if(!beam.length||evaluated>maxEvaluations)break;
  }
- return best?{picks:best.picks,combinedOdds:best.odds,combinedProbability:best.probability,considered:pool.length,fixtureKey:ticketFixtureKey(best.picks),searchLimited:evaluated>maxEvaluations}:null;
+ return best?{picks:rankMachineDisplay(best.picks),combinedOdds:best.odds,combinedProbability:best.probability,considered:pool.length,fixtureKey:ticketFixtureKey(best.picks),searchLimited:evaluated>maxEvaluations}:null;
 }
 
 /** A probability-ranked research shortlist, never a claim that target odds were reached.
@@ -99,5 +101,5 @@ export function buildModelShortlist(candidates, limit = Infinity) {
   .filter(p=>{if(seen.has(p.eventKey??machineFixtureKey(p)))return false;seen.add(p.eventKey??machineFixtureKey(p));return true;}).slice(0,Math.max(1,limit));
  if(!picks.length)return null;
  const quoted=picks.filter(p=>p.pricing==='quoted'&&Number.isFinite(p.bestOdds)&&p.bestOdds>1);
- return {picks,combinedOdds:quoted.reduce((n,p)=>n*p.bestOdds,1),combinedProbability:picks.reduce((n,p)=>n*p.modelProb*(1-(p.pushProb??0)),1),considered:candidates.length,fixtureKey:ticketFixtureKey(picks),searchLimited:false};
+ return {picks:rankMachineDisplay(picks),combinedOdds:quoted.reduce((n,p)=>n*p.bestOdds,1),combinedProbability:picks.reduce((n,p)=>n*p.modelProb*(1-(p.pushProb??0)),1),considered:candidates.length,fixtureKey:ticketFixtureKey(picks),searchLimited:false};
 }
