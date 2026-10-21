@@ -20,11 +20,25 @@ The supplied coupon reference is implemented through a shared violet-charcoal ca
 
 ## Verification
 
-- Existing plus new application regression suite: 159 tests passed before the final identity test addition.
-- Specific shortlist/direction/duplicate tests: 15 passed before the final addition. New cases cover 45 fallback fixtures, 23 quoted legs, team Over/Under, period filters, provider copies and rematches.
+- Final full application CI suite: 160 tests passed.
+- Specific shortlist/direction/duplicate tests: 16 passed locally. Cases cover 45 fallback fixtures, 23 quoted legs, team Over/Under, period filters, provider copies, rematches, quote preference and non-Latin fixture identity.
 - Frontend check: zero errors and zero warnings.
-- Synthetic responsive/browser QA and deployment results: pending final acceptance below.
+- Synthetic responsive browser QA passed at 320px, 390px and 1440px: all 42 distinct fixtures from 43 provider inputs, duplicate event replacement, actual tap/click analysis navigation, team-Under filtering, coupon cards, initially collapsed accordions, 44px touch targets, both themes and no horizontal overflow or JavaScript page errors.
+- Saved-slip integration suite: 10 passed locally, including save/edit of 45 verified fixtures and rejection above 100. One cold Windows run timed out in the existing first ownership test at its unchanged 5-second limit; the warm full-file rerun passed. Full backend CI passed all 75 tests.
+- Full CI frontend and backend type checks passed, as did production build, static-shell routing and deployment checks.
+- Backend: [CI and deployment](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39628621492). Frontend: [CI and deployment](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39628646087). Runtime source release: `f8211c2`.
+- Live `/bet-machine`, `/betslips`, `/match` and `/tennis` each returned HTTP 200 application shells with the generated script policy. Authenticated interaction tests used only synthetic localhost data; no customer access, slip or payment was changed.
+- Earlier browser harness failures included a cold development-server reload, a selector that changed after an option was added and an assertion running before the sheet exit transition ended. Corrected reruns passed; failed runs were not counted as acceptance.
 
 ## Limits
 
 All matches in the selected data window that pass the rules can be listed; missing or unpublished forecasts are not invented. A quoted accumulator is a subset constrained by the actual odds target, not a promise that every eligible fixture fits into one accumulator. Bounded beam search is not a proof of global optimality. Saved tickets now support 100 selections (previously 30), with a shared frontend/backend capacity guard and finite-price validation. A regression covers saving and editing a 45-fixture shortlist through the real backend. Longer research lists remain complete; the save control explicitly asks for at most 100 selections rather than failing unexpectedly. No win, bookmaker superiority or positive ROI is guaranteed by these engineering fixes.
+
+
+## Final live acceptance
+
+The [R2 data refresh](https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39628918181) completed successfully against the new source release. Existing provider quota guards remain in use. Live theme QA passed at 390px and 1440px: dark page background remains black, light mode remains available, reduced motion and button highlights work, and no overflow or JavaScript page errors occurred.
+
+Local screenshots `coupon-markets-320.png`, `coupon-markets-390.png` and `coupon-markets-1440.png` in the parent workspace show the coupon layout. Tests used synthetic fixture names and local account state; they do not establish a higher strike rate or authenticated physical-device acceptance. The live release and API/page health checks are separate from that synthetic interaction evidence.
+
+No model was retrained or relabelled as more accurate in this change. The basketball fix preserves both probability directions and leaves the existing eligibility gates intact. The release report and QA artifacts describe engineering behaviour, not verified betting returns.
