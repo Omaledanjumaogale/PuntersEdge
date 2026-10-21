@@ -1,0 +1,2 @@
+import {ConvexHttpClient} from 'convex/browser';import {makeFunctionReference} from 'convex/server';import {runnerBlobs} from './runner-blobs.mjs';import {refreshEvidenceCatalog} from './evidence-catalog.mjs';
+const client=new ConvexHttpClient(process.env.PUBLIC_CONVEX_URL);client.setAdminAuth(process.env.CONVEX_DEPLOY_KEY);const rpc=Object.fromEntries(['query','mutation'].map(k=>[k,(n,args)=>client[k](makeFunctionReference(n),args)]));console.log(JSON.stringify(await refreshEvidenceCatalog({rpc,blobs:runnerBlobs()})));
