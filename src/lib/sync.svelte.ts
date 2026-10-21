@@ -1,4 +1,5 @@
 /** Realtime, user-scoped betslip synchronization with visible failure feedback. */
+import {untrack} from 'svelte';
 import { app, DEFAULT_SETTINGS, type SlipItem } from '#lib/state.svelte.ts';
 import { auth } from '#lib/auth.svelte.ts';
 import { toast } from '#lib/toast.svelte.ts';
@@ -25,7 +26,7 @@ export function startSlipSync(): () => void {
    const priorOwner = ownerGet('pe:slip:owner');
    if (priorOwner && priorOwner !== userId) app.slip = [];
    ownerSet('pe:slip:owner', userId); owner = userId;
-   unsubscribe = client.onUpdate(api.betslip.mine, {}, saved => {
+   unsubscribe = untrack(()=>client.onUpdate(api.betslip.mine, {}, saved => {
     if (owner !== userId) return;
     const incoming: SlipItem[] = (saved?.items ?? []).map(i => ({ ...i, id: i.marketKey ? `${i.fixtureId}:${i.marketKey}` : `${i.fixtureId}:saved:${i.selection}`, sport: i.sport as SlipItem['sport'], modelProb: i.modelProb ?? (i.odds>1?1/i.odds:0) }));
     remoteJson = JSON.stringify(payload(incoming));
@@ -33,7 +34,7 @@ export function startSlipSync(): () => void {
      if (JSON.stringify(payload(app.slip)) !== remoteJson) app.slip = incoming;
     }
     ready = true;
-   }, () => { ready = false; toast.error('Your betslip could not synchronize. Check your connection.'); });
+   }, () => { ready = false; toast.error('Your betslip could not synchronize. Check your connection.'); }));
   });
   $effect(() => {
    const client = auth.client, userId = auth.viewer?.id;

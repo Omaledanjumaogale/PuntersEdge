@@ -14,4 +14,17 @@ Tennis remains a separate informational winner/first-set implementation. Its uns
 
 ## Acceptance
 
-Pending final CI, responsive QA, deployment and refreshed evaluation. No improved profitability or accuracy claim is made by the code change alone.
+- Local application suite: 177 passed before the final optimizer-order regression addition; the targeted machine/cross-sport suite then passed all33 tests. Final CI counts are recorded below.
+- Python tests: seven continuous-training tests and six diagnostic tests passed. They verify that a direction regression blocks a candidate despite an aggregate improvement, that sparse cohorts stay insufficient and that candidate-selected sides do not double fixture counts.
+- Frontend local check: zero errors and zero warnings.
+- Responsive synthetic browser QA passed at320,390 and1440px, including42 distinct fixtures with varied model percentages in descending order, team Under filtering, deduplication, mobile analysis navigation and no overflow/page errors.
+- Runtime source release: `b3f01e9`. Backend CI/deploy: https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39630703521. Frontend CI/deploy: https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39630707365. Refreshed training: https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39630717707.
+
+No improved profitability or accuracy claim is made by the code change alone. Fresh training conclusions and final release checks follow.
+
+
+## Responsive and synchronization acceptance
+
+The machine browser regression passed at320,390 and1440px with42 varied fixture percentages in descending order, no duplicate event copies, working team Under filter and analysis navigation, and no page errors/overflow. The direction evidence panel passed at390 and1440px, including collapsed defaults, visible regression and insufficient-sample states.
+
+That panel test initially reproduced a real cached-callback issue in betslip sync: registration ran inside a reactive effect, and an immediate callback read and wrote its `ready` state, causing repeated subscriptions. Registration now runs untracked while auth/owner dependencies remain tracked. The identical immediate-callback browser test then passed. The first mock also lacked a mutation method; that test-harness error was corrected before diagnosing the reactive loop. No failed run was treated as acceptance.
