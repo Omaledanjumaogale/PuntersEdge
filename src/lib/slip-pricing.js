@@ -1,5 +1,7 @@
 /** Bounded persisted tickets; complete research lists are not truncated. */
-export const MAX_SLIP_SELECTIONS=100;
+// Use the serialized document budget, rather than an arbitrary fixture count.
+export const MAX_SLIP_BYTES=700000;
+export function validateSlipSize(/** @type {any[]} */items){if(new TextEncoder().encode(JSON.stringify(items)).length>MAX_SLIP_BYTES)throw new Error('This ticket exceeds the storage size budget. Split it into smaller named tickets.');}
 /** Zero is the persisted "unpriced selection" marker, never an offered price. */
 export const hasQuotedOdds = (/** @type {{odds:number}} */ item) => Number.isFinite(item.odds) && item.odds > 1;
 /** Quoted subset only. Accumulator decimal odds multiply; missing odds contribute nothing. */

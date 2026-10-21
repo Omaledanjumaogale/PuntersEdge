@@ -3,8 +3,9 @@
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { toast } from '#lib/toast.svelte.ts';
-	import {hasQuotedOdds,MAX_SLIP_SELECTIONS} from '#lib/slip-pricing.js';
-	import {shareSlipText} from '#lib/slips.js';
+	import {hasQuotedOdds} from '#lib/slip-pricing.js';
+	import SlipEvidence from '#lib/components/SlipEvidence.svelte';
+ import {itemOutcome,shareSlipText} from '#lib/slips.js';
  import { downloadSlipPdf } from '#lib/slip-export.ts';
 	import { api } from '../../../convex/_generated/api.js';
 	import { odds, pct, ngn, signed } from '#lib/format.ts';
@@ -24,7 +25,7 @@
 
 	const items = $derived(app.resolvedSlip);
 	const econ = $derived(app.slipEconomics);
-	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.filter(hasQuotedOdds).reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,tournament:item.tournament??game?.tournament,country:item.country??game?.country,kickoff:game?Date.parse(game.kickoff):undefined,fixtureStatus:game?.status.state,score:game?.status.home!==undefined&&game?.status.away!==undefined?{home:game.status.home,away:game.status.away}:undefined};})});
+	const exportSlip = $derived({name:slipName.trim()||'My betslip',betType:mode,stake,potentialReturn:mode==='acca'?stake*econ.combinedOdds:items.filter(hasQuotedOdds).reduce((sum,item)=>sum+stake*item.odds,0),items:items.map(item=>{const game=app.gameById(item.fixtureId);return {...item,league:item.league??game?.league,tournament:item.tournament??game?.tournament,country:item.country??game?.country,kickoff:item.kickoff??(game?Date.parse(game.kickoff):undefined),fixtureStatus:item.fixtureStatus,score:item.score};})});
 	const isAcca = $derived(mode === 'acca' && items.length > 1);
 
 	const singlesEv = $derived(items.filter(hasQuotedOdds).reduce((acc, i) => acc + stake * (i.modelProb * i.odds - 1), 0));
@@ -50,7 +51,7 @@
 		if (!auth.client) { toast.error('Log in to save a named slip.'); return; }
 		savingHistory = true;
 		try {
-			const selections = items.map(({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+			const selections = items.map(({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey, evidence }) => ({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey, evidence }));
 			await auth.client.mutation(api.betslip.saveHistory, { name: slipName.trim() || `My slip ${new Date().toLocaleDateString('en-NG')}`, items: selections, stake, betType: mode });
 			toast.success('Named slip saved to your history.'); slipName = '';
 		} catch (reason) { toast.error((reason as Error).message); }
@@ -71,10 +72,10 @@
 		aria-modal="true"
 		aria-labelledby="slip-title"
 		transition:fly={{ y: 40, duration: 320, easing: cubicOut }}
-		class="safe-bottom fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[1.75rem] border-t border-line bg-deep md:inset-y-4 md:left-auto md:right-4 md:w-[26rem] md:max-h-none md:rounded-[1.75rem] md:border"
+		class="safe-bottom fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-[1.75rem] border-t border-line bg-deep md:inset-y-4 md:left-auto md:right-4 md:w-[30rem] md:max-h-none md:rounded-[1.75rem] md:border"
 	>
 		<div class="mx-auto mt-2 h-1 w-10 rounded-full bg-line md:hidden"></div>
-		<header class="flex items-center gap-2 px-5 pb-3 pt-3">
+		<header class="flex flex-wrap items-center gap-2 px-5 pb-3 pt-3">
 			<h2 id="slip-title" class="text-xl font-bold text-chalk">{reviewed?'Ticket preview':'🧾 Betslip'}</h2>
 			<a href="/betslips" onclick={close} class="text-xs font-semibold text-model underline">History</a>
 			<span class="text-sm text-haze">{items.length} selection{items.length === 1 ? '' : 's'}</span>
@@ -88,7 +89,7 @@
 
 		<div class="flex-1 space-y-2 overflow-y-auto px-5">
 			{#each items as i (i.id)}
-				<div class="ticket flex items-center gap-3 px-4 py-3" transition:fly={{ x: 24, duration: 200 }}>
+				<div class="ticket option-card block min-w-0 px-4 py-4" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">
 						<a class="fixture-name block min-h-9 break-words text-xs hover:underline" href={i.sport==='tennis'?`/tennis#${encodeURIComponent(i.fixtureId)}`:`/match?id=${encodeURIComponent(i.fixtureId)}`} onclick={close}>{i.matchTitle}<span class="sr-only"> · View full analysis</span></a><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(i).join(' · ')}</p>
 						{#if app.gameById(i.fixtureId)}<p class="mt-1 text-xs text-haze">{new Date(app.gameById(i.fixtureId)!.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}
@@ -96,8 +97,9 @@
 						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}{#if (i.pushProb??0)>0}, refund {pct(i.pushProb??0,1)}{/if}</p>
 						{#if app.sameGameFixtures.has(i.fixtureId)}<p class="mt-0.5 text-xs font-semibold text-book">🔗 Same match as another pick</p>{/if}
 					</div>
-					<span class="font-display text-lg font-semibold text-book">{i.odds>1?odds(i.odds):'Unpriced'}</span>
-					<button onclick={() => app.remove(i.id)} class="rounded-full p-1.5 text-haze hover:text-loss" aria-label="Remove {i.selection}"><X class="h-4 w-4" /></button>
+					<div class="mt-3 flex items-center justify-between gap-3"><span class="font-display text-lg font-semibold text-book">{i.odds>1?odds(i.odds):'Unpriced'}</span>
+					<button onclick={() => app.remove(i.id)} class="grid min-h-11 min-w-11 place-items-center rounded-full p-2 text-haze hover:text-loss" aria-label="Remove {i.selection}"><X class="h-4 w-4" /></button></div>
+<p class="mt-2 text-xs font-semibold text-model">{i.fixtureStatus??'Scheduled'} · {itemOutcome(i)}{#if i.score} · Score {i.score.home}–{i.score.away}{/if}</p><SlipEvidence evidence={i.evidence} />
 				</div>
 			{:else}
 				<div class="py-8 text-center">
@@ -160,9 +162,9 @@
 				{/if}
 
 				{#if auth.signedIn}
-     {#if items.length>MAX_SLIP_SELECTIONS}<p role="status" class="text-sm text-book">Your complete shortlist stays visible. Choose at most {MAX_SLIP_SELECTIONS} selections to save one ticket.</p>{/if}
+
 					<label class="grid gap-1 text-sm text-haze">Name this slip<input class="rounded-xl bg-ink px-3 py-2 text-chalk ring-1 ring-line" maxlength="80" bind:value={slipName} placeholder="Weekend picks" /></label>
-					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory||items.length>MAX_SLIP_SELECTIONS}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
+					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
 				{/if}
 				<button class="btn-secondary w-full" onclick={share}>Share ticket · WhatsApp & more</button><div class="grid gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button></div>
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">

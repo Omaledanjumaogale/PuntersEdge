@@ -1,11 +1,13 @@
+import {slipEvidence} from './slipEvidence';
 import {enrichFixtureMetadata} from '../src/lib/fixture-metadata.js';
-import {slipPricing,validSlipOdds,MAX_SLIP_SELECTIONS} from '../src/lib/slip-pricing.js';
+import {slipPricing,validSlipOdds,validateSlipSize} from '../src/lib/slip-pricing.js';
 import { requireSubscription } from "./access";
 import { getCurrentUser } from "./auth";
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 const item = v.object({
+  evidence:v.optional(slipEvidence),
   marketKey: v.optional(v.string()),
   fixtureId: v.string(),
   sport: v.string(),
@@ -26,10 +28,12 @@ export const mine = query({
   handler: async (ctx) => {
     const userId = await requireSubscription(ctx);
     if (userId === null) return null;
-    return await ctx.db
+    const slip=await ctx.db
       .query("user_betslips")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
+    if(!slip)return null;
+    return {...slip,items:await resolveItems(ctx,slip.items)};
   },
 });
 
@@ -40,7 +44,7 @@ export const save = mutation({
     if (userId === null) throw new Error("Sign in to sync your slip.");
     if(!Number.isFinite(args.stake)||args.stake<0||args.stake>1e9)throw new Error('Enter a valid stake.');
     if(args.items.some(s=>!validSlipOdds(s.odds)||(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid odds and probabilities.');
-    if (args.items.length > MAX_SLIP_SELECTIONS) throw new Error(`A slip can hold at most ${MAX_SLIP_SELECTIONS} selections.`);
+    validateSlipSize(args.items);
 
     const {totalOdds,potentialReturn}=slipPricing(args.items,args.stake,args.betType==='single'?'singles':args.betType);
     if(!Number.isFinite(totalOdds)||!Number.isFinite(potentialReturn))throw new Error('Combined odds are too large.');
@@ -76,9 +80,10 @@ import { itemOutcome, slipOutcome } from '../src/lib/slips.js';
 
 const fixtureState = v.object({
   fixtureId: v.string(), kickoff: v.number(), status: v.string(), family: v.string(),league:v.optional(v.string()),tournament:v.optional(v.string()),country:v.optional(v.string()),
+  periodScores:v.optional(v.record(v.string(),v.object({home:v.number(),away:v.number()}))),
   score: v.optional(v.union(v.null(), v.object({ home: v.number(), away: v.number(), regHome: v.optional(v.number()), regAway: v.optional(v.number()) }))),
 });
-type State = {league?:string;tournament?:string;country?:string; fixtureId: string; kickoff: number; status: string; family: string; score?: { home: number; away: number; regHome?: number; regAway?: number } | null };
+type State = {periodScores?:Record<string,{home:number;away:number}>;league?:string;tournament?:string;country?:string; fixtureId: string; kickoff: number; status: string; family: string; score?: { home: number; away: number; regHome?: number; regAway?: number } | null };
 async function fixtureStates(ctx: QueryCtx | MutationCtx, ids: string[]): Promise<State[]> {
   const unique = [...new Set(ids)];
   const groups: string[][] = [];
@@ -90,7 +95,8 @@ function invalidInput(args: { name: string; stake: number; items: typeof item.ty
   if (!args.name.trim() || args.name.length > 80) throw new Error('Use a slip name from 1 to 80 characters.');
   if (!Number.isFinite(args.stake) || args.stake < 0 || args.stake > 1e9) throw new Error('Enter a valid stake.');
   if(args.items.some(s=>(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid probabilities.');
-  if (!args.items.length || args.items.length > MAX_SLIP_SELECTIONS) throw new Error(`Save between 1 and ${MAX_SLIP_SELECTIONS} selections.`);
+  if (!args.items.length) throw new Error('Save at least one selection.');
+  validateSlipSize(args.items);
   if (args.items.some(selection => !validSlipOdds(selection.odds))) throw new Error('Use quoted decimal odds greater than 1, or zero for an unpriced selection.');
   if (new Set(args.items.map(selection => `${selection.fixtureId}:${selection.marketKey ?? selection.market}:${selection.selection}`)).size !== args.items.length) throw new Error('Remove duplicate selections.');
 }
@@ -106,8 +112,12 @@ function decorate(selections: typeof item.type[], states: State[]) {
   return selections.map(selection => {
     const state = lookup.get(selection.fixtureId);
     if (!state || !Number.isFinite(state.kickoff)) throw new Error('A fixture could not be verified against the live schedule. Refresh and try again.');
-    return { ...enrichFixtureMetadata(selection,state), kickoff: state.kickoff, fixtureStatus: state.status, family: state.family, ...(state.score ? { score: state.score } : {}) };
+    return { ...enrichFixtureMetadata(selection,state), kickoff: state.kickoff, fixtureStatus: state.status, family: state.family, ...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) };
   });
+}
+async function resolveItems(ctx: QueryCtx | MutationCtx, selections: typeof item.type[]) {
+ const states=await fixtureStates(ctx,selections.map(s=>s.fixtureId)),lookup=new Map(states.map(s=>[s.fixtureId,s]));
+ return selections.map(selection=>{const state=lookup.get(selection.fixtureId);return state?{...enrichFixtureMetadata(selection,state),kickoff:state.kickoff,fixtureStatus:state.status,family:state.family,...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score?{score:state.score}:{})}:selection;});
 }
 function isFinal(selection: { fixtureStatus?: string }) { return selection.fixtureStatus === 'finished' || selection.fixtureStatus === 'cancelled'; }
 function completed(selections: { fixtureStatus?: string }[]) { return selections.length > 0 && selections.every(isFinal); }
@@ -129,7 +139,7 @@ export const history = query({ args: {}, handler: async ctx => {
   return slips.map(slip => {
     const items = slip.items.map(selection => {
       const state = lookup.get(selection.fixtureId);
-      const merged = state && (!isFinal(selection) || ['finished','cancelled'].includes(state.status)) ? { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.score ? { score: state.score } : {}) } : selection;
+      const merged = state && (!isFinal(selection) || ['finished','cancelled'].includes(state.status)) ? { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) } : selection;
       return { ...enrichFixtureMetadata(merged,state), result: itemOutcome(merged) };
     });
     return { ...slip, items, locked: completed(items), outcome: slipOutcome(items, slip.betType) };
@@ -161,7 +171,7 @@ export const updateHistory = mutation({
     const resolvedOld = slip.items.map(selection => {
       const latest = oldLookup.get(selection.fixtureId);
       if (!latest || (isFinal(selection) && !['finished','cancelled'].includes(latest.status))) return selection;
-      return { ...selection, kickoff: latest.kickoff, fixtureStatus: latest.status, ...(latest.score ? { score: latest.score } : {}) };
+      return { ...selection, kickoff: latest.kickoff, fixtureStatus: latest.status, ...(latest.periodScores?{periodScores:latest.periodScores}:{}),...(latest.score ? { score: latest.score } : {}) };
     });
     if (completed(resolvedOld)) throw new Error('This slip is locked because all selections have finished or been cancelled.');
     invalidInput(args);
@@ -186,7 +196,7 @@ export const deleteHistory = mutation({ args: { id: v.id('saved_slips') }, handl
 /** Called by ingest; settled selections survive fixture archive cleanup. */
 export const resolveSavedFixtures = internalMutation({ args: { states: v.array(fixtureState), cursor: v.optional(v.string()) }, handler: async (ctx, args): Promise<number> => {
   const states = new Map(args.states.map(state => [state.fixtureId, state]));
-  const page = await ctx.db.query('saved_slips').withIndex('by_awaiting_results', q => q.eq('awaitingResults', true)).paginate({ numItems: 100, cursor: args.cursor ?? null });
+  const page = await ctx.db.query('saved_slips').withIndex('by_awaiting_results', q => q.eq('awaitingResults', true)).paginate({ numItems: 10, cursor: args.cursor ?? null });
   const slips = page.page;
   let updated = 0;
   for (const slip of slips) {
@@ -194,7 +204,7 @@ export const resolveSavedFixtures = internalMutation({ args: { states: v.array(f
     const items = slip.items.map(selection => {
       const state = states.get(selection.fixtureId);
       if (!state || (isFinal(selection) && !['finished','cancelled'].includes(state.status))) return selection;
-      const next = { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.score ? { score: state.score } : {}) };
+      const next = { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) };
       if (JSON.stringify(next) !== JSON.stringify(selection)) changed = true;
       return next;
     });

@@ -1,0 +1,2 @@
+import {v} from 'convex/values';
+export const slipEvidence=v.object({basis:v.string(),modelProbability:v.number(),marketProbability:v.union(v.number(),v.null()),breakEvenProbability:v.union(v.number(),v.null()),divergence:v.union(v.number(),v.null()),verdict:v.boolean(),likelihoodBand:v.string(),observedAt:v.union(v.number(),v.null()),alternatives:v.array(v.object({id:v.string(),selection:v.string(),modelProb:v.number(),odds:v.number(),market:v.string()})),settledSportPicks:v.number(),sportWinRate:v.union(v.number(),v.null())});

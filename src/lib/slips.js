@@ -1,7 +1,8 @@
+import {settlePeriod} from './engine/period_settlement.js';
 import {fixtureMetadataLines} from './fixture-metadata.js';
 import {slipPricing} from './slip-pricing.js';
 import { settle } from './engine/settlement.js';
-/** @typedef {{selection:string,marketKey?:string,sport?:string,family?:string,fixtureStatus?:string,score?:{home:number,away:number,regHome?:number,regAway?:number}}} OutcomeItem */
+/** @typedef {{selection:string,marketKey?:string,sport?:string,family?:string,fixtureStatus?:string,periodScores?:Record<string,{home:number,away:number}>,score?:{home:number,away:number,regHome?:number,regAway?:number}}} OutcomeItem */
 /** @typedef {OutcomeItem & {league?:string,tournament?:string,country?:string,matchTitle:string,bookmaker:string,odds:number,modelProb?:number,kickoff?:number|string,market?:string}} ShareItem */
 
 /** Convert saved market IDs to the engine's score-settlement vocabulary. */
@@ -15,11 +16,16 @@ export function settlementKey(/** @type {OutcomeItem} */ item) {
     if (!match) return null;
     return `${key === 'over' ? 'o' : key === 'under' ? 'u' : key === 'homeSpread' ? 'sph' : 'spa'}${Number(match[1])}`;
   }
+  const forecast=/^forecast:full:(total|home|away):(over|under):([\d.]+)$/.exec(key);
+  if(forecast)return `${forecast[1]==='total'?'':forecast[1]==='home'?'teamh':'teama'}${forecast[2]==='over'?'o':'u'}${forecast[3]}`;
+  const handicap=/^forecast:full:handicap:(home|away):(-?[\d.]+)$/.exec(key);
+  if(handicap)return `${item.sport==='football'?'ah':'sp'}${handicap[1]==='home'?'h':'a'}${handicap[2]}`;
   return key;
 }
 export function itemOutcome(/** @type {OutcomeItem} */ item) {
   if (item.fixtureStatus === 'cancelled') return 'void';
   if (item.fixtureStatus !== 'finished' || !item.score) return 'pending';
+  if(item.marketKey?.startsWith('period:'))return settlePeriod(item.marketKey,item.periodScores??{})??'ungraded';
   const key = settlementKey(item);
   if (!key) return 'ungraded';
   const family = item.family === 'nba' || item.sport === 'nba' ? 'basketball' : item.family || item.sport;

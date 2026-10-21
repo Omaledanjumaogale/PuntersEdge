@@ -55,7 +55,7 @@
  </div>
  <p class="mt-4 text-sm text-haze" aria-live="polite">{filtered.length} matching fixtures · {live.length} live · {upcoming.length} upcoming · {finished.length} finished</p>
  {#if invalidDates}<p role="alert" class="mt-2 text-sm text-loss">The end date must be on or after the start date.</p>{/if}
- <p class="mt-2 text-xs text-haze">Filters apply to fixtures and published projections. Performance totals below cover the complete retained track record.</p>
+ <p class="mt-2 text-xs text-haze">Filters apply to fixtures and published projections. Scheduled and live fixtures are not counted as settled outcomes.</p>
 </section>
 
 <Accordion title="Published pre-match predictions" count={filteredProjections.length}>
@@ -76,55 +76,6 @@
  {:else}
   <p class="surface mt-4 p-5 text-haze">{feed.mode === 'live' ? 'No published predictions are currently available to view. Predictions appear here when the backend records them before kickoff.' : 'Published predictions appear here once the live feed is available. '}</p>
  {/if}
-</Accordion>
-
-<Accordion title="Prediction performance & track record">
-	<h2 id="record-title" class="text-2xl font-bold text-chalk">How have published predictions performed?</h2>
-	{#if all && all.picks > 0}
-		<p class="mt-1 text-sm text-haze">This retained record covers published pre-match graded picks settled from final scores, using one hypothetical unit per pick. Profit and return reflect the recorded price; they exclude bookmaker fees and any price movement. Unsettled predictions do not count as wins or losses. Win and loss counts include half wins and half losses; returned stakes are shown separately.</p>
-		<div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-			<div class="surface p-4"><p class="text-sm text-haze">Picks settled</p><p class="font-display text-3xl font-bold">{all.picks}</p></div>
-			<div class="surface p-4"><p class="text-sm text-haze">Won · lost · returned</p><p class="font-display text-3xl font-bold">{all.won}<span class="text-haze">·</span>{all.lost}<span class="text-haze">·</span>{all.push}</p></div>
-			<div class="surface p-4"><p class="text-sm text-haze">Profit</p><p class="font-display text-3xl font-bold {all.profit >= 0 ? 'text-model' : 'text-loss'}">{signed(all.profit, 2)}u</p></div>
-			<div class="surface p-4"><p class="text-sm text-haze">Return on stake</p><p class="font-display text-3xl font-bold {all.roi >= 0 ? 'text-model' : 'text-loss'}">{signed(all.roi)}%</p></div>
-		</div>
-		<div class="mt-4 grid gap-4 md:grid-cols-2">
-			<div class="surface p-4">
-				<h3 class="font-semibold text-chalk">By grade</h3>
-				<ul class="mt-2 space-y-1.5 text-sm">
-					{#each Object.entries(record?.summary.grades ?? {}) as [g, r] (g)}
-						<li class="flex items-center justify-between gap-2"><span class="rounded-md px-2 py-0.5 text-xs font-bold {gradeTone[g]}">{g}</span><span class="text-haze">{r.picks} picks · <span class={r.profit >= 0 ? 'text-model' : 'text-loss'}>{signed(r.profit, 2)}u ({signed(r.roi)}%)</span></span></li>
-					{/each}
-				</ul>
-			</div>
-			<div class="surface p-4">
-				<h3 class="font-semibold text-chalk">By sport</h3>
-				<ul class="mt-2 space-y-1.5 text-sm">
-					{#each SPORT_ORDER as s (s)}
-						{@const r = record?.summary.sports[s]}
-						{#if r && r.picks}
-							<li class="flex items-center justify-between gap-2"><span>{sportEmoji[s]} {SPORTS[s].label}</span><span class="text-haze">{r.picks} picks · <span class={r.profit >= 0 ? 'text-model' : 'text-loss'}>{signed(r.profit, 2)}u</span></span></li>
-						{/if}
-					{/each}
-				</ul>
-			</div>
-		</div>
-		<ul class="mt-4 grid gap-2">
-			{#each record?.recent.slice(0, 20) ?? [] as r (r.uid)}
-				<li class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl bg-deep px-3.5 py-2.5 ring-1 ring-line">
-					<span class="min-w-0">
-						<span class="fixture-name block truncate text-xs">{sportEmoji[r.sport]} {r.match} · {r.score}</span>
-						<span class="block truncate font-semibold text-chalk">{r.selection} <span class="font-normal text-book">@ {odds(r.odds)}</span> <span class="text-xs font-normal text-haze">{r.bookmaker}, {r.grade}</span></span>
-					</span>
-					<span class="text-right font-display font-bold {resultTone[r.result] ?? 'text-haze'}">{r.result.replace('-', ' ')}<span class="block text-xs font-normal">{signed(r.profit, 2)}u</span></span>
-				</li>
-			{/each}
-		</ul>
-	{:else}
-		<p class="surface mt-4 p-5 text-haze">
-			{#if feed.mode === 'live'}No published predictions have settled yet. Their outcomes appear here after games finish{record?.pending ? ` (${record.pending} waiting on a result)` : ''}.{:else}A published track record becomes available when live pre-match predictions have been recorded and settled. {/if}
-		</p>
-	{/if}
 </Accordion>
 
 <Accordion title="Live fixtures" count={live.length}>

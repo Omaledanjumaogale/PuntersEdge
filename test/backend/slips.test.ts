@@ -132,14 +132,27 @@ it('backfills known competition metadata on legacy histories and preserves it wh
 });
 
 
-it('persists a 45-fixture generated shortlist to draft and named history, with a bounded larger-ticket limit',async()=>{
+it('persists a 151-fixture generated shortlist to draft and named history, with a bounded larger-ticket limit',async()=>{
  const t=create(),signed=await member(t,'large-ticket@example.test');
- const ids=Array.from({length:45},(_,i)=>'large-'+i);
+ const ids=Array.from({length:151},(_,i)=>'large-'+i);
  await t.run(async ctx=>{for(const id of ids)await ctx.db.insert('projection_snapshots',{fixtureId:id,sport:'football',family:'football',match:'Home '+id+' v Away '+id,league:'League',kickoff:Date.now()+3600000,publishedAt:Date.now(),modelVersion:'test',state:'scheduled',fingerprint:id,contributions:{},recent:[]});});
  const items=ids.map(id=>({...selection(id),odds:0,bookmaker:'Unpriced selection',modelProb:.8}));
- await signed.mutation(anyApi.betslip.save,{items,stake:100,betType:'acca'});expect((await signed.query(anyApi.betslip.mine,{}))?.items).toHaveLength(45);
- const id=await signed.mutation(anyApi.betslip.saveHistory,{name:'All matching fixtures',items,stake:100,betType:'acca'});expect((await t.run(ctx=>ctx.db.get(id)))?.items).toHaveLength(45);
- await signed.mutation(anyApi.betslip.updateHistory,{id,name:'All matching fixtures updated',items,stake:100,betType:'acca'});expect((await signed.query(anyApi.betslip.history,{}))[0].items).toHaveLength(45);
- const oversized=Array.from({length:101},(_,i)=>({...selection('limit-'+i),odds:0}));await expect(signed.mutation(anyApi.betslip.save,{items:oversized,stake:100,betType:'acca'})).rejects.toThrow('100 selections');await expect(signed.mutation(anyApi.betslip.saveHistory,{name:'Oversized',items:oversized,stake:100,betType:'acca'})).rejects.toThrow('100 selections');
+ await signed.mutation(anyApi.betslip.save,{items,stake:100,betType:'acca'});expect((await signed.query(anyApi.betslip.mine,{}))?.items).toHaveLength(151);
+ const id=await signed.mutation(anyApi.betslip.saveHistory,{name:'All matching fixtures',items,stake:100,betType:'acca'});expect((await t.run(ctx=>ctx.db.get(id)))?.items).toHaveLength(151);
+ await signed.mutation(anyApi.betslip.updateHistory,{id,name:'All matching fixtures updated',items,stake:100,betType:'acca'});expect((await signed.query(anyApi.betslip.history,{}))[0].items).toHaveLength(151);
+ const oversized=[{...selection(),matchTitle:'x'.repeat(710000)}];await expect(signed.mutation(anyApi.betslip.save,{items:oversized,stake:100,betType:'acca'})).rejects.toThrow('storage size budget');
  await expect(signed.mutation(anyApi.betslip.save,{items:items.map(i=>({...i,odds:10000})).concat(items.map(i=>({...i,fixtureId:i.fixtureId+'copy',odds:10000}))),stake:100,betType:'acca'})).rejects.toThrow('Combined odds are too large');
+});
+
+it('retains evidence after completion and archive removal and updates draft scores',async()=>{
+ const t=create(),signed=await member(t,'evidence@example.test');const fid=await fixture(t);
+ const evidence={basis:'Frozen pre-match ratings',modelProbability:.7,marketProbability:.6,breakEvenProbability:.5,divergence:10,verdict:false,likelihoodBand:'B',observedAt:Date.now(),alternatives:[{id:'other',selection:'Under 2.5',modelProb:.65,odds:1.8,market:'Total'}],settledSportPicks:10,sportWinRate:.6};
+ const items=[{...selection(),marketKey:'forecast:full:home:over:1.5',evidence}];
+ await signed.mutation(anyApi.betslip.save,{items,stake:100,betType:'acca'});
+ const id=await signed.mutation(anyApi.betslip.saveHistory,{...input(),items});
+ await t.run(ctx=>ctx.db.patch(fid,{state:'finished',score:{home:2,away:0}}));
+ expect((await signed.query(anyApi.betslip.mine,{}))?.items[0]).toMatchObject({fixtureStatus:'finished',score:{home:2,away:0},evidence});
+ await t.mutation(anyApi.betslip.resolveSavedFixtures,{states:[{fixtureId:'fixture-a',kickoff:Date.now()-60000,status:'finished',family:'football',score:{home:2,away:0}}]});
+ await t.run(ctx=>ctx.db.delete(fid));
+ const saved=(await signed.query(anyApi.betslip.history,{})).find(s=>s._id===id);expect(saved?.items[0]).toMatchObject({result:'won',evidence,score:{home:2,away:0}});
 });

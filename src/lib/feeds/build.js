@@ -167,6 +167,7 @@ export function updateRecord(store, now) {
     settleSnapshot(snapshot,g,now);
     if(before !== JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,results:snapshot.selections.map((/** @type {any} */s)=>s.result)}) && !changed.includes(snapshot)) changed.push(snapshot);
   }
+  for(const snapshot of Object.values(store.projections))if(snapshot.performanceSchema!==2){snapshot.performanceSchema=2;if(!changed.includes(snapshot))changed.push(snapshot);}
   for(const snapshot of changed)snapshot.observedAt=now;
   // Only versioned, published pre-match verdicts contribute to the public record.
   store.record.pending = {};

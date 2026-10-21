@@ -55,6 +55,8 @@ export function settle(family, key, score) {
   const { home: H, away: A } = score;
   if (!Number.isFinite(H) || !Number.isFinite(A)) return null;
   let m;
+  if((m=/^team([ha])([ou])([\d.]+)$/.exec(key))){const h=family==='football'?(score.regHome??H):H,a=family==='football'?(score.regAway??A):A;return overUnder(m[1]==='h'?h:a,Number(m[3]),m[2]==='o');}
+
 
   if (family === 'football') {
     // 90 minutes, extra time excluded.

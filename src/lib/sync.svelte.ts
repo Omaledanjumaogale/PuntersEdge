@@ -7,7 +7,7 @@ import { api } from '../../convex/_generated/api.js';
 
 const ownerGet = (key:string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const ownerSet = (key:string,value:string) => { try { localStorage.setItem(key,value); } catch { /* session-only state */ } };
-const payload = (items: SlipItem[]) => items.map(({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }) => ({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey }));
+const payload = (items: SlipItem[]) => items.map(({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey, evidence }) => ({ fixtureId, sport, matchTitle, league, tournament, country, market, selection, bookmaker, odds, modelProb, pushProb, edgePercent, marketKey, evidence }));
 export function startSlipSync(): () => void {
  if (typeof window === 'undefined' || auth.mode !== 'convex') return () => {};
  let timer: ReturnType<typeof setTimeout> | undefined;
@@ -31,7 +31,7 @@ export function startSlipSync(): () => void {
     const incoming: SlipItem[] = (saved?.items ?? []).map(i => ({ ...i, id: i.marketKey ? `${i.fixtureId}:${i.marketKey}` : `${i.fixtureId}:saved:${i.selection}`, sport: i.sport as SlipItem['sport'], modelProb: i.modelProb ?? (i.odds>1?1/i.odds:0) }));
     remoteJson = JSON.stringify(payload(incoming));
     if (saved || ready) {
-     if (JSON.stringify(payload(app.slip)) !== remoteJson) app.slip = incoming;
+     if (JSON.stringify(app.slip) !== JSON.stringify(incoming)) app.slip = incoming;
     }
     ready = true;
    }, () => { ready = false; toast.error('Your betslip could not synchronize. Check your connection.'); }));

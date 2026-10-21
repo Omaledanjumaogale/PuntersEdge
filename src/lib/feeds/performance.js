@@ -49,7 +49,7 @@ export function contributionsFor(snapshot) {
   const keys=['summary',`versions:${encodeURIComponent(snapshot.modelVersion??'unversioned')}`,`grades:${row.grade}`,`markets:${encodeURIComponent(row.market)}`,`bands:${lower}-${lower+10}%`,`days:${new Date((snapshot.finishedAt??snapshot.kickoff)+3600000).toISOString().slice(0,10)}`,`pricing:${row.pricing}`];
   if(row.verdict)keys.push('verdict');
   if(row.modelVersion??snapshot.artifactVersion)keys.push(`artifacts:${encodeURIComponent(row.modelVersion??snapshot.artifactVersion)}`);
-  keys.push(`scopes:${row.scope??'full'}`);
+  keys.push(`scopes:${row.scope??'full'}`,`directions:${encodeURIComponent(marketCategory(row))}`);
   for(const key of keys)addCounters(groups[key]??=emptyCounters(),c);
  }
  return groups;
@@ -58,4 +58,12 @@ export function contributionsFor(snapshot) {
 export function statsOf(c=emptyCounters()) {
  const n=c.won+c.lost,rate=n?c.won/n:0,z=1.96,den=1+z*z/(n||1),center=n?(rate+z*z/(2*n))/den:null,spread=n?z*Math.sqrt(rate*(1-rate)/n+z*z/(4*n*n))/den:0;
  return {categoricalN:c.categoricalN??0,categoricalBrier:c.categoricalN?c.categoricalBrierTotal/c.categoricalN:null,n:c.n,won:c.won,lost:c.lost,push:c.push,half:c.half,strikeRate:n?rate*100:null,roi:c.quotedN?100*c.profit/c.quotedN:null,brier:c.binary?c.brierTotal/c.binary:null,marketBrier:c.binary?c.marketBrierTotal/c.binary:null,modelMean:c.binary?100*c.modelTotal/c.binary:null,marketMean:c.binary?100*c.marketTotal/c.binary:null,quotedN:c.quotedN,binary:c.binary,confidenceLow:center===null?null:100*(center-spread),confidenceHigh:center===null?null:100*(center+spread)};
+}
+
+/** Stable semantic dimensions; team names and exact lines do not fragment totals. @param {any} row */
+export function marketCategory(row){
+ const key=row.key??'',label=(row.selection??'').toLowerCase(),market=(row.market??'').toLowerCase();
+ const direction=/\bunder\b/.test(label)||/^(?:u[\d.]|under)/.test(key)?'Under':/\bover\b/.test(label)||/^(?:o[\d.]|over|th[\d.]|ta[\d.])/.test(key)?'Over':null;
+ const team=/:(?:home|away):(over|under):/.test(key)||/^t[ha][\d.]/.test(key)||/team total/.test(market);
+ return `${row.scope??'full'} · ${direction?(team?'Team total':'Match total')+' · '+direction:/handicap|spread/i.test(market)||/^(?:ah[ha]|sp[ha])/.test(key)?'Handicap / spread':/winner|moneyline|match result|1x2/i.test(market)||/^(?:home|away|draw|homeMl|awayMl)$/.test(key)?'Winner / result':row.market??'Other'}`;
 }
