@@ -28,3 +28,9 @@ No improved profitability or accuracy claim is made by the code change alone. Fr
 The machine browser regression passed at320,390 and1440px with42 varied fixture percentages in descending order, no duplicate event copies, working team Under filter and analysis navigation, and no page errors/overflow. The direction evidence panel passed at390 and1440px, including collapsed defaults, visible regression and insufficient-sample states.
 
 That panel test initially reproduced a real cached-callback issue in betslip sync: registration ran inside a reactive effect, and an immediate callback read and wrote its `ready` state, causing repeated subscriptions. Registration now runs untracked while auth/owner dependencies remain tracked. The identical immediate-callback browser test then passed. The first mock also lacked a mutation method; that test-harness error was corrected before diagnosing the reactive loop. No failed run was treated as acceptance.
+
+## Final evaluation and promotion enforcement
+
+The fresh production evaluation completed using 33,965 retained rows and qualified zero model replacements. Existing serving models were retained; the new reports do not establish an improved strike rate. Selected-direction samples remain too small to substantiate a broad totals advantage. The backend now independently validates all six direction cohorts and recomputes the non-regression gate rather than trusting a submitted boolean. A forged aggregate-success report with a regressing totals cohort is rejected by the backend regression test (26 security tests passed); backend TypeScript checking passed.
+
+The cached-subscription fix and evidence-panel QA shipped in `00079be`; frontend deployment succeeded: https://github.com/Omaledanjumaogale/PuntersEdge/actions/runs/39631391894.

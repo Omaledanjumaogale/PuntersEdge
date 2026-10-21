@@ -45,9 +45,13 @@ describe('backend access and subscription security', () => {
   await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[unsupported],fingerprint:'test-data'});
   expect((await signed.query(anyApi.models.list,{})).find((r:any)=>r.mode==='active')?.version).toBe('incumbent');
   const markets=Object.fromEntries(['total','home','away','margin'].map(key=>[key,{nOptions:140,candidateBrier:.15,incumbentBrier:.2,candidateLogLoss:.3,incumbentLogLoss:.4}]));
-  const better={...bad,artifact:{...artifact,version:'better-candidate'},evaluation:{...bad.evaluation,n:70,candidateBrier:.15,candidateLogLoss:.3,markets,pairedBrier:{nFixtures:70,blocks:10,blockSize:7,interval95:[-.08,-.01]}}};
+  const selectedDirections=Object.fromEntries(['total','home','away'].flatMap(k=>['over','under'].map(side=>[k+':'+side,{nFixtures:35,minimumFixtures:40,sufficient:false,candidateBrier:.15,incumbentBrier:.2,candidateLogLoss:.3,incumbentLogLoss:.4,meanForecast:.75,observedWinRate:.7,calibrationError:.05}])));
+  const better={...bad,artifact:{...artifact,version:'better-candidate'},evaluation:{...bad.evaluation,n:70,candidateBrier:.15,candidateLogLoss:.3,markets,selectedDirections,selectedDirectionsNonRegressing:true,pairedBrier:{nFixtures:70,blocks:10,blockSize:7,interval95:[-.08,-.01]}}};
   const regressing={...better,artifact:{...artifact,version:'regressing'},evaluation:{...better.evaluation,markets:{...markets,home:{...markets.home,candidateBrier:.3}}}};
   await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[regressing],fingerprint:'test-data'});
+  expect((await signed.query(anyApi.models.list,{})).find((r:any)=>r.mode==='active')?.version).toBe('incumbent');
+  const directionRegression={...better,artifact:{...artifact,version:'direction-regression'},evaluation:{...better.evaluation,selectedDirections:{...selectedDirections,'total:over':{...selectedDirections['total:over'],nFixtures:45,sufficient:true,candidateBrier:.5},'total:under':{...selectedDirections['total:under'],nFixtures:25}}}};
+  await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[directionRegression],fingerprint:'test-data'});
   expect((await signed.query(anyApi.models.list,{})).find((r:any)=>r.mode==='active')?.version).toBe('incumbent');
   await t.mutation(anyApi.learning.finish,{report:{status:'Evaluated'},candidates:[better],fingerprint:'test-data'});
   expect(await signed.query(anyApi.models.list,{})).toEqual(expect.arrayContaining([expect.objectContaining({version:'better-candidate',mode:'active',approved:false,approvedMarkets:[]}),expect.objectContaining({version:'incumbent',mode:'retired'})]));
