@@ -18,7 +18,7 @@ export default defineConfig({
 			// an "update ready" prompt instead of swapping versions silently.
 			serviceWorker: { register: false },
 			prerender: {
-                entries: ['/privacy','/account/privacy','/account/security','/admin/privacy','/admin/payments','/', '/auth', '/board', '/account', '/admin', '/admin/members', '/admin/models', '/baseball', '/basketball', '/bet-machine', '/betslips', '/bookmakers', '/football', '/glossary', '/hockey', '/login', '/match', '/nba', '/reset-password', '/results', '/settings', '/signup', '/sports', '/subscribe', '/tester', '/tennis', '/value-bets'],
+                entries: ['/privacy','/account/privacy','/account/security','/admin/privacy','/admin/payments','/', '/auth', '/board', '/account', '/admin', '/admin/members', '/admin/models', '/admin/evidence', '/baseball', '/basketball', '/bet-machine', '/betslips', '/bookmakers', '/football', '/glossary', '/hockey', '/login', '/match', '/nba', '/reset-password', '/results', '/settings', '/signup', '/sports', '/subscribe', '/tester', '/tennis', '/value-bets'],
 				handleHttpError: ({ path, message }) => {
 					// Manifest screenshots are optional assets, not crawlable pages.
 					if (path.startsWith('/screenshots/')) return;

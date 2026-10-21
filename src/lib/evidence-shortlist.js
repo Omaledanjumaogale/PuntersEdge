@@ -21,7 +21,7 @@ export function evidenceMarket(key,sport){
  else if(['bttsYes','bttsNo','dc1x','dc12','dcx2','dnbh','dnba','csh','csa'].includes(key)){kind='other';side=key;}
  else return null;
  if(line!==null&&(!Number.isFinite(line)||!Number.isInteger(line*4)))return null;
- const title=kind==='winner'?`${side==='home'?'Home winner':side==='away'?'Away winner':'Draw'}`:kind==='handicap'?`${side==='home'?'Home':'Away'} handicap ${Number(line)>=0?'+':''}${line}`:kind==='other'?({bttsYes:'Both teams score · Yes',bttsNo:'Both teams score · No',dc1x:'Home or draw',dc12:'Home or away',dcx2:'Draw or away',dnbh:'Home draw-no-bet',dnba:'Away draw-no-bet',csh:'Home clean sheet',csa:'Away clean sheet'}[side]):`${kind==='match-total'?'Match total':kind==='team-home'?'Home team total':'Away team total'} · ${side==='over'?'Over':'Under'} ${line}`;
+ const title=kind==='winner'?`${side==='home'?'Home winner':side==='away'?'Away winner':'Draw'}`:kind==='handicap'?`${side==='home'?'Home':'Away'} handicap ${Number(line)>=0?'+':''}${line}`:kind==='other'?({bttsYes:'Both teams score · Yes',bttsNo:'Both teams score · No',dc1x:'Home or draw (1X)',dc12:'Home or away (12)',dcx2:'Away or draw (X2)',dnbh:'Home draw-no-bet',dnba:'Away draw-no-bet',csh:'Home clean sheet',csa:'Away clean sheet'}[side]):`${kind==='match-total'?'Match total':kind==='team-home'?'Home team total':'Away team total'} · ${side==='over'?'Over':'Under'} ${line}`;
  return {scope,kind,side,line,title,signature:JSON.stringify([scope,kind,side,line])};
 }
 /** @param {number} wins @param {number} n */
@@ -57,10 +57,10 @@ export function buildEvidenceReport(fixtures,upcoming,now=Date.now()){
 }
 /** @param {any} report @param {any} [options] @param {number} [now] @param {Map<string,any>|null} [liveGames] */
 export function evidenceShortlist(report,options={},now=Date.now(),liveGames=null){
- const defaults={minModel:.65,minSamples:20,minStrike:.6,minFloor:.5,sameLeague:false,sport:'all',kind:'all',search:'',hours:168};const o={...defaults,...options},rows=[],rejected={belowModel:0,noHistory:0,smallSample:0,belowStrike:0,belowFloor:0},seen=new Set();
+ const defaults={minModel:.65,minSamples:20,minStrike:.6,minFloor:.5,sameLeague:false,sport:'all',kind:'all',search:'',hours:168};const o={...defaults,...options},rows=[],rejected={belowModel:0,noHistory:0,smallSample:0,belowStrike:0,belowFloor:0,partialSettlement:0},seen=new Set();
  for(const f of report?.upcoming??[]){const live=liveGames?.get(f.fixtureId);if(f.kickoff<=now||f.kickoff>now+o.hours*3600000||live&&live.status.state!=='scheduled'||o.sport!=='all'&&o.sport!==f.sport)continue;
   if(o.search&&!`${f.matchTitle} ${f.league} ${f.tournament??''} ${f.country??''}`.toLowerCase().includes(o.search.toLowerCase()))continue;
-  for(const row of f.rows){if(o.kind!=='all'&&row.kind!==o.kind)continue;if(row.modelProb<o.minModel){rejected.belowModel++;continue;}
+  for(const row of f.rows){if(row.line!==null&&!Number.isInteger(row.line*2)){rejected.partialSettlement++;continue;}if(o.kind!=='all'&&!((o.kind==='double-chance'&&['dc1x','dcx2','dc12'].includes(row.side))||(o.kind==='dc1x'||o.kind==='dcx2'||o.kind==='dc12')&&row.side===o.kind||o.kind==='team-15'&&f.sport==='football'&&['team-home','team-away'].includes(row.kind)&&row.side==='over'&&row.line===1.5||row.kind===o.kind))continue;if(row.modelProb<o.minModel){rejected.belowModel++;continue;}
    const g=report.groups[cohortKey(f,row,o.sameLeague?(norm(f.league)||'not recorded'):'*')];if(!g){rejected.noHistory++;continue;}if(g.binaryN<o.minSamples){rejected.smallSample++;continue;}if(g.strikeRate<o.minStrike){rejected.belowStrike++;continue;}if(g.interval.low<o.minFloor){rejected.belowFloor++;continue;}
    const id=JSON.stringify([eventKey(f),row.signature]);if(seen.has(id))continue;seen.add(id);rows.push({...f,...row,id:`${f.fixtureId}:${row.key}`,cohort:g,probabilityBand:probabilityBand(row.modelProb),group:`${f.sport} · ${row.scope.replaceAll('_',' ')} · ${row.title}`});
   }

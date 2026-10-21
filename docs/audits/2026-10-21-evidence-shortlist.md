@@ -25,3 +25,13 @@ The scheduled runner maintains a compact fixture ledger and cohort report in pri
 ## Acceptance
 
 Validation and production bootstrap results will be recorded after release checks.
+
+## Release verification
+
+The protected production catalog bootstrap completed: 520 deduplicated historical fixtures, 23,100 supported canonical settled outcomes, 14,344 exact cohorts and 456 upcoming published fixtures; zero missing archives and zero invalid publications. Counts change with kickoff and publication. With the final quarter-line exclusion, a read-only check found 3,074 qualifying options at the default thresholds on 21 October 2026.
+
+Explicit filters cover double chance together or separately as 1X, X2 and 12, and football home/away team Over 1.5 goals. Each exact direction retains separate history. First-team-to-score is a coverage check only: the retained ingest data had zero first-score selections and zero game event records. This market has not been activated or assigned fabricated recurrence statistics.
+
+Quarter-line markets remain in the production ledger but do not receive this binary confidence meter, because ignoring half-losses could overstate evidence. Historical quoted-price ROI is displayed separately from recurrence confidence.
+
+Validation: 11 focused model/catalog tests passed; four backend/API authorization tests passed; backend typecheck passed; Svelte check reported zero errors and warnings; production build passed after registering the new prerender route. Synthetic browser checks passed at 320, 390 and 1440 pixels, including 80 available fixtures per group, collapsed evidence, pagination, original-publication download, live removal, heat-meter extremes and no page overflow. This is synthetic authenticated UI evidence, not a claim of testing a real customer's MFA session. Convex backend deployment run 39679114826 succeeded. Frontend release verification is recorded in the task response.
