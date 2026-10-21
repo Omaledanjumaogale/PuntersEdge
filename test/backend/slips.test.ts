@@ -130,3 +130,16 @@ it('backfills known competition metadata on legacy histories and preserves it wh
  await signed.mutation(anyApi.betslip.updateHistory,{...input(),id,name:'Edited'});
  history=await signed.query(anyApi.betslip.history,{});expect(history[0].items[0]).toMatchObject({league:'Premier League',country:'England',tournament:'League season'});
 });
+
+
+it('persists a 45-fixture generated shortlist to draft and named history, with a bounded larger-ticket limit',async()=>{
+ const t=create(),signed=await member(t,'large-ticket@example.test');
+ const ids=Array.from({length:45},(_,i)=>'large-'+i);
+ await t.run(async ctx=>{for(const id of ids)await ctx.db.insert('projection_snapshots',{fixtureId:id,sport:'football',family:'football',match:'Home '+id+' v Away '+id,league:'League',kickoff:Date.now()+3600000,publishedAt:Date.now(),modelVersion:'test',state:'scheduled',fingerprint:id,contributions:{},recent:[]});});
+ const items=ids.map(id=>({...selection(id),odds:0,bookmaker:'Unpriced selection',modelProb:.8}));
+ await signed.mutation(anyApi.betslip.save,{items,stake:100,betType:'acca'});expect((await signed.query(anyApi.betslip.mine,{}))?.items).toHaveLength(45);
+ const id=await signed.mutation(anyApi.betslip.saveHistory,{name:'All matching fixtures',items,stake:100,betType:'acca'});expect((await t.run(ctx=>ctx.db.get(id)))?.items).toHaveLength(45);
+ await signed.mutation(anyApi.betslip.updateHistory,{id,name:'All matching fixtures updated',items,stake:100,betType:'acca'});expect((await signed.query(anyApi.betslip.history,{}))[0].items).toHaveLength(45);
+ const oversized=Array.from({length:101},(_,i)=>({...selection('limit-'+i),odds:0}));await expect(signed.mutation(anyApi.betslip.save,{items:oversized,stake:100,betType:'acca'})).rejects.toThrow('100 selections');await expect(signed.mutation(anyApi.betslip.saveHistory,{name:'Oversized',items:oversized,stake:100,betType:'acca'})).rejects.toThrow('100 selections');
+ await expect(signed.mutation(anyApi.betslip.save,{items:items.map(i=>({...i,odds:10000})).concat(items.map(i=>({...i,fixtureId:i.fixtureId+'copy',odds:10000}))),stake:100,betType:'acca'})).rejects.toThrow('Combined odds are too large');
+});

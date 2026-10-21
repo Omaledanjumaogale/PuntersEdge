@@ -354,3 +354,17 @@ body{font-family:var(--font-sans);font-size:16px;line-height:1.55}button,input,s
 @supports(backdrop-filter:blur(8px)){
  .admin-rail {background-color:color-mix(in srgb,var(--color-deep) 94%,transparent);backdrop-filter:blur(8px);}
 }
+
+/* Compact coupon cards: shared by markets, previews, history and the working slip. */
+.ticket,.option-card {
+ --coupon-surface:#252235;
+ position:relative;min-width:0;max-width:100%;border:1px solid #5d5376;border-radius:18px;
+ background-color:var(--coupon-surface);
+ background-image:linear-gradient(125deg,rgb(179 157 255 / .08),transparent 70%);
+ box-shadow:inset 0 1px 0 rgb(255 255 255 / .09),0 8px 22px -18px #000;
+ mask:radial-gradient(circle 6px at 0 50%,#0000 98%,#000) left / 51% 100% no-repeat,radial-gradient(circle 6px at 100% 50%,#0000 98%,#000) right / 51% 100% no-repeat;
+}
+:root[data-theme='light'] :is(.ticket,.option-card){--coupon-surface:#eeebfa;border-color:#aaa0c8;}
+.option-card a,.ticket a{touch-action:manipulation;position:relative;z-index:1;}
+.option-card :is(p,strong,a),.ticket :is(p,strong,a){overflow-wrap:anywhere;}
+@media(hover:hover){:is(.ticket,.option-card):hover{border-color:var(--color-pop);box-shadow:inset 0 1px 0 rgb(255 255 255 / .12),0 8px 25px -18px var(--color-pop);}}

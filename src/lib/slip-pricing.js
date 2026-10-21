@@ -1,3 +1,5 @@
+/** Bounded persisted tickets; complete research lists are not truncated. */
+export const MAX_SLIP_SELECTIONS=100;
 /** Zero is the persisted "unpriced selection" marker, never an offered price. */
 export const hasQuotedOdds = (/** @type {{odds:number}} */ item) => Number.isFinite(item.odds) && item.odds > 1;
 /** Quoted subset only. Accumulator decimal odds multiply; missing odds contribute nothing. */

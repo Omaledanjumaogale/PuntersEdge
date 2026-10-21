@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-21 — Complete shortlists and coupon market cards
+
+- Remove the ten-fixture fallback limit; show every matching event once, while keeping quoted accumulators subject to their actual odds target.
+- Deduplicate repeated event/option copies, replace same-event manual machine choices, and search beyond the old 200-option pool cap within the existing computation budget.
+- Add team-total Over/Under filters and correctly classify full-game and period forecasts. Remove Today/Tomorrow kickoff presets and map older saved presets to rolling windows.
+- Retain both basketball total directions when price discrepancies fail value screening; those selections remain unapproved with zero recommended stake.
+- Restore high-contrast coupon cards across markets, pick tickets, machine previews, slips and tennis. Preserve model percentages, identity colours, notes and add controls.
+- Make working-slip fixture names touch-friendly analysis links and identify the team in period-total labels.
+
+
 ## 2026-10-20 — Audit remediation
 
 - Add authenticator enrollment, challenged sign-in, one-use recovery codes and server-enforced owner MFA with old-session revocation.

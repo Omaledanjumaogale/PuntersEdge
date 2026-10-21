@@ -32,3 +32,42 @@ test('research shortlist ranks success probability, deduplicates fixtures and mu
  const rows=[{...pick('a:h','a',.99,0),pricing:'derived',pushProb:.5},pick('a:o','a',.9,1.2),{...pick('b:h','b',.95,0),pricing:'derived'},pick('c:h','c',.8,2)];
  const r=buildModelShortlist(rows);assert.deepEqual(r.picks.map(p=>p.id),['b:h','a:o','c:h']);assert.equal(r.combinedOdds,2.4);assert.ok(Math.abs(r.combinedProbability-.95*.9*.8)<1e-10);assert.equal(buildModelShortlist([]),null);
 });
+
+
+test('fallback shortlist includes all 45 matching fixtures rather than ten or thirty',()=>{
+ const rows=Array.from({length:45},(_,i)=>({...pick(`f${i}:home`,`f${i}`,.9-i/1000,0),pricing:'derived'}));
+ const r=buildModelShortlist(rows);assert.equal(r.picks.length,45);assert.equal(new Set(r.picks.map(p=>p.fixtureId)).size,45);
+});
+test('quoted accumulator can exceed ten legs when low quoted odds require it',()=>{
+ const rows=Array.from({length:36},(_,i)=>pick(`f${i}:home`,`f${i}`,.98,1.05));
+ const r=buildMachineTicket(rows,{minTotal:3,maxTotal:3.15});assert.ok(r);assert.equal(r.picks.length,23);assert.ok(r.combinedOdds>=3&&r.combinedOdds<=3.15);
+});
+test('forecast and period team Over/Under filters do not depend on old ID prefixes',()=>{
+ const mk=(id,label,market='Falcons team total projection')=>({...pick('a:'+id,'a',.8,0),selection:label,market,pricing:'derived'});
+ const selections=[mk('forecast:full:home:under:100.5','Falcons Under 100.5'),mk('forecast:full:away:over:99.5','Bears Over 99.5','Bears team total projection'),mk('forecast:full:total:under:210.5','Under 210.5','Full-game total projection'),mk('period:first_half:home:under:50.5','Under 50.5','First half home team total')];
+ const fixture={fixtureId:'a',sport:'basketball',kickoffTime:new Date(now+3600000).toISOString(),status:{state:'scheduled'},markets:[{key:'full-projections',selections}]};
+ const options={from:now,to:now+7200000,publishedIds:new Set(['a']),sports:['basketball'],markets:['team-under'],direction:'all',minOdds:1.01,maxOdds:6,minProbability:.7,includeUnpriced:true};
+ assert.equal(machineCandidates([fixture],options,now).length,2);
+ assert.equal(machineCandidates([fixture],{...options,markets:['team-over']},now).length,1);
+ assert.equal(machineCandidates([fixture],{...options,markets:['match-under']},now).length,1);
+ assert.equal(machineCandidates([fixture],{...options,markets:[],direction:'under'},now).length,3);
+});
+test('provider aliases of an event never become repeated legs, while rematches stay distinct',()=>{
+ const mk=(id,time,selection='Over 2.5')=>({...pick(id+':o25',id,.85,2),matchTitle:'Falcons vs Bears',kickoffTime:new Date(time).toISOString(),selection});
+ const a=mk('provider-a',now+3600000),b=mk('provider-b',now+3600000),c=mk('rematch',now+86400000);
+ assert.equal(buildModelShortlist([a,b,c]).picks.length,2);
+ assert.equal(buildMachineTicket([a,b],{minTotal:4,maxTotal:4.2}),null);
+ assert.equal(buildMachineTicket([a,b,c],{minTotal:4,maxTotal:4.2}).picks.length,2);
+ const fixture=id=>({fixtureId:id,sport:'football',matchTitle:'Falcons vs Bears',kickoffTime:new Date(now+3600000).toISOString(),status:{state:'scheduled'},markets:[{key:'totals',selections:[id==='provider-a'?a:b]}]});
+ const rows=machineCandidates([fixture('provider-a'),fixture('provider-b')],{from:now,to:now+7200000,publishedIds:new Set(['provider-a','provider-b']),sports:['football'],markets:[],direction:'all',minOdds:1.01,maxOdds:5,minProbability:.7},now);assert.equal(rows.length,1);
+});
+
+
+test('duplicate line copies prefer the real quote and retain distinct periods and non-Latin fixtures',async()=>{
+ const {uniqueMachineOptions,machineFixtureKey}=await import('../src/lib/bet-machine.js');
+ const quoted={...pick('a:u2.5','a',.7,1.8),selection:'Under 2.5 goals',scope:'full'};
+ const derived={...quoted,id:'a:forecast:full:total:under:2.5',selection:'Under 2.5',pricing:'derived',bestOdds:0,modelProb:.75};
+ const period={...derived,id:'a:period:first_half:total:under:2.5',scope:'first_half'};
+ const rows=uniqueMachineOptions([derived,quoted,period]);assert.equal(rows.length,2);assert.equal(rows[0].pricing,'quoted');assert.equal(rows[1].scope,'first_half');
+ const base={fixtureId:'same',sport:'football',kickoffTime:new Date(now).toISOString()};assert.notEqual(machineFixtureKey({...base,matchTitle:'東京 vs 大阪'}),machineFixtureKey({...base,matchTitle:'北京 vs 上海'}));
+});

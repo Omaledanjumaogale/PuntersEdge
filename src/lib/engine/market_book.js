@@ -18,8 +18,6 @@ import { calculateKellyStake, gradeSelection, selectionDecision } from './decisi
 import { normalCdf, probit, round, fairOdds } from './math.js';
 import { normalOutcomes, normalMeanFromPrice } from './outcomes.js';
 
-/** Ignore edges above this — almost always stale prices or data errors. */
-const MAX_CREDIBLE_EDGE = 25;
 
 /**
  * @typedef {Object} MarketSelection
@@ -85,7 +83,8 @@ function price(ctx, candidates, w, kellyFraction) {
     // EV with pushes: the stake comes back on a push, so only (1 - push) of it is at risk.
     const edge = (1 - push) * (prob * best.odds - 1);
     const edgePercent = round(edge * 100, 2);
-    if (edgePercent > MAX_CREDIBLE_EDGE) continue;
+    // Keep both sides visible. selectionDecision rejects implausible value gaps
+    // and zeroes stake; a quality gate must not erase an Over or Under outcome.
     const stake = calculateKellyStake(prob, best.odds, kellyFraction);
     out.push({
       id: `${ctx.fixtureId}:${c.key}`,
@@ -104,7 +103,7 @@ function price(ctx, candidates, w, kellyFraction) {
       pricing: c.pricing
     });
     const decision = selectionDecision(out[out.length - 1]);
-    out[out.length - 1].grade = decision.grade;
+    Object.assign(out[out.length - 1], decision);
     if (!decision.eligible) out[out.length - 1].kellyStakePercent = 0;
   }
   return out;

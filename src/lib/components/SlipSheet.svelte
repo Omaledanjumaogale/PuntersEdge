@@ -3,7 +3,7 @@
 	import { app } from '#lib/state.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { toast } from '#lib/toast.svelte.ts';
-	import {hasQuotedOdds} from '#lib/slip-pricing.js';
+	import {hasQuotedOdds,MAX_SLIP_SELECTIONS} from '#lib/slip-pricing.js';
 	import {shareSlipText} from '#lib/slips.js';
  import { downloadSlipPdf } from '#lib/slip-export.ts';
 	import { api } from '../../../convex/_generated/api.js';
@@ -90,9 +90,9 @@
 			{#each items as i (i.id)}
 				<div class="ticket flex items-center gap-3 px-4 py-3" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">
-						<p class="fixture-name break-words text-xs">{i.matchTitle}</p><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(i).join(' · ')}</p>
+						<a class="fixture-name block min-h-9 break-words text-xs hover:underline" href={i.sport==='tennis'?`/tennis#${encodeURIComponent(i.fixtureId)}`:`/match?id=${encodeURIComponent(i.fixtureId)}`} onclick={close}>{i.matchTitle}<span class="sr-only"> · View full analysis</span></a><p class="mt-1 break-words text-xs text-haze">{fixtureMetadataLines(i).join(' · ')}</p>
 						{#if app.gameById(i.fixtureId)}<p class="mt-1 text-xs text-haze">{new Date(app.gameById(i.fixtureId)!.kickoff).toLocaleString('en-NG',{timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'})} WAT</p>{/if}
-						<p class="truncate font-semibold text-chalk">{i.selection}</p>
+						<p class="break-words font-semibold text-chalk">{i.selection}</p>
 						<p class="text-xs text-haze">{i.market}, {i.bookmaker}, model {pct(i.modelProb, 1)}{#if (i.pushProb??0)>0}, refund {pct(i.pushProb??0,1)}{/if}</p>
 						{#if app.sameGameFixtures.has(i.fixtureId)}<p class="mt-0.5 text-xs font-semibold text-book">🔗 Same match as another pick</p>{/if}
 					</div>
@@ -160,8 +160,9 @@
 				{/if}
 
 				{#if auth.signedIn}
+     {#if items.length>MAX_SLIP_SELECTIONS}<p role="status" class="text-sm text-book">Your complete shortlist stays visible. Choose at most {MAX_SLIP_SELECTIONS} selections to save one ticket.</p>{/if}
 					<label class="grid gap-1 text-sm text-haze">Name this slip<input class="rounded-xl bg-ink px-3 py-2 text-chalk ring-1 ring-line" maxlength="80" bind:value={slipName} placeholder="Weekend picks" /></label>
-					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
+					<button onclick={saveHistory} class="btn-primary w-full" disabled={savingHistory||items.length>MAX_SLIP_SELECTIONS}>{savingHistory ? 'Saving…' : 'Save to history'}</button>
 				{/if}
 				<button class="btn-secondary w-full" onclick={share}>Share ticket · WhatsApp & more</button><div class="grid gap-2"><button class="btn-secondary" disabled={exporting} onclick={pdf}>{exporting?'Preparing…':'Download PDF'}</button></div>
 				<button onclick={copySlip} class="flex w-full items-center justify-center gap-2 rounded-full bg-chalk py-3 font-semibold text-ink hover:bg-white">

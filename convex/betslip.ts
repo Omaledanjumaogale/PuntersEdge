@@ -1,5 +1,5 @@
 import {enrichFixtureMetadata} from '../src/lib/fixture-metadata.js';
-import {slipPricing,validSlipOdds} from '../src/lib/slip-pricing.js';
+import {slipPricing,validSlipOdds,MAX_SLIP_SELECTIONS} from '../src/lib/slip-pricing.js';
 import { requireSubscription } from "./access";
 import { getCurrentUser } from "./auth";
 import { query, mutation } from "./_generated/server";
@@ -40,9 +40,10 @@ export const save = mutation({
     if (userId === null) throw new Error("Sign in to sync your slip.");
     if(!Number.isFinite(args.stake)||args.stake<0||args.stake>1e9)throw new Error('Enter a valid stake.');
     if(args.items.some(s=>!validSlipOdds(s.odds)||(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid odds and probabilities.');
-    if (args.items.length > 30) throw new Error("A slip can hold at most 30 selections.");
+    if (args.items.length > MAX_SLIP_SELECTIONS) throw new Error(`A slip can hold at most ${MAX_SLIP_SELECTIONS} selections.`);
 
     const {totalOdds,potentialReturn}=slipPricing(args.items,args.stake,args.betType==='single'?'singles':args.betType);
+    if(!Number.isFinite(totalOdds)||!Number.isFinite(potentialReturn))throw new Error('Combined odds are too large.');
     const doc = {
       userId,
       items: args.items,
@@ -89,7 +90,7 @@ function invalidInput(args: { name: string; stake: number; items: typeof item.ty
   if (!args.name.trim() || args.name.length > 80) throw new Error('Use a slip name from 1 to 80 characters.');
   if (!Number.isFinite(args.stake) || args.stake < 0 || args.stake > 1e9) throw new Error('Enter a valid stake.');
   if(args.items.some(s=>(s.modelProb!==undefined&&(!Number.isFinite(s.modelProb)||s.modelProb<0||s.modelProb>1))||(s.pushProb!==undefined&&(!Number.isFinite(s.pushProb)||s.pushProb<0||s.pushProb>=1))))throw new Error('Selections need valid probabilities.');
-  if (!args.items.length || args.items.length > 30) throw new Error('Save between 1 and 30 selections.');
+  if (!args.items.length || args.items.length > MAX_SLIP_SELECTIONS) throw new Error(`Save between 1 and ${MAX_SLIP_SELECTIONS} selections.`);
   if (args.items.some(selection => !validSlipOdds(selection.odds))) throw new Error('Use quoted decimal odds greater than 1, or zero for an unpriced selection.');
   if (new Set(args.items.map(selection => `${selection.fixtureId}:${selection.marketKey ?? selection.market}:${selection.selection}`)).size !== args.items.length) throw new Error('Remove duplicate selections.');
 }
