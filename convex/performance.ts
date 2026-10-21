@@ -70,3 +70,10 @@ export const reindex=internalMutation({args:{fixtureId:v.string(),expectedFinger
  await recordOne(ctx,{...record,contributions:args.contributions,observedAt:Math.max(Date.now(),(old.observedAt??old.publishedAt)+1),fingerprint:old.fingerprint+':directions-v2'},metrics);
  await flushMetrics(ctx,metrics);return true;
 }});
+
+/** Migration batches amortize aggregate reads/writes across up to twenty fixtures. */
+export const reindexBatch=internalMutation({args:{rows:v.array(v.object({fixtureId:v.string(),expectedFingerprint:v.string(),contributions:v.any()}))},handler:async(ctx,args)=>{
+ if(args.rows.length>20)throw new Error('Reindex batch too large');const metrics=new Map();let updated=0;
+ for(const input of args.rows){const old=await ctx.db.query('projection_snapshots').withIndex('by_fixture',q=>q.eq('fixtureId',input.fixtureId)).unique();if(!old||old.fingerprint!==input.expectedFingerprint)continue;const {_id,_creationTime,...record}=old;await recordOne(ctx,{...record,contributions:input.contributions,observedAt:Math.max(Date.now(),(old.observedAt??old.publishedAt)+1),fingerprint:old.fingerprint+':directions-v2'},metrics);updated++;}
+ await flushMetrics(ctx,metrics);return updated;
+}});
