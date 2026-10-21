@@ -59,7 +59,8 @@ export const dashboard = query({args:{sport:v.optional(v.string())},handler:asyn
 /** Deployment-admin maintenance; no customer or public access. */
 export const reindexPage=internalQuery({args:{cursor:v.optional(v.string())},handler:async(ctx,args)=>{
  const page=await ctx.db.query('projection_snapshots').paginate({numItems:50,cursor:args.cursor??null});
- return {...page,page:page.page.filter(p=>p.contributions?.summary?.n>0&&!Object.keys(p.contributions??{}).some(k=>k.startsWith('directions:')))};
+ const rows=page.page.filter(p=>p.contributions?.summary?.n>0&&!Object.keys(p.contributions??{}).some(k=>k.startsWith('directions:')));
+ return {...page,page:await Promise.all(rows.map(async row=>({...row,...(row.storageId&&!row.blobKey?{legacyUrl:await ctx.storage.getUrl(row.storageId)}:{})})))};
 }});
 
 /** Apply a derived-dimension migration only if the source snapshot has not changed. */

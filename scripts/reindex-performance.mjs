@@ -7,7 +7,7 @@ const blobs=runnerBlobs();let cursor,updated=0,missing=0,changedDuringRead=0;
 do{const page=await client.query(makeFunctionReference('performance:reindexPage'),cursor?{cursor}:{});
  for(let start=0;start<page.page.length;start+=20){const rows=[];
   const source=page.page.slice(start,start+20);
-  for(let offset=0;offset<source.length;offset+=4){const inputs=await Promise.all(source.slice(offset,offset+4).map(async row=>{const bytes=row.blobKey?await blobs.get(row.blobKey):null;if(!bytes){missing++;return null;}const frozen=parseGzip(bytes);if(!Array.isArray(frozen.selections)){missing++;return null;}return {fixtureId:row.fixtureId,expectedFingerprint:row.fingerprint,contributions:contributionsFor(frozen)};}));rows.push(...inputs.filter(Boolean));}
+  for(let offset=0;offset<source.length;offset+=4){const inputs=await Promise.all(source.slice(offset,offset+4).map(async row=>{let bytes=row.blobKey?await blobs.get(row.blobKey):null;if(!bytes&&row.legacyUrl){const response=await fetch(row.legacyUrl,{signal:AbortSignal.timeout(60000)});if(response.ok)bytes=new Uint8Array(await response.arrayBuffer());}if(!bytes){missing++;return null;}const frozen=parseGzip(bytes);if(!Array.isArray(frozen.selections)){missing++;return null;}return {fixtureId:row.fixtureId,expectedFingerprint:row.fingerprint,contributions:contributionsFor(frozen)};}));rows.push(...inputs.filter(Boolean));}
   if(rows.length){const accepted=await client.mutation(makeFunctionReference('performance:reindexBatch'),{rows});updated+=accepted;changedDuringRead+=rows.length-accepted;}
  }
  console.log(JSON.stringify({progress:true,reindexed:updated,missingArchives:missing,changedDuringRead}));
