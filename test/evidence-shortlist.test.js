@@ -62,3 +62,12 @@ test('double chance 1X/X2/12 and either team Over 1.5 have explicit exact-outcom
 test('quarter-line outcomes are not given a binary confidence meter',()=>{
  const selections=[{key:'forecast:full:handicap:home:1.75',selection:'Home +1.75',modelProb:.9,modelVersion:'baseline',pricing:'derived',result:'won'}];const hs=Array.from({length:40},(_,i)=>compactEvidence(snap('quarter-'+i,'won',{selections}))),r=buildEvidenceReport(hs,[future('quarter-next',{selections})],now),result=evidenceShortlist(r,{},now);assert.equal(result.rows.length,0);assert.equal(result.rejected.partialSettlement,1);
 });
+
+test('football scoring, first-half lines and basketball team totals filter exact outcomes',()=>{
+ const keys=['h05','a05','bttsYes','bttsNo','period:first_half:total:under:1.5','period:first_half:total:under:2.5','forecast:full:home:over:90.5','forecast:full:away:under:95.5','o2.5','u2.5'];
+ const selections=keys.map(key=>({key,selection:key,modelProb:.75,modelVersion:'baseline',pricing:'derived',result:'won'}));
+ const rules={minModel:0,minSamples:20,minStrike:0,minFloor:0};
+ for(const sport of ['football','basketball']){const hs=Array.from({length:40},(_,i)=>compactEvidence(snap(`${sport}-${i}`,'won',{sport,selections}))),r=buildEvidenceReport(hs,[future(`${sport}-next`,{sport,selections})],now);
+ if(sport==='football'){for(const kind of ['team-05','bttsYes','bttsNo','first-half-u15','first-half-u25','match-over','match-under']){const rows=evidenceShortlist(r,{...rules,kind},now).rows;assert.equal(rows.length,kind==='team-05'?2:kind==='match-under'?3:1);}}
+ else {const rows=evidenceShortlist(r,{...rules,kind:'basketball-team'},now).rows;assert.ok(rows.some(r=>r.kind==='team-home'&&r.side==='over'));assert.ok(rows.some(r=>r.kind==='team-away'&&r.side==='under'));assert.equal(evidenceShortlist(r,{...rules,kind:'team-05'},now).rows.length,0);}}
+});
