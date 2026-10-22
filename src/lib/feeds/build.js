@@ -1,3 +1,4 @@
+import {cornerFeatures} from '../engine/football_research.js';
 /**
  * Store → app feed.
  *
@@ -96,7 +97,7 @@ export function inputFor(store, g, now=Date.now()) {
     }
   }
   if (!ratings) ratings = marketRatings(def.family, odds, g.league);
-  const input={ ...base, ratings, ratingsSource: source,analysisEvidence:{approved:false,independent:source!=='market',domainSupported:false,approvedMarkets:[],modelVersion:'heuristic-baseline'} };
+  const input={ ...base, ...(g.sport==='football'?{footballResearchModels:(store.footballResearchModels??[]).filter(m=>m.approved&&m.league===g.league),cornerResearchFeatures:cornerFeatures(Object.values(store.footballResearch??{}),g,now)}:{}), ratings, ratingsSource: source,analysisEvidence:{approved:false,independent:source!=='market',domainSupported:false,approvedMarkets:[],modelVersion:'heuristic-baseline'} };
   const fitted=fittedInput(input,g,/** @type {any} */(store).modelArtifacts??[],now);
   return fitted.ratings||fitted.fittedProjection?fitted:null;
 }
@@ -163,9 +164,9 @@ export function updateRecord(store, now) {
         if(updated){snapshot.gradeHistory=snapshot.gradeHistory.slice(-100);if(!changed.includes(snapshot))changed.push(snapshot);}
       } catch { /* Keep the previously published snapshot. */ }
     }
-    const before = JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,results:snapshot.selections.map((/** @type {any} */s)=>s.result)});
+    const before = JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,settledMarkets:snapshot.settledMarkets,results:snapshot.selections.map((/** @type {any} */s)=>s.result)});
     settleSnapshot(snapshot,g,now);
-    if(before !== JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,results:snapshot.selections.map((/** @type {any} */s)=>s.result)}) && !changed.includes(snapshot)) changed.push(snapshot);
+    if(before !== JSON.stringify({state:snapshot.state,score:snapshot.score,periodScores:snapshot.periodScores,settledMarkets:snapshot.settledMarkets,results:snapshot.selections.map((/** @type {any} */s)=>s.result)}) && !changed.includes(snapshot)) changed.push(snapshot);
   }
   for(const snapshot of Object.values(store.projections))if(snapshot.performanceSchema!==2){snapshot.performanceSchema=2;if(!changed.includes(snapshot))changed.push(snapshot);}
   for(const snapshot of changed)snapshot.observedAt=now;

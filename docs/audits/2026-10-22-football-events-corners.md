@@ -1,0 +1,26 @@
+# Football goal sequences and corner research release
+
+22 October 2026, Africa/Lagos.
+
+## Implemented
+
+- Completed API-Football fixtures can be selected for goal-event and corner-statistics collection. These requests use the existing shared football ledger, durable reservation before network I/O, provider-reported remaining allowance, host rate spacing, and schedule-protection rules. Research is additionally limited to two calls per tick and six per UTC day; the research reservation count survives a failed request or process crash. Total football use remains capped at 90 of the provider's 100 daily requests. This is a ceiling, not a promise of six requests when the shared budget is exhausted.
+- Successful observations are cached in the private R2 ingest state and survive game pruning. Missing/ambiguous responses retry no more than daily. New collection pauses at 5,000 records to bound storage and processing. Raw goal events are reduced to a verified regulation-time side sequence; unknown goal types, ambiguous same-time ordering, own-goal ambiguity, missing teams and score mismatches are rejected. Extra time and shootouts are excluded. Corner statistics require both numeric counts and an FT fixture; AET/PEN statistics and null values are rejected.
+- Independent home/away consecutive-goal logistic candidates and total/home/away corner candidates train by league. Sequence features come from an actually retained pre-match expected-goals publication; they are not refitted from the final score. Corner features use a timestamped pre-match rolling mean from at least five previously observed matches for each team. Cold-start fixtures do not receive invented corner inputs.
+- The chronological split keeps whole kickoff timestamps together. Only training outcomes available before the later validation boundary can train coefficients. Model selection does not fit on the later outcomes. Reports expose training and validation counts, Brier score, earlier base-rate Brier, calibration error and reasons for failing publication.
+- Automatic serving requires at least 200 earlier training fixtures, 100 later validation fixtures over at least 30 distinct days, both outcomes represented, Brier improvement of at least 0.005, a positive paired approximate 95% lower bound for improvement, and five-bin calibration error at most 0.08. These are engineering acceptance criteria; they do not prove profitability or account for every dependency and multiple comparison.
+- Passing league models are automatically attached to future prediction inputs and shared browser/server market generation. Corners currently cover total Over/Under 9.5 and home/away Over/Under 4.5; sequences cover home/away to score twice consecutively at any point in regulation. Prices are unquoted, grades remain PASS for executable betting value, and no bookmaker price/ROI is fabricated. The evidence shortlist additionally needs original published outcomes in its exact cohort before assigning recurrence confidence.
+- Small authoritative result maps pass through production metadata and saved slips. Raw sequences/corner records stay in R2. Late data can settle saved sequence/corner picks for up to seven days; missing results remain ungraded, never inferred from a final score. Current authoritative metadata clears obsolete cached market outcomes after a correction.
+- The private Evidence shortlist includes a collapsed goal-sequence/corner validation panel and a corner-market filter. Invalid or insufficient candidates remain in shadow mode with visible reasons.
+
+## Evidence and limitations
+
+The initial read-only production inspection found 1,737 retained football fixtures, 820 finished fixtures, 774 FT fixtures eligible for a bounded coverage request, and **zero retained research records**. That count demonstrates a data gap, not model quality. No existing record justified activating these new live recommendations before collection.
+
+Primary endpoint reference: https://www.api-football.com/news/post/how-to-get-started-with-api-football-the-complete-beginners-guide. Competition/season access and actual response coverage must be verified against the configured account; documentation does not establish account acceptance.
+
+Cold-start training cannot be completed honestly from zero sequences or missing corner histories. The collector and conditional publisher can be enabled now; a claim that all new live recommendations passed validation would require measured results that do not yet exist. No guarantee that collecting more data will produce an approved model is made. Outcome recurrence is different from positive expected value at an actual quoted price.
+
+## Verification
+
+Focused tests cover event integrity, missing corners, FT/extra-time separation, durable research quota reservations, warm-cache persistence, pre-kickoff feature guards, chronological coefficient isolation, saved-slip facts and market settlement. Existing application tests passed after extending the provider mock to explicitly return missing fixture details. Backend tests initially had one existing ticket-rule timeout under local load; the isolated security suite then passed all 26 tests. Backend typecheck passed. Final CI/deployment and live collector observations are recorded in the task response.

@@ -27,6 +27,7 @@ export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
   if(c.state==='scheduled'&&c.kickoff>now&&(!game||game.status.state==='scheduled'))upcoming.push(c);
  }
  const report=buildEvidenceReport(Object.values(catalog.fixtures),upcoming,now);
+ report.research=store.footballResearchReport??null;
  report.coverage={missingArchives:catalog.missingArchives,invalidPublications:catalog.invalidPublications};
  const version=hash({...report,generatedAt:0}),reportKey=`archives/evidence/${version}-report.gz`,stateKey=`archives/evidence/${hash(catalog)}-state.gz`;
  if(reportKey!==previous?.reportKey)await blobs.put(reportKey,gzipJson(report));if(stateKey!==previous?.stateKey)await blobs.put(stateKey,gzipJson(catalog));

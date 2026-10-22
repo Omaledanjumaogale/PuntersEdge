@@ -1,3 +1,4 @@
+import {parseGoalSequence,parseCorners} from './football-observations.js';
 /**
  * One ingest tick: plan → fetch → parse → merge, with every paid call
  * metered through the ledgers. The network is injected (`fetcher`), so the
@@ -74,8 +75,11 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
   if(dateDenials) for(const [key,until] of Object.entries(dateDenials)) if(Number(until) <= now){delete dateDenials[key];lookupsChanged=true;}
 
   const { jobs, protect } = listJobs(store, lookups, now, keys, ledgers);
-  const { run, skipped } = planJobs(jobs, ledgers, lastRun, now, { protect, maxPerLedger: PER_TICK });
+  const { run: planned, skipped } = planJobs(jobs, ledgers, lastRun, now, { protect, maxPerLedger: PER_TICK });
 
+  let researchCount=0;const day=Math.floor(now/86400000)*86400000;
+  const researchToday=Math.max(ledgers['api-sports:football'].researchUsed??0,Object.entries(lastRun).filter(([k,v])=>k.startsWith('as:football:research:')&&v>=day).length);
+  const run=planned.filter(j=>j.params.kind!=='football-research'||(++researchCount<=2&&researchToday+researchCount<=6));
   // Every request, including pagination, is durably reserved immediately before
   // network I/O. A crash may overcount but must never erase attempted spend.
 
@@ -95,16 +99,17 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
 
   /**
    * Metered call.
-   * @param {Provider} provider @param {string} ledger @param {string} url @param {number} cost
+   * @param {Provider} provider @param {string} ledger @param {string} url @param {number} cost @param {boolean} [research]
    */
-  const call = async (provider, ledger, url, cost) => {
+  const call = async (provider, ledger, url, cost, research=false) => {
     const host = new URL(url).host;
     if (halted.has(host) || (lookups.providerBackoffs?.[host] ?? 0) > now) throw new Error('halted');
     const wait = (lastCall[host] ?? 0) + SPACING[provider] - Date.now();
     if (wait > 0) await sleep(wait);
     lastCall[host] = Date.now();
     if (!canSpend(ledger, cost)) throw new Error('budget exhausted');
-    const before = ledgers[ledger];
+    if(research&&(ledgers[ledger].researchUsed??0)>=6)throw new Error('Research daily budget exhausted');
+    const before = {...ledgers[ledger],...(research?{researchUsed:(ledgers[ledger].researchUsed??0)+1}:{})};
     const reserved = spend(before, cost, undefined, now);
     // Keep reservation in memory too: release-on-failure cannot refund it.
     ledgers[ledger] = reserved;
@@ -159,6 +164,15 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
         const added = upsertGames(store, games, now);
         note(store, `api-sports:${p.sport}`, true, `${games.length} games on ${p.date} (${added} new)`, now);
         return true;
+      }
+      case 'football-research': {
+       const g=store.games[p.uid];if(!g?.ext.as)return false;
+       const body=await call('api-sports',job.ledger,apiSportsUrl('football',p.type==='events'?'/fixtures/events':'/fixtures/statistics',{fixture:g.ext.as}),1,true);
+       const errs=apiSportsErrors(body);if(errs.length)throw new Error(errs.join('; '));
+       const observation=p.type==='events'?parseGoalSequence(body,g,now):parseCorners(body,g,now);
+       store.footballResearch??={};const r=store.footballResearch[g.uid]??={fixtureId:g.uid,kickoff:g.kickoff,league:g.league,homeId:g.homeId,awayId:g.awayId,home:g.home,away:g.away,score:{home:g.status.regHome??g.status.home,away:g.status.regAway??g.status.away}};
+       r.score={home:g.status.regHome??g.status.home,away:g.status.regAway??g.status.away};r.checkedAt=now;if(observation){r[p.type]=observation;if(p.type==='events')g.goalSequence=observation;else g.corners=observation;}
+       note(store,'football-research',!!observation,observation?'Verified '+p.type:'Missing or ambiguous '+p.type,now);return true;
       }
       case 'standings': {
         const params = p.sport === 'nba' ? { league: 'standard', season: p.season } : { league: p.leagueId, season: p.season };

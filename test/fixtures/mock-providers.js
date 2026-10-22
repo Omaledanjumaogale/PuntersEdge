@@ -98,6 +98,7 @@ export function mockWorld(clock) {
         }
         return { status: 200, body: { errors: [], results: response.length, response }, headers: headers({ 'x-ratelimit-requests-remaining': remaining }) };
       }
+      if (u.pathname === '/fixtures/events' || u.pathname === '/fixtures/statistics') return {status:200,body:{response:[]},headers:headers({})}; // Unsupported fixture details remain missing, never synthetic.
       if (u.pathname === '/standings') {
         const rows = TEAMS[sport].teams.map((t, i) => ({ id: i + 1, t }));
         let response;

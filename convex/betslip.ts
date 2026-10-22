@@ -80,10 +80,10 @@ import { itemOutcome, slipOutcome } from '../src/lib/slips.js';
 
 const fixtureState = v.object({
   fixtureId: v.string(), kickoff: v.number(), status: v.string(), family: v.string(),league:v.optional(v.string()),tournament:v.optional(v.string()),country:v.optional(v.string()),
-  periodScores:v.optional(v.record(v.string(),v.object({home:v.number(),away:v.number()}))),
+  settledMarkets:v.optional(v.record(v.string(),v.union(v.literal('won'),v.literal('lost')))),periodScores:v.optional(v.record(v.string(),v.object({home:v.number(),away:v.number()}))),
   score: v.optional(v.union(v.null(), v.object({ home: v.number(), away: v.number(), regHome: v.optional(v.number()), regAway: v.optional(v.number()) }))),
 });
-type State = {periodScores?:Record<string,{home:number;away:number}>;league?:string;tournament?:string;country?:string; fixtureId: string; kickoff: number; status: string; family: string; score?: { home: number; away: number; regHome?: number; regAway?: number } | null };
+type State = {settledMarkets?:Record<string,'won'|'lost'>;periodScores?:Record<string,{home:number;away:number}>;league?:string;tournament?:string;country?:string; fixtureId: string; kickoff: number; status: string; family: string; score?: { home: number; away: number; regHome?: number; regAway?: number } | null };
 async function fixtureStates(ctx: QueryCtx | MutationCtx, ids: string[]): Promise<State[]> {
   const unique = [...new Set(ids)];
   const groups: string[][] = [];
@@ -112,12 +112,12 @@ function decorate(selections: typeof item.type[], states: State[]) {
   return selections.map(selection => {
     const state = lookup.get(selection.fixtureId);
     if (!state || !Number.isFinite(state.kickoff)) throw new Error('A fixture could not be verified against the live schedule. Refresh and try again.');
-    return { ...enrichFixtureMetadata(selection,state), kickoff: state.kickoff, fixtureStatus: state.status, family: state.family, ...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) };
+    return { ...enrichFixtureMetadata(selection,state), kickoff: state.kickoff, fixtureStatus: state.status, family: state.family, settledMarkets:state.settledMarkets??{},...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) };
   });
 }
 async function resolveItems(ctx: QueryCtx | MutationCtx, selections: typeof item.type[]) {
  const states=await fixtureStates(ctx,selections.map(s=>s.fixtureId)),lookup=new Map(states.map(s=>[s.fixtureId,s]));
- return selections.map(selection=>{const state=lookup.get(selection.fixtureId);return state?{...enrichFixtureMetadata(selection,state),kickoff:state.kickoff,fixtureStatus:state.status,family:state.family,...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score?{score:state.score}:{})}:selection;});
+ return selections.map(selection=>{const state=lookup.get(selection.fixtureId);return state?{...enrichFixtureMetadata(selection,state),kickoff:state.kickoff,fixtureStatus:state.status,family:state.family,settledMarkets:state.settledMarkets??{},...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score?{score:state.score}:{})}:selection;});
 }
 function isFinal(selection: { fixtureStatus?: string }) { return selection.fixtureStatus === 'finished' || selection.fixtureStatus === 'cancelled'; }
 function completed(selections: { fixtureStatus?: string }[]) { return selections.length > 0 && selections.every(isFinal); }
@@ -139,7 +139,7 @@ export const history = query({ args: {}, handler: async ctx => {
   return slips.map(slip => {
     const items = slip.items.map(selection => {
       const state = lookup.get(selection.fixtureId);
-      const merged = state && (!isFinal(selection) || ['finished','cancelled'].includes(state.status)) ? { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) } : selection;
+      const merged = state && (!isFinal(selection) || ['finished','cancelled'].includes(state.status)) ? { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, settledMarkets:state.settledMarkets??{},...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) } : selection;
       return { ...enrichFixtureMetadata(merged,state), result: itemOutcome(merged) };
     });
     return { ...slip, items, locked: completed(items), outcome: slipOutcome(items, slip.betType) };
@@ -171,7 +171,7 @@ export const updateHistory = mutation({
     const resolvedOld = slip.items.map(selection => {
       const latest = oldLookup.get(selection.fixtureId);
       if (!latest || (isFinal(selection) && !['finished','cancelled'].includes(latest.status))) return selection;
-      return { ...selection, kickoff: latest.kickoff, fixtureStatus: latest.status, ...(latest.periodScores?{periodScores:latest.periodScores}:{}),...(latest.score ? { score: latest.score } : {}) };
+      return { ...selection, kickoff: latest.kickoff, fixtureStatus: latest.status, settledMarkets:latest.settledMarkets??{},...(latest.periodScores?{periodScores:latest.periodScores}:{}),...(latest.score ? { score: latest.score } : {}) };
     });
     if (completed(resolvedOld)) throw new Error('This slip is locked because all selections have finished or been cancelled.');
     invalidInput(args);
@@ -204,12 +204,12 @@ export const resolveSavedFixtures = internalMutation({ args: { states: v.array(f
     const items = slip.items.map(selection => {
       const state = states.get(selection.fixtureId);
       if (!state || (isFinal(selection) && !['finished','cancelled'].includes(state.status))) return selection;
-      const next = { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, ...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) };
+      const next = { ...selection, kickoff: state.kickoff, fixtureStatus: state.status, settledMarkets:state.settledMarkets??{},...(state.periodScores?{periodScores:state.periodScores}:{}),...(state.score ? { score: state.score } : {}) };
       if (JSON.stringify(next) !== JSON.stringify(selection)) changed = true;
       return next;
     });
     const locked = completed(items);
-    const awaitingResults = items.some(selection => !['finished', 'cancelled'].includes(selection.fixtureStatus ?? ''));
+    const awaitingResults = items.some(selection => !['finished', 'cancelled'].includes(selection.fixtureStatus ?? '') || selection.fixtureStatus==='finished'&&/^(sequence|corners):/.test(selection.marketKey??'')&&!selection.settledMarkets?.[selection.marketKey!]&&Date.now()<Number(selection.kickoff)+7*86400000);
     if (changed || slip.locked !== locked || slip.awaitingResults !== awaitingResults) { await ctx.db.patch(slip._id, { items, locked, awaitingResults, updatedAt: Date.now() }); updated++; }
   }
   if (!page.isDone) await ctx.scheduler.runAfter(0, internal.betslip.resolveSavedFixtures, { states: args.states, cursor: page.continueCursor });

@@ -34,7 +34,7 @@ export interface Settings {
 }
 
 export interface SlipItem {
- periodScores?:Record<string,{home:number;away:number}>;evidence?:any;kickoff?:number|string;fixtureStatus?:string;family?:string;score?:{home:number;away:number;regHome?:number;regAway?:number};
+ settledMarkets?:Record<string,'won'|'lost'>;periodScores?:Record<string,{home:number;away:number}>;evidence?:any;kickoff?:number|string;fixtureStatus?:string;family?:string;score?:{home:number;away:number;regHome?:number;regAway?:number};
  league?:string;tournament?:string;country?:string;
 	pushProb?: number;
 	marketKey?: string;
@@ -217,7 +217,7 @@ class AppState {
 		this.slip=[...this.slip,{id,fixtureId:fixture.id,sport:'tennis',marketKey:`${market.key}:${option.side}`,matchTitle:`${fixture.playerA} vs ${fixture.playerB}`,league:fixture.tour,tournament:fixture.league,market:market.title,selection:option.selection,bookmaker:'Unpriced experimental estimate',odds:0,modelProb:option.modelProb,edgePercent:0,pushProb:0}];recordActivity('slip_added');
 	}
 
-	get resolvedSlip():SlipItem[]{return this.slip.map(item=>{const game=this.gameById(item.fixtureId);return {...enrichFixtureMetadata(item,game),...(game?{fixtureStatus:game.status.state,kickoff:game.kickoff,...((game.status as any).periodScores?{periodScores:(game.status as any).periodScores}:{}),...(Number.isFinite(game.status.home)&&Number.isFinite(game.status.away)?{score:{home:game.status.home!,away:game.status.away!,...((game.status as any).regHome!==undefined?{regHome:(game.status as any).regHome}:{}),...((game.status as any).regAway!==undefined?{regAway:(game.status as any).regAway}:{})}}:{})}: {})};});}
+	get resolvedSlip():SlipItem[]{return this.slip.map(item=>{const game=this.gameById(item.fixtureId);return {...enrichFixtureMetadata(item,game),...(game?{fixtureStatus:game.status.state,kickoff:game.kickoff,settledMarkets:(game.status as any).settledMarkets??{},...((game.status as any).periodScores?{periodScores:(game.status as any).periodScores}:{}),...(Number.isFinite(game.status.home)&&Number.isFinite(game.status.away)?{score:{home:game.status.home!,away:game.status.away!,...((game.status as any).regHome!==undefined?{regHome:(game.status as any).regHome}:{}),...((game.status as any).regAway!==undefined?{regAway:(game.status as any).regAway}:{})}}:{})}: {})};});}
 	inSlip(id: string) {
 		return this.slip.some((s) => s.id === id);
 	}

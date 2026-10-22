@@ -34,6 +34,7 @@ export const LIMITS = {
  * @property {string} day today's id, for monthly pacing
  * @property {number} dayUsed spent today
  * @property {number} [remoteRemaining] last remaining count the provider reported
+ * @property {number} [researchUsed] research reservations in the current daily window
  * @property {number} [remoteAt] when it was reported
  */
 

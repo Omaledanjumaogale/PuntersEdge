@@ -11,6 +11,8 @@ import { bestMatch } from './matching.js';
  * @typedef {import('./catalog.js').SportKey} SportKey
  * @typedef {import('./apisports.js').GameStatus} GameStatus
  * @typedef {Object} StoredGame
+ * @property {any} [goalSequence]
+ * @property {any} [corners]
  * @property {string} uid `${sport}-${src}-${id}`, stable and URL-safe
  * @property {SportKey} sport
  * @property {string} [tournament]
@@ -52,6 +54,9 @@ import { bestMatch } from './matching.js';
 
 /**
  * @typedef {Object} Store
+ * @property {any[]} [footballResearchModels]
+ * @property {any} [footballResearchReport]
+ * @property {Record<string, any>} footballResearch
  * @property {Record<string, any>} projections
  * @property {1} v
  * @property {Record<string, StoredGame>} games
@@ -63,7 +68,7 @@ import { bestMatch } from './matching.js';
 
 /** @returns {Store} */
 export function emptyStore() {
-  return { v: 1, projections: {}, games: {}, tables: {}, oddsApiEvents: {}, record: { pending: {}, settled: [] }, diag: {} };
+  return { v: 1, footballResearch: {}, projections: {}, games: {}, tables: {}, oddsApiEvents: {}, record: { pending: {}, settled: [] }, diag: {} };
 }
 
 /** Make sure an object read from storage has every field. */
@@ -77,6 +82,9 @@ export function reviveStore(/** @type {any} */ raw) {
     diag: raw.diag ?? {},
     tables: raw.tables ?? {},
     oddsApiEvents: raw.oddsApiEvents ?? {},
+    footballResearch: raw.footballResearch ?? {},
+    footballResearchModels: raw.footballResearchModels ?? [],
+    footballResearchReport: raw.footballResearchReport ?? null,
     projections: raw.projections ?? {},
     games: raw.games ?? {}
   };

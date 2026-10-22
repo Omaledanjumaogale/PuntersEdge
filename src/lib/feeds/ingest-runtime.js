@@ -1,3 +1,4 @@
+import {refreshFootballResearch} from '../engine/football_research.js';
 /** Heavy ingest runs on the public repository's scheduled runner; Convex holds metadata only. */
 import {gzipSync,gunzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
@@ -51,6 +52,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   const publicChanged=await refreshPublicSports(store,now,publicFetcher);
   const result=await runTick({store,lookups,ledgers:state.ledgers,lastRun:state.lastRun,now,fetcher,keys:{apiSports:!!keys.apiSports,oddsApi:!!keys.oddsApi,oddspapi:!!keys.oddspapi},sleep,reserve:async ledgers=>{reserved=ledgers;await rpc.mutation('feed:reserve',{ledgers});}});
   reserved=result.ledgers;
+  refreshFootballResearch(store,now);
   const changes=updateRecord(store,now),batches=[];
   for(let start=0;start<changes.length;start+=20){
    const records=[],publications=[];
@@ -60,7 +62,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
      const frozen={...publication};delete frozen.priorPublication;delete frozen.publicationHistory;
      const blobKey=await put(`archives/${p.fixtureId}`,frozen);
      if(publication===p){const {fixtureId,sport,family,match,league,kickoff,publishedAt,modelVersion,state:fixtureState}=p;
-      records.push({fixtureId,sport,family,match,league,...(p.country?{country:p.country}:{}),...(p.tournament?{tournament:p.tournament}:{}),kickoff,publishedAt,modelVersion,state:fixtureState,observedAt:p.observedAt??publishedAt,blobKey,contributions:contributionsFor(p),fingerprint:hash(frozen),recent:recentRows(p),...(p.finishedAt?{finishedAt:p.finishedAt}:{}),...(p.periodScores?{periodScores:p.periodScores}:{}),...(p.score?{score:p.score}:{})});
+      records.push({fixtureId,sport,family,match,league,...(p.country?{country:p.country}:{}),...(p.tournament?{tournament:p.tournament}:{}),kickoff,publishedAt,modelVersion,state:fixtureState,observedAt:p.observedAt??publishedAt,blobKey,contributions:contributionsFor(p),fingerprint:hash(frozen),recent:recentRows(p),...(p.finishedAt?{finishedAt:p.finishedAt}:{}),...(p.settledMarkets?{settledMarkets:p.settledMarkets}:{}),...(p.periodScores?{periodScores:p.periodScores}:{}),...(p.score?{score:p.score}:{})});
      }
      publications.push({fixtureId:p.fixtureId,publishedAt:publication.publishedAt,modelVersion:publication.modelVersion,blobKey,...(publication.artifactVersion?{artifactVersion:publication.artifactVersion}:{})});
     }
@@ -73,7 +75,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   const storeKey=await put('state',store),lookupsKey=result.lookupsChanged||!state.lookupsKey?await put('state',lookups):state.lookupsKey;
   const feedKey=version!==state.feedVersion||!state.feedKey?await put('feed',feed):state.feedKey;
   const previewKey=previewVersion!==state.previewVersion||!state.previewKey?await put('preview',preview):state.previewKey;
-  const changedStates=Object.values(store.games).filter(g=>JSON.stringify(g.status)!==JSON.stringify(previousGames[g.uid]?.status)||g.kickoff!==previousGames[g.uid]?.kickoff).map(g=>({fixtureId:g.uid,kickoff:g.kickoff,status:g.status.state,...(g.status.periodScores?{periodScores:g.status.periodScores}:{}),family:SPORTS[/** @type {import("./catalog.js").SportKey} */(g.sport)].family,...(Number.isFinite(g.status.home)&&Number.isFinite(g.status.away)?{score:{home:g.status.home,away:g.status.away,...(g.status.regHome!==undefined?{regHome:g.status.regHome}:{}),...(g.status.regAway!==undefined?{regAway:g.status.regAway}:{})}}:{})}));
+  const changedStates=Object.values(store.games).filter(g=>JSON.stringify(g.status)!==JSON.stringify(previousGames[g.uid]?.status)||g.kickoff!==previousGames[g.uid]?.kickoff).map(g=>({fixtureId:g.uid,kickoff:g.kickoff,status:g.status.state,...(g.status.settledMarkets?{settledMarkets:g.status.settledMarkets}:{}),...(g.status.periodScores?{periodScores:g.status.periodScores}:{}),family:SPORTS[/** @type {import("./catalog.js").SportKey} */(g.sport)].family,...(Number.isFinite(g.status.home)&&Number.isFinite(g.status.away)?{score:{home:g.status.home,away:g.status.away,...(g.status.regHome!==undefined?{regHome:g.status.regHome}:{}),...(g.status.regAway!==undefined?{regAway:g.status.regAway}:{})}}:{})}));
   const events=Object.entries(notificationCounts(previousGames,store.games,now)).filter(([,count])=>count>0).map(([event,count])=>({event,count,batchId:`${now}:${event}`}));
   const pendingArchiveKey=batches.length||changedStates.length||events.length?await put('outbox',{batches,states:changedStates,events}):undefined;
   for(const key of [state.storeKey,state.lookupsKey,state.feedKey,state.previewKey])if(key&&![storeKey,lookupsKey,feedKey,previewKey].includes(key)&&!retiredKeys.some(entry=>entry.key===key))retiredKeys.push({key,after:now+2*3600000});

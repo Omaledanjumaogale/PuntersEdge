@@ -2,7 +2,7 @@ import {settlePeriod} from './engine/period_settlement.js';
 import {fixtureMetadataLines} from './fixture-metadata.js';
 import {slipPricing} from './slip-pricing.js';
 import { settle } from './engine/settlement.js';
-/** @typedef {{selection:string,marketKey?:string,sport?:string,family?:string,fixtureStatus?:string,periodScores?:Record<string,{home:number,away:number}>,score?:{home:number,away:number,regHome?:number,regAway?:number}}} OutcomeItem */
+/** @typedef {{selection:string,settledMarkets?:Record<string,'won'|'lost'>,marketKey?:string,sport?:string,family?:string,fixtureStatus?:string,periodScores?:Record<string,{home:number,away:number}>,score?:{home:number,away:number,regHome?:number,regAway?:number}}} OutcomeItem */
 /** @typedef {OutcomeItem & {league?:string,tournament?:string,country?:string,matchTitle:string,bookmaker:string,odds:number,modelProb?:number,kickoff?:number|string,market?:string}} ShareItem */
 
 /** Convert saved market IDs to the engine's score-settlement vocabulary. */
@@ -25,6 +25,7 @@ export function settlementKey(/** @type {OutcomeItem} */ item) {
 export function itemOutcome(/** @type {OutcomeItem} */ item) {
   if (item.fixtureStatus === 'cancelled') return 'void';
   if (item.fixtureStatus !== 'finished' || !item.score) return 'pending';
+  if(item.marketKey?.startsWith('sequence:')||item.marketKey?.startsWith('corners:'))return item.settledMarkets?.[item.marketKey]??'ungraded';
   if(item.marketKey?.startsWith('period:'))return settlePeriod(item.marketKey,item.periodScores??{})??'ungraded';
   const key = settlementKey(item);
   if (!key) return 'ungraded';

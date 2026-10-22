@@ -88,6 +88,11 @@ export function listJobs(store, lookups, now, keys, ledgers = {}) {
       // Keep enough for the rest of today's schedule refreshes before spending on extras.
       protect[ledger] = Math.ceil(hoursLeft * (live ? 2 : 1)) + Math.ceil(hoursLeft / 6) + 2 + (previousLive ? Math.ceil(Math.min(hoursLeft,4)*2) : 0);
 
+      // Research uses spare allowance only. At most two observations per tick;
+      // attempted calls are cached for a day, successful observations retained.
+      if(sport==='football'&&Object.keys(store.footballResearch??{}).length<5000)for(const g of mine.filter(g=>g.status.state==='finished'&&g.status.detail==='FT'&&now-g.kickoff>3*H&&now-g.kickoff<7*DAY).sort((a,b)=>b.kickoff-a.kickoff).slice(0,40)){
+       const r=store.footballResearch?.[g.uid];for(const type of ['events','corners'])if(!r?.[type])jobs.push({id:`as:football:research:${g.uid}:${type}`,ledger,cost:1,priority:5,every:DAY,params:{kind:'football-research',sport,uid:g.uid,type}});
+      }
       // League tables for competitions with games in the next three days.
       const upcoming = mine.filter((g) => g.kickoff > now - 3 * H && g.kickoff < now + 3 * DAY && g.leagueId !== undefined);
       const leagues = new Map(upcoming.map((g) => [`${g.leagueId}:${g.season}`, { leagueId: g.leagueId, season: g.season }]));

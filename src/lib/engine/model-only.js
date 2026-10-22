@@ -1,3 +1,4 @@
+import {addResearchMarkets} from './football_research.js';
 import { applyEvidence } from './evidence.js';
 import {addFullForecastMarkets} from './forecast_markets.js';
 import {addPeriodMarkets} from './period_markets.js';
@@ -8,7 +9,7 @@ export function withModelOnlyMarkets(/** @type {any} */ prediction, /** @type {R
  if(prediction.markets.some((/** @type {any} */ g)=>g.key!=='asian-quarter'&&g.selections.length)){
   if(input)addFullForecastMarkets(input,prediction);
   if(input?.periodArtifacts?.length)addPeriodMarkets(input,prediction);
-  return input?applyEvidence(prediction,input,now):prediction;
+  return input?addResearchMarkets(input,applyEvidence(prediction,input,now)):prediction;
  }
  const p=prediction.probabilities;
  const rows=[[prediction.family==='football'?'home':'homeMl',`${prediction.homeTeam} Win`,p.homeWin,'Match result'],[prediction.family==='football'?'away':'awayMl',`${prediction.awayTeam} Win`,p.awayWin,'Match result']];
@@ -20,5 +21,5 @@ export function withModelOnlyMarkets(/** @type {any} */ prediction, /** @type {R
  prediction.markets.push(...extras);
  if(input)addFullForecastMarkets(input,prediction);
  if(input?.periodArtifacts?.length)addPeriodMarkets(input,prediction);
- return input?applyEvidence(prediction,input,now):prediction;
+ return input?addResearchMarkets(input,applyEvidence(prediction,input,now)):prediction;
 }

@@ -1,3 +1,6 @@
+import {settleCorners} from '../engine/football_results.js';
+export {settleCorners} from '../engine/football_results.js';
+import {settleTwoConsecutive} from '../engine/goal_sequence.js';
 import { settle, profitFor } from '../engine/settlement.js';
 import {settlePeriod} from '../engine/period_settlement.js';
 
@@ -21,9 +24,11 @@ export function settleSnapshot(snapshot, game, now) {
  if(state !== 'finished' || !Number.isFinite(game.status.home) || !Number.isFinite(game.status.away)) return;
  snapshot.finishedAt ??= now;
  snapshot.score = {home:game.status.home,away:game.status.away,...(game.status.regHome !== undefined ? {regHome:game.status.regHome} : {}),...(game.status.regAway !== undefined ? {regAway:game.status.regAway} : {})};
+ if(game.status.settledMarkets)snapshot.settledMarkets=game.status.settledMarkets;else delete snapshot.settledMarkets;
+ if(game.goalSequence)snapshot.goalSequence=game.goalSequence;if(game.corners)snapshot.corners=game.corners;
  snapshot.periodScores=structuredClone(game.status.periodScores??{});
  for(const s of snapshot.selections) {
-  s.result = (s.key.startsWith('forecast:full:')?settlePeriod(s.key.replace('forecast:','period:'),{full:snapshot.family==='football'?{home:snapshot.score.regHome??snapshot.score.home,away:snapshot.score.regAway??snapshot.score.away}:snapshot.score}):s.key.startsWith('period:')?settlePeriod(s.key,snapshot.periodScores):settle(snapshot.family,s.key,snapshot.score)) ?? 'ungraded';
+  s.result = (s.key.startsWith('sequence:regulation:two-consecutive:')?settleTwoConsecutive(snapshot.goalSequence,snapshot.score,s.key.endsWith(':home')?'home':'away'):s.key.startsWith('corners:regulation:')?settleCorners(s.key,snapshot.corners):s.key.startsWith('forecast:full:')?settlePeriod(s.key.replace('forecast:','period:'),{full:snapshot.family==='football'?{home:snapshot.score.regHome??snapshot.score.home,away:snapshot.score.regAway??snapshot.score.away}:snapshot.score}):s.key.startsWith('period:')?settlePeriod(s.key,snapshot.periodScores):settle(snapshot.family,s.key,snapshot.score)) ?? 'ungraded';
   s.profit = s.result === 'ungraded' ? null : profitFor(s.result,s.odds);
  }
 }

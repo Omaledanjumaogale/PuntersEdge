@@ -32,7 +32,7 @@ export function periodScores(sport,row) {
 
 /**
  * @typedef {import('./catalog.js').SportKey} SportKey
- * @typedef {{ state: 'scheduled' | 'live' | 'finished' | 'postponed', home?: number, away?: number, regHome?: number, regAway?: number, detail?: string, periodScores?:Record<string,{home:number,away:number}> }} GameStatus
+ * @typedef {{ state: 'scheduled' | 'live' | 'finished' | 'postponed', settledMarkets?:Record<string,'won'|'lost'>, home?: number, away?: number, regHome?: number, regAway?: number, detail?: string, periodScores?:Record<string,{home:number,away:number}> }} GameStatus
  * @typedef {Object} NGame normalised game
  * @property {SportKey} sport
  * @property {string} id provider id
