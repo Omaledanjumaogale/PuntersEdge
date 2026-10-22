@@ -6,7 +6,7 @@ import {executeIngest} from '../src/lib/feeds/ingest-runtime.js';
 import {runnerBlobs} from './runner-blobs.mjs';
 const client=new ConvexHttpClient(process.env.PUBLIC_CONVEX_URL);client.setAdminAuth(process.env.CONVEX_DEPLOY_KEY);
 const rpc=Object.fromEntries(['query','mutation','action'].map(kind=>[kind,(name,args)=>client[kind](makeFunctionReference(name),args)]));
-const result=await executeIngest({rpc,blobs:runnerBlobs(),keys:{apiSports:process.env.API_SPORTS_KEY||process.env.API_FOOTBALL_KEY||'',oddsApi:process.env.THE_ODDS_API_KEY||'',oddspapi:process.env.ODDSPAPI_KEY||''}});
+const result=await executeIngest({rpc,progress:(phase,count)=>console.log(JSON.stringify({phase,...(count===undefined?{}:{count})})),blobs:runnerBlobs(),keys:{apiSports:process.env.API_SPORTS_KEY||process.env.API_FOOTBALL_KEY||'',oddsApi:process.env.THE_ODDS_API_KEY||'',oddspapi:process.env.ODDSPAPI_KEY||''}});
 const evidence=result.skipped?{skipped:true}:await refreshEvidenceCatalog({rpc,blobs:runnerBlobs()});
 const publicPreview=await publishPublicPreview();
 console.log(JSON.stringify({...result,evidence,publicPreview}));

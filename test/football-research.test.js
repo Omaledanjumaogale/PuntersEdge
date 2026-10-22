@@ -39,3 +39,7 @@ test('fitted sequence weights never use outcomes in the later chronological vali
 test('saved-slip grading uses authoritative market facts and refuses final-score-only goal-order inference',async()=>{
  const {itemOutcome}=await import('../src/lib/slips.js');const key='sequence:regulation:two-consecutive:home',p={marketKey:key,selection:'Home two consecutive',fixtureStatus:'finished',score:{home:2,away:1}};assert.equal(itemOutcome(p),'ungraded');assert.equal(itemOutcome({...p,settledMarkets:{[key]:'won'}}),'won');
 });
+
+test('shadow research does not alter ordinary prediction input or trigger mass pre-match republication',async()=>{
+ const {inputFor}=await import('../src/lib/feeds/build.js');const store=emptyStore(),g={...game,kickoff:now+DAY,status:{state:'scheduled'},odds:{Book:{home:2,draw:3.5,away:4,at:now}}};store.footballResearchModels=[{approved:false,league:'League'}];const input=inputFor(store,g,now);assert.ok(input);assert.equal('footballResearchModels' in input,false);assert.equal('cornerResearchFeatures' in input,false);
+});

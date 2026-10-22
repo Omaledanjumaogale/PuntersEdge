@@ -30,33 +30,35 @@ export function compactSnapshot(snapshot){
 }
 const recentRows=(/** @type {any} */p)=>p.selections.filter((/** @type {any} */s)=>s.result&&s.result!=='ungraded').sort((/** @type {any} */a,/** @type {any} */b)=>Number(b.verdict)-Number(a.verdict)).slice(0,20).map((/** @type {any} */s)=>Object.fromEntries(['key','market','selection','bookmaker','odds','modelProb','marketProb','pushProb','edge','grade','pricing','verdict','result','profit','scope'].filter(k=>s[k]!==undefined).map(k=>[k,s[k]])));
 /** rpc exposes only deployment-admin functions; blobs never enter the database.
- * @param {{rpc:any,blobs:any,keys:{apiSports:string,oddsApi:string,oddspapi:string},now?:number,fetcher?:import("./runner.js").Fetcher,publicFetcher?:(url:string)=>Promise<any>,sleep?:(ms:number)=>Promise<void>}} options
+ * @param {{rpc:any,blobs:any,keys:{apiSports:string,oddsApi:string,oddspapi:string},now?:number,fetcher?:import("./runner.js").Fetcher,publicFetcher?:(url:string)=>Promise<any>,sleep?:(ms:number)=>Promise<void>,progress?:(phase:string,count?:number)=>void}} options
  */
-export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=providerFetcher(keys),publicFetcher=async url=>{const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error('Public source unavailable');return r.json();},sleep=undefined}){
- const state=await rpc.mutation('feed:claim',{now});if(!state)return {skipped:'Another tick is running'};
+export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=providerFetcher(keys),publicFetcher=async url=>{const r=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw new Error('Public source unavailable');return r.json();},sleep=undefined,progress=()=>{}}){
+ progress('claim_tick');const state=await rpc.mutation('feed:claim',{now});if(!state)return {skipped:'Another tick is running'};
  let reserved;
  const read=async(/** @type {string|null|undefined} */key,/** @type {string|null} */legacyUrl=null)=>{if(key){const bytes=await blobs.get(key);if(!bytes)throw new Error('Retained data file missing');return parseGzip(bytes);}if(legacyUrl){const r=await fetch(legacyUrl);if(!r.ok)throw new Error('Legacy retained data unavailable');return parseGzip(new Uint8Array(await r.arrayBuffer()));}return null;};
  const put=async(/** @type {string} */prefix,/** @type {any} */value)=>{const key=`${prefix}/${hash(value)}.gz`;await blobs.put(key,gzipJson(value));return key;};
  const flushArchive=async(/** @type {string|undefined|null} */key)=>{if(!key)return;const outbox=await read(key);for(const batch of outbox.batches??outbox)await rpc.mutation('performance:archiveBatch',batch);if(outbox.states?.length)await rpc.mutation('betslip:resolveSavedFixtures',{states:outbox.states});for(const event of outbox.events??[])await rpc.action('notifications:deliver',event);await rpc.mutation('feed:ackArchive',{key});await blobs.delete(key);};
  try{
-  await flushArchive(state.pendingArchiveKey);
-  const retiredKeys=[];
-  for(const entry of state.retiredKeys??[]){
-   if(entry.after>now||[state.storeKey,state.lookupsKey,state.feedKey,state.previewKey].includes(entry.key)){retiredKeys.push(entry);continue;}
-   try{await blobs.delete(entry.key);}catch{retiredKeys.push(entry);}
+  progress('replay_outbox');await flushArchive(state.pendingArchiveKey);
+  progress('retired_cleanup');const retiredKeys=[];
+  let cleaned=0;for(const entry of state.retiredKeys??[]){
+   if(cleaned>=20||entry.after>now||[state.storeKey,state.lookupsKey,state.feedKey,state.previewKey].includes(entry.key)){retiredKeys.push(entry);continue;}
+   try{await blobs.delete(entry.key);cleaned++;}catch{retiredKeys.push(entry);}
   }
+  progress('read_state');
   const store=reviveStore(await read(state.storeKey,state.storeUrl)),lookups=await read(state.lookupsKey,state.lookupsUrl)??{};
   const migrationBackupKey=!state.storeKey?await put('backup',store):undefined;
   store.modelArtifacts=await rpc.query('models:serving',{});
   const previousGames=structuredClone(store.games);
-  const publicChanged=await refreshPublicSports(store,now,publicFetcher);
-  const result=await runTick({store,lookups,ledgers:state.ledgers,lastRun:state.lastRun,now,fetcher,keys:{apiSports:!!keys.apiSports,oddsApi:!!keys.oddsApi,oddspapi:!!keys.oddspapi},sleep,reserve:async ledgers=>{reserved=ledgers;await rpc.mutation('feed:reserve',{ledgers});}});
+  progress('public_sources');const publicChanged=await refreshPublicSports(store,now,publicFetcher);
+  progress('provider_refresh');const result=await runTick({store,lookups,ledgers:state.ledgers,lastRun:state.lastRun,now,fetcher,keys:{apiSports:!!keys.apiSports,oddsApi:!!keys.oddsApi,oddspapi:!!keys.oddspapi},sleep,reserve:async ledgers=>{reserved=ledgers;await rpc.mutation('feed:reserve',{ledgers});}});
   reserved=result.ledgers;
-  refreshFootballResearch(store,now);
+  progress('research_training');refreshFootballResearch(store,now);
   const changes=updateRecord(store,now),batches=[];
+  progress('archive_publications',changes.length);
   for(let start=0;start<changes.length;start+=20){
    const records=[],publications=[];
-   for(const p of changes.slice(start,start+20)){
+   for(let offset=start;offset<Math.min(changes.length,start+20);offset+=4)await Promise.all(changes.slice(offset,Math.min(start+20,offset+4)).map(async p=>{
     // Publish immutable evidence once per identity. The outbox makes metadata retries durable.
     for(const publication of [p,p.priorPublication].filter(Boolean)){
      const frozen={...publication};delete frozen.priorPublication;delete frozen.publicationHistory;
@@ -66,13 +68,13 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
      }
      publications.push({fixtureId:p.fixtureId,publishedAt:publication.publishedAt,modelVersion:publication.modelVersion,blobKey,...(publication.artifactVersion?{artifactVersion:publication.artifactVersion}:{})});
     }
-   }batches.push({records,publications});
+   }));batches.push({records,publications});
   }
   // Preserve original evidence in existing archives; only the hot settlement copy is compacted.
   for(const [id,p]of Object.entries(store.projections))store.projections[id]=compactSnapshot(p);
   const usage=usageSummary(result.ledgers,now),feed=buildFeed(store,now,usage),{generatedAt,usage:_usage,...content}=feed,version=hash(content).slice(0,16);
   const preview=buildBoardPreview(feed,now),{generatedAt:_time,...previewContent}=preview,previewVersion=hash(previewContent).slice(0,16);
-  const storeKey=await put('state',store),lookupsKey=result.lookupsChanged||!state.lookupsKey?await put('state',lookups):state.lookupsKey;
+  progress('commit_state');const storeKey=await put('state',store),lookupsKey=result.lookupsChanged||!state.lookupsKey?await put('state',lookups):state.lookupsKey;
   const feedKey=version!==state.feedVersion||!state.feedKey?await put('feed',feed):state.feedKey;
   const previewKey=previewVersion!==state.previewVersion||!state.previewKey?await put('preview',preview):state.previewKey;
   const changedStates=Object.values(store.games).filter(g=>JSON.stringify(g.status)!==JSON.stringify(previousGames[g.uid]?.status)||g.kickoff!==previousGames[g.uid]?.kickoff).map(g=>({fixtureId:g.uid,kickoff:g.kickoff,status:g.status.state,...(g.status.settledMarkets?{settledMarkets:g.status.settledMarkets}:{}),...(g.status.periodScores?{periodScores:g.status.periodScores}:{}),family:SPORTS[/** @type {import("./catalog.js").SportKey} */(g.sport)].family,...(Number.isFinite(g.status.home)&&Number.isFinite(g.status.away)?{score:{home:g.status.home,away:g.status.away,...(g.status.regHome!==undefined?{regHome:g.status.regHome}:{}),...(g.status.regAway!==undefined?{regAway:g.status.regAway}:{})}}:{})}));
@@ -82,9 +84,9 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   await rpc.mutation('feed:commitEdge',{retiredKeys,now,ledgers:result.ledgers,lastRun:result.lastRun,log:result.log,storeKey,lookupsKey,feedKey,version,generatedAt,previewKey,previewVersion,counts:{...Object.fromEntries(Object.entries(feed.inputs).map(([s,rows])=>[s,rows.length])),games:feed.games.length},usage,coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter(g=>!g.priced).length,pending:Object.keys(store.record.pending).length,modelVersion:MODEL_VERSION},...(pendingArchiveKey?{pendingArchiveKey}:{}),...(migrationBackupKey?{migrationBackupKey}:{})});
   // Public preview is intentionally limited; premium data is never written to this key.
   await blobs.put('preview/current.gz',gzipJson(preview));
-  await flushArchive(pendingArchiveKey);
+  progress('commit_outbox',batches.length);await flushArchive(pendingArchiveKey);
   // Replaced hot blobs have a two-hour grace period for in-flight readers and training jobs.
   await rpc.mutation('feed:completeEdge',{});
-  return {ran:result.ran.length,archiveChanges:changes.length,feedUpdated:version!==state.feedVersion,storeBytes:gzipJson(store).length,feedBytes:gzipJson(feed).length,publicChanged};
+  progress('complete');return {ran:result.ran.length,archiveChanges:changes.length,feedUpdated:version!==state.feedVersion,storeBytes:gzipJson(store).length,feedBytes:gzipJson(feed).length,publicChanged};
  }catch(error){let message=error instanceof Error?error.message:String(error);for(const value of Object.values(keys))if(value)message=message.split(value).join('[redacted]');await rpc.mutation('feed:release',{now,error:message.slice(0,300),...(reserved?{ledgers:reserved}:{})});throw new Error(message);}
 }

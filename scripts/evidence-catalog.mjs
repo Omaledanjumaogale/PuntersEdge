@@ -1,3 +1,4 @@
+import {updateEvidenceHistory} from './evidence-history.mjs';
 /** Runner-only ledger catalog. R2 holds the bulk data; Convex stores a small protected pointer. */
 import {settleSnapshot} from '../src/lib/feeds/performance.js';
 import {createHash} from 'node:crypto';import {compactEvidence,buildEvidenceReport,EVIDENCE_SCHEMA} from '../src/lib/evidence-shortlist.js';import {gzipJson,parseGzip} from '../src/lib/feeds/ingest-runtime.js';
@@ -27,13 +28,14 @@ export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
   if(c.state==='scheduled'&&c.kickoff>now&&(!game||game.status.state==='scheduled'))upcoming.push(c);
  }
  const report=buildEvidenceReport(Object.values(catalog.fixtures),upcoming,now);
+ report.history=await updateEvidenceHistory({catalog,report,store,blobs,now});
  report.research=store.footballResearchReport??null;
  report.coverage={missingArchives:catalog.missingArchives,invalidPublications:catalog.invalidPublications};
  const version=hash({...report,generatedAt:0}),reportKey=`archives/evidence/${version}-report.gz`,stateKey=`archives/evidence/${hash(catalog)}-state.gz`;
  if(reportKey!==previous?.reportKey)await blobs.put(reportKey,gzipJson(report));if(stateKey!==previous?.stateKey)await blobs.put(stateKey,gzipJson(catalog));
  const retired=[];for(const entry of previous?.retired??[]){if(entry.key===stateKey||entry.key===reportKey)continue;if(entry.after<=now)await blobs.delete(entry.key);else retired.push(entry);}
  for(const key of [previous?.reportKey,previous?.stateKey])if(key&&![reportKey,stateKey].includes(key)&&!retired.some(x=>x.key===key))retired.push({key,after:now+86400000});
- const coverage={historicalFixtures:report.historicalFixtures,settledOptions:report.settledOptions,cohorts:report.cohortCount,upcomingFixtures:report.upcoming.length,missingArchives:catalog.missingArchives,invalidPublications:catalog.invalidPublications};
+ const coverage={history:report.history,historicalFixtures:report.historicalFixtures,settledOptions:report.settledOptions,cohorts:report.cohortCount,upcomingFixtures:report.upcoming.length,missingArchives:catalog.missingArchives,invalidPublications:catalog.invalidPublications};
  const published=await rpc.mutation('evidence:publish',{expectedVersion:previous?.version??null,version,reportKey,stateKey,updatedAt:now,coverage,retired});
  return {published,readArchives,...coverage,reportBytes:gzipJson(report).length};
 }

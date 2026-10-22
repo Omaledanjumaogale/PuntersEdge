@@ -88,3 +88,16 @@ test('two consecutive goals requires a complete, score-reconciled regulation seq
  assert.notEqual(evidenceMarket(key,'football').signature,evidenceMarket('h15','football').signature);
  assert.equal(evidenceMarket(key,'basketball'),null);
 });
+
+test('basketball and NBA filters explicitly include winners, spread, match totals and both team-total directions',()=>{
+ const selections=['homeMl','awayMl','sph-3.5','spa3.5','o210.5','u210.5','forecast:full:home:over:100.5','forecast:full:away:under:105.5'].map(key=>({key,selection:key,modelProb:.75,pricing:'derived',result:'won'}));
+ for(const sport of ['nba','basketball']){const hs=Array.from({length:40},(_,i)=>compactEvidence(snap(sport+i,'won',{sport,selections}))),r=buildEvidenceReport(hs,[future(sport+'-next',{sport,selections})],now);for(const [kind,n] of [['basketball-winner',2],['basketball-spread',2],['basketball-total',2],['basketball-team-over',1],['basketball-team-under',1]])assert.equal(evidenceShortlist(r,{kind},now).rows.length,n);}
+});
+
+test('shortlist history freezes pre-match qualification, later settles exact markets, and never backfills unseen past picks',async()=>{
+ const {updateEvidenceHistory}=await import('../scripts/evidence-history.mjs'),{parseGzip}=await import('../src/lib/feeds/ingest-runtime.js');const map=new Map(),blobs={get:async k=>map.get(k),put:async(k,v)=>map.set(k,v)},catalog={fixtures:{}},f=future('remembered'),report=buildEvidenceReport(history(),[f],now),store={games:{},projections:{}};
+ await updateEvidenceHistory({catalog,report,store,blobs,now});const key=[...map.keys()][0];let row=Object.values(parseGzip(map.get(key)).rows)[0];assert.equal(row.result,'pending');assert.equal(row.modelProb,.75);assert.equal(row.cohort.binaryN,40);
+ store.games[f.fixtureId]={status:{state:'finished',home:3,away:0}};await updateEvidenceHistory({catalog,report,store,blobs,now:now+2*DAY});row=Object.values(parseGzip(map.get(key)).rows)[0];assert.equal(row.result,'won');assert.deepEqual(row.score,{home:3,away:0});assert.equal(row.cohort.binaryN,40);assert.equal(row.modelProb,.75);
+ const empty={fixtures:{}};await updateEvidenceHistory({catalog:empty,report,store,blobs,now:now+2*DAY});assert.equal(Object.keys(empty.historyIndex).length,0);
+ store.games[f.fixtureId].status.home=1;await updateEvidenceHistory({catalog,report,store,blobs,now:now+3*DAY});row=Object.values(parseGzip(map.get(key)).rows)[0];assert.equal(row.result,'lost');assert.equal(row.modelProb,.75);
+});

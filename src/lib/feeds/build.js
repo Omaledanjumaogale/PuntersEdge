@@ -97,7 +97,8 @@ export function inputFor(store, g, now=Date.now()) {
     }
   }
   if (!ratings) ratings = marketRatings(def.family, odds, g.league);
-  const input={ ...base, ...(g.sport==='football'?{footballResearchModels:(store.footballResearchModels??[]).filter(m=>m.approved&&m.league===g.league),cornerResearchFeatures:cornerFeatures(Object.values(store.footballResearch??{}),g,now)}:{}), ratings, ratingsSource: source,analysisEvidence:{approved:false,independent:source!=='market',domainSupported:false,approvedMarkets:[],modelVersion:'heuristic-baseline'} };
+  const researchModels=g.sport==='football'?(store.footballResearchModels??[]).filter(m=>m.approved&&m.league===g.league):[];
+  const input={ ...base, ...(researchModels.length?{footballResearchModels:researchModels,cornerResearchFeatures:cornerFeatures(Object.values(store.footballResearch??{}),g,now)}:{}), ratings, ratingsSource: source,analysisEvidence:{approved:false,independent:source!=='market',domainSupported:false,approvedMarkets:[],modelVersion:'heuristic-baseline'} };
   const fitted=fittedInput(input,g,/** @type {any} */(store).modelArtifacts??[],now);
   return fitted.ratings||fitted.fittedProjection?fitted:null;
 }
