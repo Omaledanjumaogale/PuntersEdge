@@ -57,7 +57,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   const changes=updateRecord(store,now),batches=[];
   progress('archive_publications',changes.length);
   for(let start=0;start<changes.length;start+=20){
-   const records=[],publications=[];
+   const records=/** @type {any[]} */([]),publications=/** @type {any[]} */([]);
    for(let offset=start;offset<Math.min(changes.length,start+20);offset+=4)await Promise.all(changes.slice(offset,Math.min(start+20,offset+4)).map(async p=>{
     // Publish immutable evidence once per identity. The outbox makes metadata retries durable.
     for(const publication of [p,p.priorPublication].filter(Boolean)){
