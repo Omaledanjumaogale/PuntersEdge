@@ -1,0 +1,9 @@
+import {likelihoodGrade} from './engine/decision_screener.js';
+/** Preserve published evidence; quotes are usable only if the current option still matches the recorded quote.
+ * @param {any} row @param {any} game @param {any} current @param {any[]} alternatives @param {number} now */
+export function evidenceSlipPick(row,game,current,alternatives=[],now=Date.now()){
+ if(!game||game.status?.state!=='scheduled'||Date.parse(game.kickoff)<=now||row.kickoff<=now)return null;
+ const quoted=row.pricing==='quoted'&&row.odds>1&&current?.pricing==='quoted'&&Math.abs(current.bestOdds-row.odds)<.001;
+ const q=quoted?current.bestOdds:0;
+ return {id:`${row.fixtureId}:${row.key}`,fixtureId:row.fixtureId,sport:row.sport,matchTitle:row.matchTitle,league:row.league,market:row.title??row.kind,selection:row.selection,modelProb:row.modelProb,marketProb:quoted?current.marketProb:row.modelProb,pushProb:row.pushProb??0,bestOdds:q,bookmaker:quoted?current.bookmaker:'Unpriced selection',pricing:quoted?'quoted':'derived',edgePercent:0,grade:'PASS',evidence:{basis:`Production-ledger shortlist · original publication ${new Date(row.publishedAt).toISOString()} · ${row.cohort.won}/${row.cohort.binaryN} comparable wins · ${(row.cohort.interval.low*100).toFixed(1)}% historical lower bound. Recurrence is not guaranteed profit.`,modelProbability:row.modelProb,marketProbability:quoted?current.marketProb??null:null,breakEvenProbability:quoted?1/q:null,divergence:null,verdict:false,likelihoodBand:likelihoodGrade(row.modelProb),observedAt:quoted?current.quoteObservedAt??null:null,alternatives:alternatives.filter(r=>r.id!==row.id).slice(0,5).map(r=>({id:r.id,selection:r.selection,modelProb:r.modelProb,odds:0,market:r.title??r.kind})),settledSportPicks:row.cohort.binaryN,sportWinRate:row.cohort.strikeRate}};
+}
