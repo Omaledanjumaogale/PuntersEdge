@@ -368,3 +368,37 @@ body{font-family:var(--font-sans);font-size:16px;line-height:1.55}button,input,s
 .option-card a,.ticket a{touch-action:manipulation;position:relative;z-index:1;}
 .option-card :is(p,strong,a),.ticket :is(p,strong,a){overflow-wrap:anywhere;}
 @media(hover:hover){:is(.ticket,.option-card):hover{border-color:var(--color-pop);box-shadow:inset 0 1px 0 rgb(255 255 255 / .12),0 8px 25px -18px var(--color-pop);}}
+
+/* Shared pastel surfaces: black/daylight page shells, readable dark text inside cards. */
+:is(.surface,.panel,.metric,.ticket,.option-card,.workspace-state,.admin-rail) {
+ --color-ink:#f8fafc;--color-deep:#f0f7f4;--color-raised:#e4eee9;--color-line:#a6b8b1;
+ --color-chalk:#172a28;--color-haze:#465c58;--color-model:#006b58;--color-book:#854800;
+ --color-loss:#a92336;--color-pop:#5932a7;--color-fixture:#785000;--color-side-home:#166534;--color-side-away:#1e40af;
+ --coupon-surface:#f0f7f4;color:var(--color-chalk);
+ background-color:var(--color-deep);background-image:linear-gradient(135deg,#ffffff75,transparent 75%);
+ border-color:var(--color-line);box-shadow:inset 0 1px 0 #ffffffb0,0 10px 30px -22px #00000080;
+}
+:is(.panel,.metric,.ticket,.option-card){--color-deep:#f3effb;--color-raised:#e9e2f6;--color-line:#b9aed0;--coupon-surface:#f3effb;}
+.surface:has(>table),.surface:has(>.overflow-x-auto){--color-deep:#f0f6fc;--color-raised:#e3edf7;--color-line:#aabed0;}
+:root[data-theme='light'] :is(.ticket,.option-card){--coupon-surface:#f3effb;}
+:is(.btn-primary,.btn-secondary,.btn-ghost){display:inline-flex;align-items:center;justify-content:center;min-height:44px;gap:.5rem;padding:.7rem 1.1rem;border-radius:999px;font-weight:650;}
+.btn-primary{color:#17233b;background:linear-gradient(115deg,#ddd6fe,#99f6e4);border:1px solid #8b79ba;}
+.btn-secondary{color:#15374a;background:linear-gradient(115deg,#e0f2fe,#a5f3fc);border:1px solid #7eb2c5;}
+.btn-ghost{color:#34264d;background:linear-gradient(115deg,#f5f3ff,#e9d5ff);border:1px solid #b9a2ce;}
+:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) :is(a,button){
+ --nav-bg:#e0f2fe;--nav-text:#12394d;background:var(--nav-bg);color:var(--nav-text);border:1px solid #8baebc;border-radius:14px;min-height:44px;box-shadow:inset 0 1px 0 #ffffffb0;transition:filter .18s,box-shadow .18s;
+}
+:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) :is(a,button):nth-child(3n+2){--nav-bg:#ede9fe;--nav-text:#39235b;}
+:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) :is(a,button):nth-child(3n){--nav-bg:#fef3c7;--nav-text:#593800;}
+:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) a :is(strong,small,span){color:inherit;}
+:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) a[aria-current]{background:#baf3d4;color:#123c2c;border:2px solid #21744e;box-shadow:inset 0 0 0 1px #ffffff;}
+:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) :is(a,button):hover{filter:brightness(.96);box-shadow:0 4px 14px -6px #00000070;}
+:is(.btn-primary,.btn-secondary,.btn-ghost):hover:not(:disabled){filter:brightness(.96);box-shadow:0 5px 16px -8px #00000080;}
+:is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid #2563eb;outline-offset:3px;box-shadow:0 0 0 6px #ffffff;}
+@media(hover:hover){:is(.surface,.panel,.metric,.ticket,.option-card):hover{border-color:#667b89;}}
+@media(prefers-reduced-motion:reduce){:is(nav[aria-label='Main'],.admin-rail nav,.drawer-admin,.mobile-workspaces) :is(a,button){transition:none;}}
+/* Page accents keep workspace cards distinct while preserving the same readable token palette. */
+body:has(a[aria-current='page'][href='/football']) .surface,body:has(.market-group[data-sport='football']) .market-group[data-sport='football']{--color-deep:#eef8f0;--color-raised:#dfefe3;}
+body:has(a[aria-current='page'][href='/hockey']) .surface,.market-group[data-sport='hockey']{--color-deep:#eef7fc;--color-raised:#deedf7;}
+body:has(a[aria-current='page'][href='/basketball']) .surface,body:has(a[aria-current='page'][href='/nba']) .surface,.market-group[data-sport='basketball'],.market-group[data-sport='nba']{--color-deep:#fff8e6;--color-raised:#f5ebcd;}
+.admin-rail{--color-deep:#f1eff9;--color-raised:#e8e3f4;}
