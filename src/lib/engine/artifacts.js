@@ -21,6 +21,8 @@ export function validateArtifact(a) {
 export function fittedInput(input,game,records,now) {
  input.homeId=game.homeId;input.awayId=game.awayId;
  input.periodArtifacts=records.filter(r=>r.artifact?.sport===game.sport&&r.artifact.league===game.league&&r.mode==='active'&&r.artifact.scope&&r.artifact.scope!=='full'&&Date.parse(r.artifact.trainedThrough)<now).map(r=>r.artifact).filter(a=>{try{validateArtifact(a);return true;}catch{return false;}});
+ // Version the prospective line policy only where a mapped period artifact can serve.
+ if(['football','basketball','nba'].includes(game.sport)&&input.periodArtifacts.some((/** @type {any} */a)=>a.teams[String(game.homeId)]&&a.teams[String(game.awayId)]))input.periodLinePolicy='alternatives-v2';
  const record=records.find(r=>r.artifact?.sport===game.sport&&r.artifact.league===game.league&&r.mode==='active'&&(!r.artifact.scope||r.artifact.scope==='full'));
  if(!record)return input;
  const a=record.artifact;

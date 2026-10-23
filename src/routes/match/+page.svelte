@@ -207,7 +207,7 @@
 	<section class="surface mt-6 p-5">
 		{#if game.status.state === 'finished'}
 			<p class="font-display text-5xl font-bold text-chalk">{statusLabel(game.status)}</p>
-			<p class="mt-2 text-haze">Final score. If we had a graded pick on this game, it's settled on the <a href="/results" class="font-semibold text-pop underline-offset-4 hover:underline">Results</a> page.</p>
+			<p class="mt-2 text-haze">Final score. If we had a graded pick on this game, its outcome is recorded in your <a href="/betslips" class="font-semibold text-pop underline-offset-4 hover:underline">saved betslips</a>.</p>
 		{:else if game.status.state === 'live'}
 			<p class="font-display text-5xl font-bold text-chalk">{statusLabel(game.status)}</p>
 			<p class="mt-2 text-haze">No pre-match projection was published for this fixture. Live scores are available, but this game is excluded from the prediction track record.</p>

@@ -1,7 +1,7 @@
 <script lang="ts">
  import {page} from '$app/state';
  let dismissed=$state(false);
- const messages=[{icon:'🎟️',eyebrow:'Your next shortlist',title:'Set your rules. Find today’s matches.',text:'Build a shortlist, save the rules and reuse them next time.',href:'/bet-machine',cta:'Open bet machine'}, {icon:'💎',eyebrow:'Market explorer',title:'One fixture. More informed choices.',text:'Compare model percentages, prices and compact market notes.',href:'/value-bets',cta:'Explore markets'}, {icon:'📈',eyebrow:'Measure what matters',title:'Follow the results behind the forecast.',text:'Review published predictions against confirmed match results.',href:'/results',cta:'View results'}];
+ const messages=[{icon:'🎟️',eyebrow:'Your next shortlist',title:'Set your rules. Find today’s matches.',text:'Build a shortlist, save the rules and reuse them next time.',href:'/bet-machine',cta:'Open bet machine'}, {icon:'💎',eyebrow:'Market explorer',title:'One fixture. More informed choices.',text:'Compare model percentages, prices and compact market notes.',href:'/value-bets',cta:'Explore markets'}, {icon:'📈',eyebrow:'Measure what matters',title:'Build a shortlist around your rules.',text:'Compare eligible selections and save a reusable ticket rule.',href:'/bet-machine',cta:'Open bet machine'}];
  const banner=$derived(page.url.pathname.startsWith('/admin')?{icon:'🧮',eyebrow:'Continuous evaluation',title:'Better models start with measured results.',text:'Review training runs and model evidence in the registry.',href:'/admin/models',cta:'Open model registry'}:messages[page.url.pathname==='/bet-machine'?1:page.url.pathname==='/value-bets'?2:0]);
  $effect(()=>{page.url.pathname;dismissed=false;});
 </script>

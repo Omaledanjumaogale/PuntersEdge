@@ -68,7 +68,7 @@ test('football scoring, first-half lines and basketball team totals filter exact
  const selections=keys.map(key=>({key,selection:key,modelProb:.75,modelVersion:'baseline',pricing:'derived',result:'won'}));
  const rules={minModel:0,minSamples:20,minStrike:0,minFloor:0};
  for(const sport of ['football','basketball']){const hs=Array.from({length:40},(_,i)=>compactEvidence(snap(`${sport}-${i}`,'won',{sport,selections}))),r=buildEvidenceReport(hs,[future(`${sport}-next`,{sport,selections})],now);
- if(sport==='football'){for(const kind of ['team-05','bttsYes','bttsNo','first-half-u15','first-half-u25','match-over','match-under']){const rows=evidenceShortlist(r,{...rules,kind},now).rows;assert.equal(rows.length,kind==='team-05'?2:kind==='match-under'?3:1);}}
+ if(sport==='football'){const scoped=evidenceShortlist(r,{...rules,scope:'first_half'},now).rows;assert.equal(scoped.length,2);assert.ok(scoped.every(row=>row.scope==='first_half'));for(const kind of ['team-05','bttsYes','bttsNo','first-half-u15','first-half-u25','match-over','match-under']){const rows=evidenceShortlist(r,{...rules,kind},now).rows;assert.equal(rows.length,kind==='team-05'?2:kind==='match-under'?3:1);}}
  else {const rows=evidenceShortlist(r,{...rules,kind:'basketball-team'},now).rows;assert.ok(rows.some(r=>r.kind==='team-home'&&r.side==='over'));assert.ok(rows.some(r=>r.kind==='team-away'&&r.side==='under'));assert.equal(evidenceShortlist(r,{...rules,kind:'team-05'},now).rows.length,0);}}
 });
 

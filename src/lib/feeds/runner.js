@@ -1,4 +1,4 @@
-import {parseGoalSequence,parseCorners} from './football-observations.js';
+import {parseGoalSequence,parseCorners,parseFirstHalfStatistics} from './football-observations.js';
 /**
  * One ingest tick: plan → fetch → parse → merge, with every paid call
  * metered through the ledgers. The network is injected (`fetcher`), so the
@@ -167,11 +167,11 @@ export async function runTick({ store, lookups, ledgers: inLedgers, lastRun: inL
       }
       case 'football-research': {
        const g=store.games[p.uid];if(!g?.ext.as)return false;
-       const body=await call('api-sports',job.ledger,apiSportsUrl('football',p.type==='events'?'/fixtures/events':'/fixtures/statistics',{fixture:g.ext.as}),1,true);
+       const body=await call('api-sports',job.ledger,apiSportsUrl('football',p.type==='events'?'/fixtures/events':'/fixtures/statistics',{fixture:g.ext.as,...(p.type==='events'?{}:{half:'true'})}),1,true);
        const errs=apiSportsErrors(body);if(errs.length)throw new Error(errs.join('; '));
        const observation=p.type==='events'?parseGoalSequence(body,g,now):parseCorners(body,g,now);
        store.footballResearch??={};const r=store.footballResearch[g.uid]??={fixtureId:g.uid,kickoff:g.kickoff,league:g.league,homeId:g.homeId,awayId:g.awayId,home:g.home,away:g.away,score:{home:g.status.regHome??g.status.home,away:g.status.regAway??g.status.away}};
-       r.score={home:g.status.regHome??g.status.home,away:g.status.regAway??g.status.away};r.checkedAt=now;if(observation){r[p.type]=observation;if(p.type==='events')g.goalSequence=observation;else g.corners=observation;}
+       r.score={home:g.status.regHome??g.status.home,away:g.status.regAway??g.status.away};r.checkedAt=now;if(p.type!=='events'){const halves=parseFirstHalfStatistics(body,g,now);if(halves)r.firstHalfStatistics=halves;}if(observation){r[p.type]=observation;if(p.type==='events')g.goalSequence=observation;else g.corners=observation;}
        note(store,'football-research',!!observation,observation?'Verified '+p.type:'Missing or ambiguous '+p.type,now);return true;
       }
       case 'standings': {

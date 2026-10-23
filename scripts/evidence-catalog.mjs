@@ -1,3 +1,4 @@
+import {scoringAssessment} from '../src/lib/scoring-assessment.js';
 import {updateEvidenceHistory} from './evidence-history.mjs';
 /** Runner-only ledger catalog. R2 holds the bulk data; Convex stores a small protected pointer. */
 import {settleSnapshot} from '../src/lib/feeds/performance.js';
@@ -30,6 +31,7 @@ export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
  const report=buildEvidenceReport(Object.values(catalog.fixtures),upcoming,now);
  report.history=await updateEvidenceHistory({catalog,report,store,blobs,now});
  report.research=store.footballResearchReport??null;
+ report.scoringAssessment=scoringAssessment(Object.values(catalog.fixtures),now);
  report.coverage={missingArchives:catalog.missingArchives,invalidPublications:catalog.invalidPublications};
  const version=hash({...report,generatedAt:0}),reportKey=`archives/evidence/${version}-report.gz`,stateKey=`archives/evidence/${hash(catalog)}-state.gz`;
  if(reportKey!==previous?.reportKey)await blobs.put(reportKey,gzipJson(report));if(stateKey!==previous?.stateKey)await blobs.put(stateKey,gzipJson(catalog));

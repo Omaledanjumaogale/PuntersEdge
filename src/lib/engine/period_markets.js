@@ -24,8 +24,12 @@ export function addPeriodMarkets(input,prediction) {
   const labels={first_half:'First half',first_quarter:'First quarter',first_period:'First period',regulation:'Regulation',first_five:'First five innings',first_inning:'First inning'};
   const title=/** @type {any} */(labels)[a.scope]??a.scope, rows=[];
   for(const kind of /** @type {const} */(['total','home','away'])){
-   const line=Math.floor(kind==='total'?home+away:kind==='home'?home:away)+.5;const o=outcomes(kind,line);
+   const center=Math.floor(kind==='total'?home+away:kind==='home'?home:away)+.5;
+   // Fixed prospective alternatives; never choose a line from the observed result.
+   const step=gaussian?(a.scope==='first_quarter'?2:3):1;
+   for(const line of [...new Set((input.periodLinePolicy==='alternatives-v2'&&['football','nba','basketball'].includes(a.sport)?[-2,-1,0,1,2]:[0]).map(offset=>Math.max(.5,center+offset*step)))]){const o=outcomes(kind,line);
    for(const side of ['over','under']){const p=side==='over'?o.conditional:1-o.conditional;rows.push({id:`${input.fixtureId}:period:${a.scope}:${kind}:${side}:${line}`,fixtureId:input.fixtureId,sport:a.sport,matchTitle:prediction.matchTitle,league:input.league,market:`${title} ${kind==='total'?'total':kind+' team total'}`,selection:`${kind==='total'?'':(kind==='home'?prediction.homeTeam:prediction.awayTeam)+' '}${side==='over'?'Over':'Under'} ${line}`,modelProb:p,marketProb:p,pushProb:o.push,fairOdds:1/p,bestOdds:0,bookmaker:'No quoted period price',edgePercent:0,kellyStakePercent:0,grade:'PASS',pricing:'derived',eligible:false,modelVersion:a.version,scope:a.scope,eligibilityReasons:['Period model unvalidated','No executable period quote']});}
+  }
   }
   for(const line of (gaussian?[-3.5,0,3.5]:[-1.5,-.5,0,.5,1.5])){
    const o=outcomes('margin',line);

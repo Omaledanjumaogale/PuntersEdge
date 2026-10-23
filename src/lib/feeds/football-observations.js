@@ -23,3 +23,10 @@ export function parseCorners(body,g,now){
  const count=(/** @type {any} */id)=>{const rows=body.response.filter((/** @type {any} */r)=>String(r.team?.id)===String(id));if(rows.length!==1)return null;const stats=rows[0].statistics?.filter((/** @type {any} */s)=>s.type==='Corner Kicks');const v=stats?.length===1?stats[0].value:null;return Number.isInteger(v)&&v>=0&&v<=50?v:null;};
  const home=count(g.homeId),away=count(g.awayId);return home===null||away===null?null:{home,away,scope:'regulation',observedAt:now,provider:'api-football'};
 }
+/** Explicit provider half-period counts only; full-time counts are never halved or substituted. @param {any} body @param {any} g @param {number} now */
+export function parseFirstHalfStatistics(body,g,now){
+ if(g.status.state!=='finished'||!Array.isArray(body?.response)||body.paging?.total>1)return null;
+ const names={'Total Shots':'shots','Shots on Goal':'shotsOnTarget','Fouls':'fouls','Goal Kicks':'goalKicks','Throw-ins':'throwIns','Throw Ins':'throwIns'};
+ const side=(/** @type {any} */id)=>{const rows=body.response.filter((/** @type {any} */r)=>String(r.team?.id)===String(id));if(rows.length!==1)return null;const stats=rows[0].statistics_1h??rows[0].first_half?.statistics;if(!Array.isArray(stats))return null;const out=/** @type {Record<string,number>} */({});for(const [name,key]of Object.entries(names)){const matches=stats.filter((/** @type {any} */s)=>s.type===name);const v=matches.length===1?matches[0].value:null;if(Number.isInteger(v)&&v>=0&&v<=200&&!Object.hasOwn(out,key))out[key]=v;}return Object.keys(out).length?out:null;};
+ const home=side(g.homeId),away=side(g.awayId);if(!home||!away)return null;const available=Object.keys(home).filter(k=>Object.hasOwn(away,k));if(!available.length)return null;return {scope:'first_half',home:Object.fromEntries(available.map(k=>[k,home[k]])),away:Object.fromEntries(available.map(k=>[k,away[k]])),observedAt:now,provider:'api-football'};
+}

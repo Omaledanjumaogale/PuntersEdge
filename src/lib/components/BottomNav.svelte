@@ -3,8 +3,8 @@
 	import { app } from '#lib/state.svelte.ts';
 	import { NAV, isActive } from '#lib/nav.ts';
 
-	const short: Record<string, string> = { '/value-bets': 'Value' };
-	const tabs = NAV.filter((n) => ['/', '/board', '/sports', '/value-bets', '/results'].includes(n.href)).map((n) => ({
+	const short: Record<string, string> = { '/value-bets': 'Value', '/bet-machine':'Machine' };
+	const tabs = NAV.filter((n) => ['/', '/board', '/sports', '/value-bets', '/bet-machine'].includes(n.href)).map((n) => ({
 		...n,
 		label: short[n.href] ?? n.label
 	}));

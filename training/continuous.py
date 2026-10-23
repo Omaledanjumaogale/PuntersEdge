@@ -40,6 +40,18 @@ def compare(candidate,incumbent,rows,scope):
      market[prefix+'Brier']+=brier;market[prefix+'LogLoss']+=loss;losses[prefix]=brier
     fixture_differences.append(losses['candidate']-losses['incumbent'])
     counts+=1
+  # Goal dependence changes also affect BTTS; totals-only gains cannot hide BTTS regressions.
+  if isinstance(cd.get('btts'),(int,float)) and isinstance(idist.get('btts'),(int,float)):
+   market=markets.setdefault('btts',{'nOptions':0,'candidateBrier':0.,'incumbentBrier':0.,'candidateLogLoss':0.,'incumbentLogLoss':0.})
+   y=int(r['status']['home']>0 and r['status']['away']>0)
+   for side in ('yes','no'):
+    market['nOptions']+=1;losses={};actual=y if side=='yes' else 1-y
+    for prefix,distribution in [('candidate',cd),('incumbent',idist)]:
+     p=max(1e-12,min(1-1e-12,distribution['btts'] if side=='yes' else 1-distribution['btts']))
+     brier=2*(p-actual)**2;logloss=-(actual*math.log(p)+(1-actual)*math.log(1-p))
+     totals[prefix+'Brier']+=brier;totals[prefix+'LogLoss']+=logloss
+     market[prefix+'Brier']+=brier;market[prefix+'LogLoss']+=logloss;losses[prefix]=brier
+    fixture_differences.append(losses['candidate']-losses['incumbent']);counts+=1
   paired.append(sum(fixture_differences)/len(fixture_differences))
   totals['n']+=1
   for prefix,means in [('candidate',cm),('incumbent',im)]:totals[prefix+'Mae']+=(abs(means[0]-r['status']['home'])+abs(means[1]-r['status']['away']))/2

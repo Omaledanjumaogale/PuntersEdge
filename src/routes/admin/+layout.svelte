@@ -11,7 +11,7 @@
   <p class="rail-label">Workspace</p>
   <nav>{#each ADMIN_NAV as item}<a href={item.href} aria-current={adminActive(page.url.pathname,page.url.search,item.section)?'page':undefined}><span aria-hidden="true">{item.emoji}</span><span><strong>{item.label}</strong><small>{item.hint}</small></span></a>{/each}</nav>
   <p class="rail-label">Application</p>
-  <nav>{#each NAV.filter(n=>['/board','/value-bets','/results','/settings'].includes(n.href)) as item}<a href={item.href}><span aria-hidden="true">{item.emoji}</span><span><strong>{item.label}</strong><small>{item.hint}</small></span></a>{/each}</nav>
+  <nav>{#each NAV.filter(n=>['/board','/value-bets','/bet-machine','/settings'].includes(n.href)) as item}<a href={item.href}><span aria-hidden="true">{item.emoji}</span><span><strong>{item.label}</strong><small>{item.hint}</small></span></a>{/each}</nav>
   <a class="rail-profile" href="/account"><ProfileAvatar/><span><strong>{auth.displayName}</strong><small>Account & security</small></span></a>
  </aside>
  <div class="admin-content">

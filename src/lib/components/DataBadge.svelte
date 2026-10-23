@@ -7,12 +7,12 @@
 </script>
 
 {#if feed.mode === 'live' && feed.data}
-	<a href="/results" class="inline-flex items-center gap-1.5 rounded-full tint-model px-3 py-1 text-xs font-semibold text-model ring-1 ring-model/50" title="Live data: fixtures, results and prices from API-Sports, The Odds API and OddsPapi">
+	<a href="/bet-machine" class="inline-flex items-center gap-1.5 rounded-full tint-model px-3 py-1 text-xs font-semibold text-model ring-1 ring-model/50" title="Live data: fixtures, results and prices from API-Sports, The Odds API and OddsPapi">
 		<span class="h-1.5 w-1.5 rounded-full bg-model {feed.ageHours < 2 ? 'animate-pulse' : ''}" aria-hidden="true"></span>
 		{feed.data.access==='preview'?'Board preview':'Provider data'} · {ago(feed.data.generatedAt)}
 	</a>
 {:else}
-	<a href="/results" class="inline-flex items-center gap-1.5 rounded-full bg-raised px-3 py-1 text-xs font-semibold text-chalk ring-1 ring-line" title={isConvexConfigured() ? 'Waiting for the first live feed from the backend' : 'The live backend is not configured'}>
+	<a href="/bet-machine" class="inline-flex items-center gap-1.5 rounded-full bg-raised px-3 py-1 text-xs font-semibold text-chalk ring-1 ring-line" title={isConvexConfigured() ? 'Waiting for the first live feed from the backend' : 'The live backend is not configured'}>
 		Provider feed unavailable{isConvexConfigured() && (feed.status === 'checking' || feed.status === 'downloading') ? ' · connecting…' : ''}
 	</a>
 {/if}

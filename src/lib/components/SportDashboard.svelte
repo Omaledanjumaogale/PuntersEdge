@@ -97,6 +97,7 @@
  {#if !unpriced.length}<p class="mt-3 text-sm text-haze">No provider fixtures awaiting analysis in this selection.</p>{:else if unpriced.length>scheduleLimit}<button class="btn-secondary mt-4" onclick={()=>scheduleLimit+=40}>Show more scheduled fixtures</button>{/if}
 	</Accordion>
 
+{#if ['football','basketball','nba'].includes(sport)}<section class="surface mt-5 border-l-4 border-yellow-400 p-4"><h2 class="font-bold">🟡 Scoring market coverage</h2><p class="mt-2 text-sm text-haze">{sport==='football'?'Compare BTTS Yes/No, home and away goal totals, match goals and supported first-half goal forecasts.':'Compare full-game, first-half and first-quarter totals, both team totals and handicaps where mapped fitted team data is available.'} Open a fixture for exact lines, model percentages and selection evidence. Unpriced forecasts are estimates; missing period data does not become a zero score.</p></section>{/if}
 <Accordion title="Recent results" count={results.length}>
 		<h2 id="res-{sport}" class="text-xl font-bold text-chalk">✅ Recent results</h2>
 		<div class="mt-3 grid gap-2 md:grid-cols-2">{#each results as g (g.id)}<GameRow {g} />{/each}</div>

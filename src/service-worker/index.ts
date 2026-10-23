@@ -110,12 +110,12 @@ sw.addEventListener('push', (event) => {
  event.waitUntil((async () => {
   let payload: { title?: string; body?: string; url?: string } = {};
   try { payload = event.data?.json() ?? {}; } catch { /* Show a generic alert for malformed payloads. */ }
-  let url = new URL('/results', sw.location.origin);
-  try { url = new URL(typeof payload.url === 'string' ? payload.url : '/results', sw.location.origin); } catch { /* Retain the safe results link. */ }
+  let url = new URL('/betslips', sw.location.origin);
+  try { url = new URL(typeof payload.url === 'string' ? payload.url : '/betslips', sw.location.origin); } catch { /* Retain the safe saved-slips link. */ }
   await sw.registration.showNotification(typeof payload.title === 'string' ? payload.title.slice(0,100) : 'PuntersEdge update', {
    body: typeof payload.body === 'string' ? payload.body.slice(0,240) : 'Open PuntersEdge for the latest results.',
    icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: typeof (payload as {tag?:string}).tag==='string'?(payload as {tag:string}).tag.slice(0,80):'puntersedge-results',
-   data: { url: url.origin === sw.location.origin ? url.href : '/results' }
+   data: { url: url.origin === sw.location.origin ? url.href : '/betslips' }
   });
  })());
 });

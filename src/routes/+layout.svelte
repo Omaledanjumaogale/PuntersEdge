@@ -61,7 +61,7 @@
 {#if page.url.pathname === '/'}<EcosystemBanner />{/if}
 <main id="main" class:admin-main={page.url.pathname.startsWith('/admin')} class="mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 md:pb-12">
 	{#if !['/login','/signup','/reset-password','/auth','/subscribe'].includes(page.url.pathname)}<PageSpotlight/>{/if}
-	{#if ['/bet-machine','/board','/value-bets','/football','/nba','/basketball','/hockey','/baseball','/results'].includes(page.url.pathname)}<AccessNotice />{/if}
+	{#if ['/bet-machine','/board','/value-bets','/football','/nba','/basketball','/hockey','/baseball'].includes(page.url.pathname)}<AccessNotice />{/if}
 	{#if !['/login','/signup','/subscribe'].includes(page.url.pathname)}<RenewalNotice/>{/if}
 	{#if !premiumPath(page.url.pathname)||entitled}{@render children()}{:else}<p class="surface p-8 text-haze" role="status">Checking VIP membership…</p>{/if}
 </main>

@@ -26,8 +26,7 @@ export const NAV: NavItem[] = [
 	})),
 	{href:'/tennis',label:'Tennis',emoji:'🎾',hint:'Experimental results-based estimates',group:'sport'},
 	{ href: '/value-bets', label: 'Market choices', emoji: '💎', hint: 'Projections and observed prices', group: 'main' },
-	{ href: '/bet-machine', label: 'Bet machine', emoji: '🎟️', hint: 'Build a model-ranked accumulator', group: 'more' },
-	{ href: '/results', label: 'Results', emoji: '📈', hint: 'Scores and our record', group: 'main' },
+	{ href: '/bet-machine', label: 'Advanced bet machine', emoji: '🎟️', hint: 'Build a model-ranked accumulator', group: 'main' },
 	{ href: '/betslips', label: 'Slip history', emoji: '🧾', hint: 'Saved slips, PDF and sharing', group: 'more' },
 	{ href: '/bookmakers', label: 'Bookmakers', emoji: '🏦', hint: 'Who keeps the most', group: 'more' },
 	{ href: '/glossary', label: 'Glossary', emoji: '📖', hint: 'Terms explained', group: 'more' },
@@ -42,6 +41,7 @@ export function isActive(pathname: string, href: string, also: string[] = []) {
 
 /** Shared admin workspace links. The drawer and desktop rail render these same records. */
 export const ADMIN_NAV = [
+ {href:'/admin/results',label:'Results & record',emoji:'📈',hint:'Published predictions and final scores',section:'results'},
  {href:'/admin/payments',label:'Payment operations',emoji:'💳',hint:'Reconciliation and disputes',section:'payments'},
  {href:'/admin/privacy',label:'Privacy operations',emoji:'🛡️',hint:'Requests and retention',section:'privacy'},
  {href:'/admin/members',label:'User management',emoji:'👥',hint:'Profiles and tester access',section:'users'},
@@ -53,5 +53,5 @@ export const ADMIN_NAV = [
  {href:'/admin?workspace=memberships',label:'Members & payments',emoji:'🔑',hint:'Access and billing records',section:'memberships'}
 ] as const;
 export function adminActive(pathname:string,search:string,section:string){
- return pathname.startsWith('/admin/evidence/history')?section==='evidence-history':pathname.startsWith('/admin/evidence')?section==='evidence':pathname.startsWith('/admin/payments')?section==='payments':pathname.startsWith('/admin/privacy')?section==='privacy':pathname.startsWith('/admin/members')?section==='users':pathname.startsWith('/admin/models')?section==='models':pathname==='/admin'&&(new URLSearchParams(search).get('workspace')??'performance')===section;
+ return pathname.startsWith('/admin/results')?section==='results':pathname.startsWith('/admin/evidence/history')?section==='evidence-history':pathname.startsWith('/admin/evidence')?section==='evidence':pathname.startsWith('/admin/payments')?section==='payments':pathname.startsWith('/admin/privacy')?section==='privacy':pathname.startsWith('/admin/members')?section==='users':pathname.startsWith('/admin/models')?section==='models':pathname==='/admin'&&(new URLSearchParams(search).get('workspace')??'performance')===section;
 }

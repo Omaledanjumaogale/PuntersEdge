@@ -18,6 +18,14 @@ class ChronologicalTrainingTests(unittest.TestCase):
   self.assertLess(report['markets']['total']['candidateBrier'],report['markets']['total']['incumbentBrier'])
   self.assertGreater(report['markets']['home']['candidateBrier'],report['markets']['home']['incumbentBrier'])
   self.assertFalse(report['allMarketFamiliesNonRegressing'])
+ def test_btts_regression_cannot_be_hidden_by_other_goal_markets(self):
+  rows=[{'status':{'home':1,'away':1}} for _ in range(70)]
+  def distribution(artifact,*args):return {**{kind:(artifact,kind)for kind in ('total','home','away','margin')},'btts':.1 if artifact=='candidate' else .8}
+  with patch('continuous.parameters',return_value=(1.,1.)),patch('continuous.distributions',side_effect=distribution),patch('continuous.settlement',return_value='loss'),patch('continuous.outcomes',return_value=[.3,0,0,0,.7]):
+   report=compare('candidate','incumbent',rows,'full')
+  self.assertEqual(report['markets']['btts']['nOptions'],140)
+  self.assertGreater(report['markets']['btts']['candidateBrier'],report['markets']['btts']['incumbentBrier'])
+  self.assertFalse(report['allMarketFamiliesNonRegressing'])
  def test_duplicate_or_unavailable_results_cannot_inflate_training(self):
   base={'id':'one','sport':'football','league':'L','scope':'full','kickoff':1,'availableAt':2}
   old={'sport':'football','league':'L','scope':'full','trainedThrough':'1970-01-01T00:00:00Z'}
