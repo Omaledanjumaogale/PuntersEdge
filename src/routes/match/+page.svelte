@@ -40,7 +40,7 @@
  <aside class="surface mt-4 p-4 text-sm text-haze">
   {#if review}<strong class="text-chalk">Published pre-match review</strong> · {new Date(recorded.publishedAt).toLocaleString('en-NG')} · Baseline model 60%, quarter Kelly. Prices and probabilities are frozen from publication, not recalculated from the result.
   {:else}<a class="font-semibold text-pop underline" href={`/match?id=${encodeURIComponent(id)}&review=1`}>View recorded pre-match projection</a> · {new Date(recorded.publishedAt).toLocaleString('en-NG')}{/if}
-  {#if game?.status.state === 'finished'}<p class="mt-2 font-display text-2xl font-bold text-chalk">Final score: {statusLabel(game.status)}</p><p class="mt-1">Analysis remains available for 12 hours after the final result is received.</p>{/if}
+  {#if game?.status.state === 'finished'}<p class="mt-2 font-display text-2xl font-bold text-chalk">Final score: {statusLabel(game.status)}</p><p class="mt-1">Analysis remains available for 24 hours after the final result is received.</p>{/if}
  </aside>
 {/if}
 {#if p}

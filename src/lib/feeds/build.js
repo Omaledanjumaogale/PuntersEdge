@@ -213,11 +213,11 @@ export function buildFeed(store, now, usage) {
   const inputs = Object.fromEntries(SPORT_KEYS.map((s) => [s, []]));
   const games = [];
   for (const g of Object.values(store.games).sort((a, b) => a.kickoff - b.kickoff)) {
-    const inWindow = g.kickoff > now - 3 * DAY && g.kickoff < now + 7 * DAY;
-    if (!inWindow) continue;
-    const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
     const snapshot = store.projections[g.uid];
     const reviewable = snapshot?.finishedAt && now < snapshot.finishedAt + REVIEW_MS;
+    const inWindow = reviewable || g.kickoff > now - 3 * DAY && g.kickoff < now + 7 * DAY;
+    if (!inWindow) continue;
+    const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
     const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now) : null;
     if (!input && !snapshot) continue;
     if (input) inputs[g.sport].push(input);

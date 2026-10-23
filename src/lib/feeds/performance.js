@@ -5,7 +5,8 @@ import { settle, profitFor } from '../engine/settlement.js';
 import {settlePeriod} from '../engine/period_settlement.js';
 
 export const MODEL_VERSION = '2026.10.evidence-gated.3';
-export const REVIEW_MS = 12 * 3600000;
+// Reuse the existing retained snapshot; no duplicate archive is created for review.
+export const REVIEW_MS = 24 * 3600000;
 
 /** Freeze only analysis that can actually be published before kickoff. @param {any} game @param {any} input @param {any} prediction @param {number} now */
 export function snapshotOf(game, input, prediction, now) {

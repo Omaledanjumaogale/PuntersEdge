@@ -6,7 +6,7 @@ import {contributionsFor,statsOf,addCounters,emptyCounters,REVIEW_MS} from '../s
 import {FOOTBALL_INPUTS} from '../src/lib/data/fixtures.js';
 
 const now=Date.parse('2026-10-12T06:00:00Z');
-test('only published pre-match projections settle; inputs freeze before results and review expires after 12h',()=>{
+test('only published pre-match projections settle; inputs freeze before results and review expires after 24h',()=>{
  const store=emptyStore(),input=FOOTBALL_INPUTS[0];
  const game={uid:'football-test-1',sport:'football',home:input.homeTeam,away:input.awayTeam,league:'Test League',kickoff:now+3600000,status:{state:'scheduled'},ext:{as:'1'},odds:Object.fromEntries(Object.entries(input.odds).map(([book,prices])=>[book,{...prices,at:now}])),updated:now};
  store.games[game.uid]=game;
@@ -20,6 +20,10 @@ test('only published pre-match projections settle; inputs freeze before results 
  assert.ok(settled[0].selections.every(s=>s.result));
  assert.equal(store.record.settled.some(p=>p.uid==='unpublished-old'),false);
  const end=settled[0].finishedAt;
+ assert.equal(REVIEW_MS,24*3600000);
+ assert.ok(buildFeed(store,end+23*3600000).reviewInputs[game.uid]);
+ const delayed=structuredClone(store);delayed.games[game.uid].kickoff=end-4*86400000;
+ assert.ok(buildFeed(delayed,end+23*3600000).games.some(g=>g.id===game.uid),'recently received final results survive old kickoff dates');
  assert.ok(buildFeed(store,end+REVIEW_MS-1).reviewInputs[game.uid]);
  assert.equal(buildFeed(store,end+REVIEW_MS).reviewInputs[game.uid],undefined);
  const previous=store.record.settled.length;

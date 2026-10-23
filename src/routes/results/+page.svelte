@@ -60,7 +60,7 @@
 
 <Accordion title="Published pre-match predictions" count={filteredProjections.length}>
  <div class="flex flex-wrap items-baseline justify-between gap-2"><h2 id="published-title" class="text-2xl font-bold text-chalk">Which predictions were published before kickoff?</h2><span class="text-sm text-haze">{pendingProjections.length} awaiting results</span></div>
- <p class="mt-2 max-w-3xl text-sm text-haze">Open a published match to review its recorded projection. Finished-match projections remain available for 12 hours after completion; the settled track record keeps the outcome after that viewing window closes.</p>
+ <p class="mt-2 max-w-3xl text-sm text-haze">Open a published match to review its recorded projection. Finished-match projections remain available for 24 hours after completion; the settled track record keeps the outcome after that viewing window closes.</p>
  {#if filteredProjections.length}
   <ul class="mt-4 grid gap-3 md:grid-cols-2">
    {#each [...pendingProjections, ...viewableFinished].slice(0, visible) as projection (projection.fixtureId)}
