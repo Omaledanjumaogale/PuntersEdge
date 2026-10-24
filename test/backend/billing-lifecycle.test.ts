@@ -117,3 +117,11 @@ describe('member-specific controls and billing lifecycle',()=>{
   expect(()=>checkoutUrl('javascript:alert(1)','korapay')).toThrow();expect(()=>checkoutUrl('https://checkout.flutterwave.com/path','flutterwave')).not.toThrow();
  });
 });
+
+it('checkout component bounds repeated creation per member without reading prior payment rows',async()=>{
+ const t=create(),a=await member(t,'limit-a@example.test'),b=await member(t,'limit-b@example.test');
+ for(let i=0;i<3;i++)await t.mutation(anyApi.payments.create,{userId:a.localId,provider:'korapay',reference:'rate-'+i});
+ await expect(t.mutation(anyApi.payments.create,{userId:a.localId,provider:'korapay',reference:'rate-four'})).rejects.toThrow('Please wait');
+ await t.mutation(anyApi.payments.create,{userId:b.localId,provider:'korapay',reference:'other-member'});
+ expect(await t.run(ctx=>ctx.db.query('payments').collect())).toHaveLength(4);
+});

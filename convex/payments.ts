@@ -1,3 +1,7 @@
+import type {ComponentApi} from '@convex-dev/rate-limiter/_generated/component.js';
+import {RateLimiter,MINUTE} from '@convex-dev/rate-limiter';
+import {componentsGeneric} from 'convex/server';
+const checkoutLimits=new RateLimiter(componentsGeneric().rateLimiter as unknown as ComponentApi,{checkout:{kind:'token bucket',rate:3,period:MINUTE,capacity:3}});
 import type {Id} from './_generated/dataModel';
 import type {ActionCtx} from './_generated/server';
 import { action, internalAction, internalMutation, internalQuery, query, httpAction } from './_generated/server';
@@ -84,8 +88,8 @@ export const user=internalQuery({args:{userId:v.id('users')},handler:async(ctx,{
 export const create=internalMutation({args:{userId:v.id('users'),provider,reference:v.string(),diagnostic:v.optional(v.boolean()),apiVersion:v.optional(v.union(v.literal('v3'),v.literal('v4')))},handler:async(ctx,args)=>{
  const account=await ctx.db.get(args.userId);if(!account)throw new Error('Account not found.');
  const access=await entitlement(ctx,args.userId);if(access.status!=='active')throw new Error('This account is '+access.status+'. Contact support.');
- const recent=await ctx.db.query('payments').withIndex('by_user',q=>q.eq('userId',args.userId)).order('desc').take(10);
- if(recent.filter(p=>p.createdAt>Date.now()-60000).length>=3)throw new Error('Please wait before creating another checkout.');
+ const limit=await checkoutLimits.limit(ctx,'checkout',{key:String(args.userId)});
+ if(!limit.ok)throw new Error('Please wait before creating another checkout.');
  const id=await ctx.db.insert('payments',{...args,customerEmail:account.email,baseAmount:PRICE,amount:PRICE,currency:'NGN',status:'pending',createdAt:Date.now()});
  await accountEvent(ctx,args.userId,'checkout_started',{reference:args.reference,provider:args.provider});return id;
 }});

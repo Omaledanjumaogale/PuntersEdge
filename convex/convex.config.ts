@@ -1,5 +1,7 @@
 import { defineApp } from 'convex/server';
 import betterAuth from './betterAuth/convex.config';
+import rateLimiter from '@convex-dev/rate-limiter/convex.config.js';
 const app = defineApp();
+app.use(rateLimiter);
 app.use(betterAuth);
 export default app;

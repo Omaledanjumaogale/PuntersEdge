@@ -29,6 +29,7 @@ class PwaState {
 	#started = false;
 	#deferred: BeforeInstallPromptEvent | null = null;
 	#waiting: ServiceWorker | null = null;
+	#applyRequested=false;
 
 	init() {
 		if (typeof window === 'undefined' || this.#started) return;
@@ -93,14 +94,16 @@ class PwaState {
 
 			let reloading = false;
 			navigator.serviceWorker.addEventListener('controllerchange', () => {
+				if (!this.#applyRequested) { this.updateReady=true; return; }
 				if (reloading) return;
 				reloading = true;
 				location.reload();
 			});
 
-			// Check for a new version whenever the app returns to the foreground.
+			// Foreground checks are bounded; they never reload the active page.
+			let lastCheck=Date.now();
 			document.addEventListener('visibilitychange', () => {
-				if (document.visibilityState === 'visible') reg.update().catch(() => {});
+				if (document.visibilityState === 'visible'&&Date.now()-lastCheck>=3600000) {lastCheck=Date.now();reg.update().catch(() => {});}
 			});
 		} catch (err) {
 			console.warn('[PuntersEdge] service worker registration failed', err);
@@ -189,7 +192,9 @@ class PwaState {
 	}
 
 	applyUpdate() {
-		this.#waiting?.postMessage({ type: 'SKIP_WAITING' });
+		if(!this.updateReady)return;this.#applyRequested=true;
+		if(this.#waiting)this.#waiting.postMessage({ type: 'SKIP_WAITING' });
+		else location.reload();
 	}
 }
 

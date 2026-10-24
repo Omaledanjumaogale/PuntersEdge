@@ -2,6 +2,7 @@
 	import '@fontsource-variable/instrument-sans/index.css';
 	import './layout.css';
 	import { onMount } from 'svelte';
+	import {resumePosition} from '#lib/resume-position.js';
  import {anyApi} from 'convex/server';
  import {pendingActivity,acknowledgeActivity} from '#lib/activity.ts';
  $effect(()=>{const client=auth.client;if(!client)return;const ping=()=>{if(document.visibilityState==='visible'){const events=pendingActivity();void client.mutation(anyApi.testers.presence,{route:window.location.pathname,events}).then(accepted=>{if(accepted)acknowledgeActivity(events);}).catch(()=>{});}};ping();const timer=setInterval(ping,300000);return ()=>clearInterval(timer);});
@@ -31,6 +32,7 @@
 	let { children, data } = $props();
 
 	onMount(() => {
+		const stopResume=resumePosition(window,document);
 		pwa.init();
 		theme.init();
 		auth.init();
@@ -38,7 +40,7 @@
 		const stopSettings = startSettingsSync();
 		feed.start();
 		const clock = setInterval(() => { app.now = Date.now(); }, 60_000);
-		return () => { clearInterval(clock); feed.stop(); stopSync(); stopSettings(); auth.destroy(); };
+		return () => { stopResume(); clearInterval(clock); feed.stop(); stopSync(); stopSettings(); auth.destroy(); };
 	});
 
 	$effect(()=>{auth.client;auth.viewer?.id;auth.viewer?.activeSubscription;void pwa.reconcileNotifications();});

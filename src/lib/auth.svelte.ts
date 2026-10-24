@@ -18,7 +18,7 @@ export function passwordIssues(pw: string): string | null {
 export function passwordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   return Math.min(4, Number(pw.length >= 8) + Number(pw.length >= 12) + Number(/[a-z]/.test(pw) && /[A-Z]/.test(pw)) + Number(/\d/.test(pw) && /[^a-zA-Z0-9]/.test(pw))) as 0 | 1 | 2 | 3 | 4;
 }
-const authClient = createAuthClient({ plugins: [twoFactorClient(),convexClient()] });
+const authClient = createAuthClient({ sessionOptions:{refetchOnWindowFocus:false,refetchInterval:0,refetchWhenOffline:false}, plugins: [twoFactorClient(),convexClient()] });
 class AuthState {
   twoFactorPending=$state(false);
   status = $state<'loading' | 'signedOut' | 'signedIn'>('loading');
@@ -28,7 +28,8 @@ class AuthState {
   #started = false;
   #unsubscribe: (() => void) | null = null;
   #restoreFlight: Promise<void> | null = null;
-  #onFocus = () => { if(this.status!=='signedIn')void this.#restore(); };
+  #lastSessionCheck=0;
+  #onFocus = () => { if(!navigator.onLine)return;if(this.status!=='signedIn'||Date.now()-this.#lastSessionCheck>=300000)void this.#restore(); };
   get signedIn() { return this.status === 'signedIn'; }
   get displayName() { return this.viewer?.name || this.viewer?.email?.split('@')[0] || 'Player'; }
   get initial() { return this.displayName.slice(0,1).toUpperCase(); }
@@ -51,9 +52,11 @@ class AuthState {
   async #restoreSession() {
     if (!convexUrl) { this.status = 'signedOut'; return; }
     try {
+      this.#lastSessionCheck=Date.now();
       const session = await authClient.getSession();
+      if(session.error){if(session.error.status===401||session.error.status===403)this.#clear();else if(this.status!=='signedIn')this.status='signedOut';return;}
       if (!session.data?.session) { this.#clear(); return; }
-      await this.#connect();
+      if(this.status!=='signedIn')await this.#connect();
     } catch { if(this.status!=='signedIn')this.status='signedOut'; }
   }
   async #connect() {
@@ -92,7 +95,7 @@ class AuthState {
   async beginMfa(password:string){const result=await authClient.twoFactor.enable({password,issuer:'PuntersEdge'});if(result.error)throw new Error(result.error.message||'Authenticator setup failed.');return result.data;}
   async verifyMfa(code:string,backup=false){const result=backup?await authClient.twoFactor.verifyBackupCode({code,trustDevice:false}):await authClient.twoFactor.verifyTotp({code,trustDevice:false});if(result.error)throw new Error(result.error.message||'Verification failed.');this.twoFactorPending=false;await this.#connect();}
   async regenerateBackupCodes(password:string){const result=await authClient.twoFactor.generateBackupCodes({password});if(result.error)throw new Error(result.error.message||'Recovery failed.');return result.data;}
-  async logOut() { const { pwa } = await import('#lib/pwa.svelte.ts'); if (pwa.pushEnabled) await pwa.disableNotifications(); await authClient.signOut();try{if(this.viewer?.id)localStorage.removeItem('pe:feed:v1:'+this.viewer.id);}catch{}this.#clear(); }
+  async logOut() { try{sessionStorage.removeItem('pe:resume-position:v1');}catch{}  const { pwa } = await import('#lib/pwa.svelte.ts'); if (pwa.pushEnabled) await pwa.disableNotifications(); await authClient.signOut();try{if(this.viewer?.id)localStorage.removeItem('pe:feed:v1:'+this.viewer.id);}catch{}this.#clear(); }
   async updateName(name: string) {
     const clean = name.trim().slice(0,40);
     const result = await authClient.updateUser({ name: clean });
