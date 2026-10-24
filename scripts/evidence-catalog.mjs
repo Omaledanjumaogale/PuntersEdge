@@ -26,9 +26,16 @@ export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
  const upcoming=[];
  for(const p of Object.values(store.projections??{})){const c=compactEvidence(p);if(!c)continue;const game=store.games?.[c.fixtureId];
   if(c.state==='finished'&&(!catalog.fixtures[c.fixtureId]||c.observedAt>=catalog.fixtures[c.fixtureId].observedAt))catalog.fixtures[c.fixtureId]=c;
-  // Keep the published pre-match snapshot active through live play. The client
-  // removes it only after the provider supplies a finished result.
   const currentState=game?.status?.state??c.state;
+  if(currentState==='finished'&&c.state!=='finished'){
+   const settled=structuredClone(p);
+   if(game?.status?.state==='finished')settleSnapshot(settled,game,now);
+   settled.observedAt=now;
+   const finished=compactEvidence(settled);
+   if(finished&&(!catalog.fixtures[c.fixtureId]||finished.observedAt>=catalog.fixtures[c.fixtureId].observedAt))catalog.fixtures[c.fixtureId]=finished;
+  }
+  // Only a provider-confirmed live status keeps a past kickoff on the active board;
+  // the shortlist applies a short grace window to scheduled status lag.
   if(['scheduled','live'].includes(c.state)&&['scheduled','live'].includes(currentState))upcoming.push({...c,state:currentState});
  }
  const report=buildEvidenceReport(Object.values(catalog.fixtures),upcoming,now);

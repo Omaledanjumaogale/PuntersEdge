@@ -32,6 +32,12 @@ test('started fixtures stay on the shortlist until finished; 80 qualified fixtur
  const live=new Map([[fs[0].fixtureId,{status:{state:'live'}}],[fs[1].fixtureId,{status:{state:'finished'}}]]);assert.equal(evidenceShortlist(r,{},now,live).rows.length,79);
  assert.equal(evidenceShortlist(r,{},now+DAY).rows.length,80);
 });
+test('stale kickoffs leave the active shortlist while provider-confirmed live fixtures remain; history can reconcile past records',()=>{
+ const current=future('current'),started=future('started'),stale=future('stale'),r=buildEvidenceReport(history(),[current,started,stale],now);started.kickoff=now-2*60*60*1000;stale.kickoff=now-5*60*60*1000;
+ assert.deepEqual(evidenceShortlist(r,{},now).rows.map(x=>x.fixtureId).sort(),['current','started']);
+ assert.deepEqual(evidenceShortlist(r,{},now,new Map([['stale',{status:{state:'live'}}]])).rows.map(x=>x.fixtureId).sort(),['current','stale','started']);
+ assert.ok(evidenceShortlist(r,{includePastForHistory:true},now).rows.some(x=>x.fixtureId==='stale'));
+});
 test('provider copies and duplicate canonical aliases cannot inflate recurrence',()=>{
  const hs=history(),copy=structuredClone(hs[0]);copy.fixtureId='provider-copy';copy.rows.push({...copy.rows[0],key:'forecast:full:total:over:2.5'});
  const r=buildEvidenceReport([...hs,copy],[future('future')],now);assert.equal(evidenceShortlist(r,{},now).rows[0].cohort.binaryN,40);
@@ -49,6 +55,12 @@ test('runner stores bulk history in R2, publishes only metadata and reuses its w
  const rpc={query:async(name)=>name==='evidence:state'?{ingest:'state/source.gz',catalog:meta}:(sources++,{page:[{fixtureId:'h',fingerprint:'source-h',publishedAt:now-3*DAY,score:{home:3,away:0}}],isDone:true}),mutation:async(name,args)=>{assert.equal(name,'evidence:publish');assert.equal(args.coverage.historicalFixtures,1);assert.ok(!('groups' in args));meta=args;return true;}};
  const first=await refreshEvidenceCatalog({rpc,blobs,now});assert.equal(first.published,true);assert.equal(sources,1);assert.equal(parseGzip(blobsMap.get(meta.reportKey)).upcoming.length,1);
  await refreshEvidenceCatalog({rpc,blobs,now:now+60000});assert.equal(sources,1);
+});
+test('runner reconciles provider-finished games into the archive and history even if projection state lagged',async()=>{
+ const projection=snap('provider-finished','won',{kickoff:now-DAY,publishedAt:now-2*DAY,state:'scheduled',finishedAt:undefined,score:undefined}),prior=Object.fromEntries(history().map(f=>[f.fixtureId,snap(f.fixtureId,'won')])),blobsMap=new Map([['state/source.gz',gzipJson({games:{'provider-finished':{status:{state:'finished',home:3,away:0}}},projections:{...prior,'provider-finished':projection}})]]);let meta=null;
+ const blobs={get:async key=>blobsMap.get(key)??null,put:async(key,value)=>blobsMap.set(key,value),delete:async key=>blobsMap.delete(key)},rpc={query:async name=>name==='evidence:state'?{ingest:'state/source.gz',catalog:meta}:{page:[],isDone:true},mutation:async(_name,args)=>{meta=args;return true;}};
+ await refreshEvidenceCatalog({rpc,blobs,now});const catalog=parseGzip(blobsMap.get(meta.stateKey)),report=parseGzip(blobsMap.get(meta.reportKey));
+ assert.equal(report.upcoming.length,0);assert.ok(catalog.fixtures['provider-finished'],JSON.stringify(Object.keys(catalog.fixtures)));assert.equal(catalog.fixtures['provider-finished'].state,'finished');assert.deepEqual(catalog.fixtures['provider-finished'].score,{home:3,away:0});assert.ok(Object.values(catalog.historyIndex).some(day=>day.completed>0));
 });
 
 test('double chance 1X/X2/12 and either team Over 1.5 have explicit exact-outcome filters',()=>{
@@ -100,4 +112,12 @@ test('shortlist history freezes pre-match qualification, later settles exact mar
  store.games[f.fixtureId]={status:{state:'finished',home:3,away:0}};await updateEvidenceHistory({catalog,report,store,blobs,now:now+2*DAY});row=Object.values(parseGzip(map.get(key)).rows)[0];assert.equal(row.result,'won');assert.deepEqual(row.score,{home:3,away:0});assert.equal(row.cohort.binaryN,40);assert.equal(row.modelProb,.75);
  const empty={fixtures:{}};await updateEvidenceHistory({catalog:empty,report,store,blobs,now:now+2*DAY});assert.equal(Object.keys(empty.historyIndex).length,0);
  store.games[f.fixtureId].status.home=1;await updateEvidenceHistory({catalog,report,store,blobs,now:now+3*DAY});row=Object.values(parseGzip(map.get(key)).rows)[0];assert.equal(row.result,'lost');assert.equal(row.modelProb,.75);
+});
+test('unseen past snapshots are not retroactively invented, while catalogued finished results are recovered',async()=>{
+ const {updateEvidenceHistory}=await import('../scripts/evidence-history.mjs'),map=new Map(),blobs={get:async k=>map.get(k),put:async(k,v)=>map.set(k,v)},stale=future('stale-history');stale.kickoff=now-5*DAY;const report=buildEvidenceReport(history(),[stale],now),catalog={fixtures:{}},store={games:{},projections:{}};
+ await updateEvidenceHistory({catalog,report,store,blobs,now});assert.equal(map.size,0);
+ const tracked=future('tracked-stale'),trackedReport=buildEvidenceReport(history(),[tracked],now),trackedMap=new Map(),trackedBlobs={get:async k=>trackedMap.get(k),put:async(k,v)=>trackedMap.set(k,v)},trackedCatalog={fixtures:{}};
+ await updateEvidenceHistory({catalog:trackedCatalog,report:trackedReport,store,blobs:trackedBlobs,now});await updateEvidenceHistory({catalog:trackedCatalog,report:trackedReport,store,blobs:trackedBlobs,now:tracked.kickoff+5*60*60*1000});let rows=Object.values(parseGzip(trackedMap.get([...trackedMap.keys()][0])).rows);assert.equal(rows.length,1);assert.equal(rows[0].state,'unresolved');assert.equal(rows[0].result,'ungraded');
+ const completed=compactEvidence(snap('finished-unseen','won')),finishedCatalog={fixtures:{[completed.fixtureId]:completed}},finishedMap=new Map(),finishedBlobs={get:async k=>finishedMap.get(k),put:async(k,v)=>finishedMap.set(k,v)};
+ await updateEvidenceHistory({catalog:finishedCatalog,report:buildEvidenceReport(history(),[],now),store,blobs:finishedBlobs,now});rows=Object.values(parseGzip(finishedMap.get([...finishedMap.keys()][0])).rows);assert.equal(rows.length,1);assert.equal(rows[0].state,'finished');assert.equal(rows[0].result,'won');assert.deepEqual(rows[0].score,{home:3,away:0});
 });

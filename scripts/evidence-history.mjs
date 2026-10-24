@@ -7,7 +7,8 @@ export async function updateEvidenceHistory({catalog,report,store,blobs,now}){
  // Admin-selected recurrence filters only control the view; they must not
  // silently decide which finished outcomes enter the production history.
  const liveGames=new Map(Object.entries(store.games??{}));
- const archiveRows=evidenceShortlist(report,{includePeriodForecasts:true,minModel:.55,minSamples:1,minStrike:0,minFloor:0},now,liveGames).rows;
+ const historyReport={...report,upcoming:[...new Map([...(report.upcoming??[]).filter(f=>f.kickoff>now),...Object.values(catalog.fixtures??{}).filter(f=>f.state==='finished')].map(f=>[f.fixtureId,f])).values()]};
+ const archiveRows=evidenceShortlist(historyReport,{includePeriodForecasts:true,includePastForHistory:true,includeFinishedForHistory:true,minModel:.55,minSamples:1,minStrike:0,minFloor:0},now,liveGames).rows;
  const qualified=new Set(evidenceShortlist(report,{includePeriodForecasts:true},now,liveGames).rows.map(row=>row.id));
  const rows=archiveRows.map(row=>({...row,evidenceTier:qualified.has(row.id)?row.evidenceTier:'forecast-only'})),byDay=new Map();
  for(const row of rows){const d=day(row.kickoff);if(!byDay.has(d))byDay.set(d,[]);byDay.get(d).push(row);}
@@ -26,6 +27,11 @@ export async function updateEvidenceHistory({catalog,report,store,blobs,now}){
    settleSnapshot(snapshot,g?.status.state==='finished'?g:{status:{state:'finished',...score,periodScores:p?.periodScores??{}},goalSequence:p?.goalSequence,corners:p?.corners},now);
    const result=snapshot.selections[0].result??'ungraded',finalScore=snapshot.score??row.score;if(row.state!=='finished'||row.result!==result||JSON.stringify(row.score)!==JSON.stringify(finalScore))row.resultUpdatedAt=now;row.state='finished';row.score=finalScore;row.result=result;
   }else if(g){row.state=g.status.state;if(g.status.state==='postponed'){row.result='pending';}else if(row.kickoff<=now)row.result='pending';}
+  // A stale scheduled record has no verified outcome. Keep its published evidence
+  // in history as ungraded instead of claiming it is live or leaving it on the board.
+  if(row.state!=='finished'&&row.kickoff<now-4*60*60*1000&&g?.status.state!=='live'&&!['postponed','cancelled','abandoned'].includes(g?.status.state)){
+   row.state='unresolved';row.result='ungraded';
+  }
   // An unresolved provider result stays explicitly ungraded after the seven-day hot correction window.
   if(row.state!=='finished'&&now-row.kickoff>8*86400000){row.state='unresolved';row.result='ungraded';}
  }
