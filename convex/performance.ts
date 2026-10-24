@@ -37,7 +37,7 @@ async function recordOne(ctx:any,args:any,metrics:Map<string,any>){
 function marketDimension(key:string){
  let label=key.slice('markets:'.length);try{label=decodeURIComponent(label);}catch{}
  const scopes=['first_quarter','first_half','first_period','first_five','first_inning','regulation','full'];
- let scope='full';for(const candidate of scopes){const human=candidate.replaceAll('_',' ');if(label.toLowerCase().startsWith(human+' · ')){scope=candidate;label=label.slice(human.length+3);break;}}
+ let scope='full';for(const candidate of scopes){const human=candidate.replaceAll('_',' '),prefix=label.toLowerCase().startsWith(candidate+' · ')?candidate+' · ':human+' · ';if(label.toLowerCase().startsWith(prefix)){scope=candidate;label=label.slice(prefix.length);break;}}
  const text=label.toLowerCase(),direction=/\bunder\b/.test(text)?'Under':/\bover\b/.test(text)?'Over':null;
  let family='Other';
  if(/handicap|spread|puck line|run line/.test(text))family='Handicap / spread';

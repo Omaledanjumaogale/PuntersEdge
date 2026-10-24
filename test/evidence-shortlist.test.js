@@ -26,11 +26,11 @@ test('insufficient samples, other leagues/sources/models/bands and different exa
  for(const change of [g=>g.league='Another League',g=>g.version='another-engine',g=>g.rows[0].artifact='another-fit',g=>g.rows[0].source='market',g=>g.rows[0].modelProb=.85,g=>Object.assign(g.rows[0],evidenceMarket('o1.5','football'))]){const altered=structuredClone(f);change(altered);const r=buildEvidenceReport(history(),[altered],now);assert.equal(evidenceShortlist(r,{sameLeague:true},now).rows.length,0);}
  assert.equal(evidenceShortlist(buildEvidenceReport(history(2,2),[f],now),{},now).rows.length,0);
 });
-test('started/live/finished fixtures leave the shortlist; 80 qualified fixtures are not truncated',()=>{
+test('started fixtures stay on the shortlist until finished; 80 qualified fixtures are not truncated',()=>{
  const fs=Array.from({length:80},(_,i)=>future('upcoming-'+i)),r=buildEvidenceReport(history(),fs,now),before=JSON.stringify(r);
  assert.equal(evidenceShortlist(r,{},now).rows.length,80);assert.equal(JSON.stringify(r),before);
- const live=new Map([[fs[0].fixtureId,{status:{state:'live'}}],[fs[1].fixtureId,{status:{state:'finished'}}]]);assert.equal(evidenceShortlist(r,{},now,live).rows.length,78);
- assert.equal(evidenceShortlist(r,{},now+DAY).rows.length,0);
+ const live=new Map([[fs[0].fixtureId,{status:{state:'live'}}],[fs[1].fixtureId,{status:{state:'finished'}}]]);assert.equal(evidenceShortlist(r,{},now,live).rows.length,79);
+ assert.equal(evidenceShortlist(r,{},now+DAY).rows.length,80);
 });
 test('provider copies and duplicate canonical aliases cannot inflate recurrence',()=>{
  const hs=history(),copy=structuredClone(hs[0]);copy.fixtureId='provider-copy';copy.rows.push({...copy.rows[0],key:'forecast:full:total:over:2.5'});
