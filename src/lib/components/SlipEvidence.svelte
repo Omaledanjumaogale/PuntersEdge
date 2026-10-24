@@ -2,8 +2,8 @@
  import {pct,odds} from '#lib/format.ts';
  let {evidence}:{evidence?:any}=$props();
 </script>
-<details class="mt-3 rounded-xl border border-line bg-ink/40 text-xs">
- <summary class="min-h-11 cursor-pointer px-3 py-3 font-semibold text-model">Selection evidence & alternatives</summary>
+<details class="mt-1 rounded-xl border border-line bg-ink/40 text-xs">
+ <summary class="min-h-9 cursor-pointer px-2 py-2 font-semibold text-model">Selection evidence & alternatives</summary>
  <div class="space-y-2 border-t border-line p-3 leading-relaxed">
  {#if evidence}
  <p class="font-semibold">Saved pre-match evidence · model {pct(evidence.modelProbability,1)}</p>

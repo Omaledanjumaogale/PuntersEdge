@@ -319,7 +319,7 @@ input,select,textarea {max-width:100%;min-width:0;}
 .admin-content .panel,.admin-content .metric {border:1px solid var(--color-line);box-shadow:none;}
 .admin-content .metric {padding:24px;}.admin-content .metric p {font-size:13px;}.admin-content .metric span {font-size:12px;line-height:1.6;}
 .admin-content .overflow-x-auto {width:100%;max-width:100%;min-width:0;overscroll-behavior-inline:contain;border:1px solid var(--color-line);border-radius:14px;}
-.admin-content table {font-size:13px;}.admin-content thead {background:var(--color-raised);}.admin-content th,.admin-content td {padding:16px!important;}.admin-content tbody tr:hover {background:var(--color-raised);}.admin-content table button {min-height:44px;}
+.admin-content table {font-size:13px;}.admin-content thead {background:var(--color-raised);}.admin-content th,.admin-content td {padding:16px;}.admin-content tbody tr:hover {background:var(--color-raised);}.admin-content table button {min-height:44px;}
 .workspace-state {padding:32px;border:1px dashed var(--color-line);border-radius:20px;background:var(--color-deep);}.workspace-state h2 {font-size:20px;font-weight:700;}.workspace-state p {margin-top:8px;max-width:64ch;color:var(--color-haze);font-size:14px;}
 @media(max-width:1023px){.admin-shell{grid-template-columns:minmax(0,1fr);gap:0}.admin-rail{display:none}.mobile-workspaces{display:flex;gap:8px;max-width:100%;overflow-x:auto;padding:2px 2px 18px;overscroll-behavior-inline:contain}.mobile-workspaces a{display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:48px;padding:10px 14px;border:1px solid var(--color-line);border-radius:14px;font-size:13px}.workspace-bar{padding-bottom:8px}.admin-content .metric{padding:20px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -402,3 +402,15 @@ body:has(a[aria-current='page'][href='/football']) .surface,body:has(.market-gro
 body:has(a[aria-current='page'][href='/hockey']) .surface,.market-group[data-sport='hockey']{--color-deep:#eef7fc;--color-raised:#deedf7;}
 body:has(a[aria-current='page'][href='/basketball']) .surface,body:has(a[aria-current='page'][href='/nba']) .surface,.market-group[data-sport='basketball'],.market-group[data-sport='nba']{--color-deep:#fff8e6;--color-raised:#f5ebcd;}
 .admin-rail{--color-deep:#f1eff9;--color-raised:#e8e3f4;}
+
+/* Contained, visible menu scrolling on short desktop and mobile viewports. */
+.menu-scroll,.admin-rail{max-height:calc(100dvh - 100px);overflow-y:scroll;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:auto;scrollbar-color:#8b7cbe #e8e3f4;}
+.menu-scroll{max-height:100dvh;}
+.menu-scroll::-webkit-scrollbar,.admin-rail::-webkit-scrollbar{width:10px;}
+.menu-scroll::-webkit-scrollbar-track,.admin-rail::-webkit-scrollbar-track{background:#e8e3f4;border-radius:10px;}
+.menu-scroll::-webkit-scrollbar-thumb,.admin-rail::-webkit-scrollbar-thumb{background:#8b7cbe;border:2px solid #e8e3f4;border-radius:10px;}
+.compact-picks .option-card{padding:.65rem .75rem;font-size:.8125rem;line-height:1.35;border-radius:14px;}
+.compact-picks .option-card .fixture-name{min-height:0;font-size:.75rem;line-height:1.35;}
+.compact-picks .option-card p{margin-top:.2rem;}
+.compact-picks .option-card .text-lg{font-size:.9375rem;}
+.compact-picks .option-card .mt-3{margin-top:.35rem;}

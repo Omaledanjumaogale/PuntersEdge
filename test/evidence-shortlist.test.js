@@ -54,9 +54,9 @@ test('runner stores bulk history in R2, publishes only metadata and reuses its w
 test('double chance 1X/X2/12 and either team Over 1.5 have explicit exact-outcome filters',()=>{
  const selections=[['dc1x','Home or draw',.85],['dcx2','Away or draw',.25],['dc12','Home or away',.9],['h15','Home Over 1.5',.75],['a15','Away Over 1.5',.15]].map(([key,selection,modelProb])=>({key,selection,modelProb,modelVersion:'baseline',pricing:'derived',result:'won'}));
  const hs=Array.from({length:40},(_,i)=>compactEvidence(snap('dc-'+i,'won',{selections}))),f=future('dc-next',{selections}),r=buildEvidenceReport(hs,[f],now),rules={minModel:0,minSamples:20,minStrike:0,minFloor:0};
- assert.equal(evidenceShortlist(r,{...rules,kind:'double-chance'},now).rows.length,3);
- for(const key of ['dc1x','dcx2','dc12'])assert.equal(evidenceShortlist(r,{...rules,kind:key},now).rows[0].side,key);
- assert.deepEqual(evidenceShortlist(r,{...rules,kind:'team-15'},now).rows.map(s=>s.kind).sort(),['team-away','team-home']);
+ assert.equal(evidenceShortlist(r,{...rules,kind:'double-chance'},now).rows.length,2);
+ assert.equal(evidenceShortlist(r,{...rules,kind:'dcx2'},now).rows.length,0);for(const key of ['dc1x','dc12'])assert.equal(evidenceShortlist(r,{...rules,kind:key},now).rows[0].side,key);
+ assert.deepEqual(evidenceShortlist(r,{...rules,kind:'team-15'},now).rows.map(s=>s.kind).sort(),['team-home']);
  assert.equal(evidenceShortlist(r,{...rules,kind:'first-score'},now).rows.length,0);
 });
 test('quarter-line outcomes are not given a binary confidence meter',()=>{

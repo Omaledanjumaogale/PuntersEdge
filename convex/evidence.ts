@@ -1,5 +1,5 @@
 import {query,internalQuery,internalMutation} from './_generated/server';
-import {v} from 'convex/values';import {requireAdmin} from './access';
+import {v} from 'convex/values';import {requireAdmin,requireSubscription} from './access';
 const row=async(ctx:any)=>ctx.db.query('feed_state').withIndex('by_key',(q:any)=>q.eq('key','evidence-shortlist')).unique();
 const validKey=(s:string)=>/^archives\/evidence\/[a-f0-9]{64}-(state|report)\.gz$/.test(s);
 export const meta=query({args:{},handler:async ctx=>{await requireAdmin(ctx);const d=(await row(ctx))?.data;return d?{blobKey:d.reportKey,version:d.version,updatedAt:d.updatedAt,coverage:d.coverage}:null;}});
@@ -10,3 +10,6 @@ export const publish=internalMutation({args:{expectedVersion:v.union(v.string(),
  const old=await row(ctx);if((old?.data?.version??null)!==args.expectedVersion||old&&args.updatedAt<old.data.updatedAt)return false;
  const {expectedVersion,...data}=args;if(old)await ctx.db.patch(old._id,{data});else await ctx.db.insert('feed_state',{key:'evidence-shortlist',data});return true;
 }});
+
+// Members receive a pointer only for an existing published fixture; the admin catalog stays private.
+export const fixtureMeta=query({args:{fixtureId:v.string()},handler:async(ctx,args)=>{await requireSubscription(ctx);if(!/^[A-Za-z0-9:_-]{1,160}$/.test(args.fixtureId))return null;const fixture=await ctx.db.query('projection_snapshots').withIndex('by_fixture',q=>q.eq('fixtureId',args.fixtureId)).first();const d=(await row(ctx))?.data;return fixture&&d?{blobKey:d.reportKey,version:d.version,kickoff:fixture.kickoff}:null;}});

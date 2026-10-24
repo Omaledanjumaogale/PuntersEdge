@@ -1,0 +1,17 @@
+# Compact shortlist and basketball coverage — 24 October 2026
+
+The Evidence shortlist has a hard 55% Model floor across all markets, including automatic basketball forecasts. Exactly 55% is included; started/live and duplicate exclusions remain. Archived previous selections below the threshold are not deleted or rewritten.
+
+Supported full-game basketball/NBA match totals, team totals and handicaps now enter the open-history tier alongside supported first-half/quarter forecasts. The fixed 55% floor remains even if a caller requests a lower threshold. Existing non-basketball historical rules remain. Non-NBA leagues are not filtered out; only genuinely published projections appear. A production catalog preview returned 649 non-NBA basketball options in Liga ACB, Euroleague, Basket League, Super Cup, BBL, Basketball League, Superliga, Energa Basket Liga and Higher League, plus 710 NBA options, with zero rows below 55%. Counts change with kickoff and provider refresh. Period forecasts still require mapped fitted artifacts; full-game projections are not mislabelled as trained period models.
+
+The existing R2 recording policy identifies newly automatically admitted basketball forecasts as basketball-open-55-v2, without changing old recorded policy/version labels. No new provider request schedule or Convex table added.
+
+UI density changes preserve selection, model probability, recurrence/proof, confidence intervals/meter, price, competition metadata, kickoff, scores, outcomes and betslip controls. Shortlist and history tables have smaller padding/font hierarchy and retained contained scrolling. Working slip and saved-slip cards have smaller spacing and preserved expandable evidence. Only the large fixture-card Basis / unvalidated-status / model-lean explanatory blocks identified in the screenshot were removed; full fixture analysis retains model evidence. No evidence storage is deleted.
+
+Hamburger panels and desktop admin rail get contained vertical scrolling, stable scrollbar gutters and contrasting scrollbar thumb/track colours. Touch actions remain usable; sidebar scrolling does not require scrolling the entire page.
+
+Final tests, browser checks, build and production release outcomes are reported in the release response.
+
+Member full analysis now includes a lazy, collapsed fixture-specific selection evidence panel: original Model %, exact market, model/source, band, recurrence, returned/partial counts, quoted ROI, Wilson interval and coloured historical floor, recorded price, publication time and proof examples. The admin catalog remains administrator-only. A separate member route enforces subscription and existing publication, filters the R2 catalog/history on the server and returns no catalog pointer or unrelated fixture projections. Five targeted authorization/route tests pass, including member access and catalog denial. New history records retain the full original cohort; legacy missing fields are marked unrecorded. No new polling or table is added.
+
+Verification: 226 Node tests pass; five targeted backend route tests pass; backend type check passes. Browser QA at 390 and 1440 px passed recurrence, proof download, 80-fixture groups, history filters/results, compact padding, scrolling, forecast additions, and no horizontal overflow. Fixture evidence component QA at both widths passed lazy loading, collapsed sections, preserved proof, no admin navigation and no overflow.

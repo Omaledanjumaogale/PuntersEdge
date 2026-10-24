@@ -11,3 +11,16 @@ it('history rejects unauthorized and unknown dates, and authorizes before condit
  const e=event();e.url=new URL('https://example.test/api/admin/evidence/history?date=2026-10-22');expect((await historyGET(e)).status).toBe(403);Object.assign(access,{active:true,role:'super_admin',token:'test'});query.mockResolvedValue({coverage:{history:{days:{'2026-10-22':{version:'history-v1'}}}}});const r=await historyGET(e);expect(r.status).toBe(200);expect(e.platform.env.DATA_BUCKET.get).toHaveBeenCalledWith('archives/evidence/history/2026-10-22.gz');expect(r.headers.get('Cache-Control')).toBe('private, no-store');
  e.url=new URL('https://example.test/api/admin/evidence/history?date=2026-10-21');expect((await historyGET(e)).status).toBe(404);e.url=new URL('https://example.test/api/admin/evidence/history?date=../private');expect((await historyGET(e)).status).toBe(400);e.url=new URL('https://example.test/api/admin/evidence/history?date=2026-10-22');e.request=new Request(e.url,{headers:{'If-None-Match':'"history-v1"'}});query.mockRejectedValue(new Error('MFA required'));expect((await historyGET(e)).status).toBe(503);
 });
+
+import {GET as fixtureGET} from '../../src/routes/api/fixture-evidence/+server';
+import {gzipSync} from 'node:zlib';
+it('member evidence is fixture-scoped while the admin catalog stays private',async()=>{
+ const e=event();e.url=new URL('https://example.test/api/fixture-evidence?id=fixture-one');expect((await fixtureGET(e)).status).toBe(403);
+ Object.assign(access,{active:true,role:'subscriber',token:'member'});
+ query.mockResolvedValue({blobKey:'archives/evidence/'+'a'.repeat(64)+'-report.gz',version:'v',kickoff:Date.now()-10000});
+ const proof={won:27,lost:3,binaryN:30,strikeRate:.9,interval:{low:.74,high:.97},examples:[{matchTitle:'Recorded proof'}]};
+ const history={rows:{one:{fixtureId:'fixture-one',id:'one',cohort:proof,modelProb:.85},other:{fixtureId:'private-other',id:'other',cohort:proof}}};
+ e.platform.env.DATA_BUCKET.get=vi.fn(async(key:string)=>({size:100,body:new Blob([gzipSync(JSON.stringify(key.endsWith('-report.gz')?{upcoming:[],generatedAt:123}:history))]).stream()}));
+ const response=await fixtureGET(e);expect(response.status).toBe(200);const body=await response.json();expect(body.rows).toHaveLength(1);expect(body.rows[0].cohort).toEqual(proof);expect(JSON.stringify(body)).not.toContain('private-other');expect(body.blobKey).toBeUndefined();expect(response.headers.get('Cache-Control')).toBe('private, no-store');expect((await GET(e)).status).toBe(403);
+ e.url=new URL('https://example.test/api/fixture-evidence?id=../private');expect((await fixtureGET(e)).status).toBe(400);
+});

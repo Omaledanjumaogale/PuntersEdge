@@ -10,7 +10,7 @@ export async function updateEvidenceHistory({catalog,report,store,blobs,now}){
  for(const d of active){const key=`archives/evidence/history/${d}.gz`,bytes=catalog.historyIndex[d]?await blobs.get(key):null;if(catalog.historyIndex[d]&&!bytes)throw Error('Recorded evidence history is unavailable; refusing to replace it');
  const shard=bytes?parseGzip(bytes):{schema:1,date:d,startedAt:catalog.historyStartedAt,rows:{}};
  for(const row of byDay.get(d)??[]){const id=hash([row.fixtureId,row.signature]);const old=shard.rows[id];if(old?.kickoff<=now)continue;
- shard.rows[id]={id,fixtureId:row.fixtureId,sport:row.sport,family:row.sport==='nba'?'basketball':row.sport,matchTitle:row.matchTitle,league:row.league,country:row.country,tournament:row.tournament,kickoff:row.kickoff,publishedAt:row.publishedAt,firstQualifiedAt:old?.firstQualifiedAt??now,lastQualifiedAt:now,ruleVersion:row.evidenceTier==='forecast-only'?'period-open-v1':'default-v1',evidenceTier:row.evidenceTier,key:row.key,selection:row.selection,group:row.group,modelProb:row.modelProb,pricing:row.pricing,odds:row.odds,modelVersion:row.artifact,cohort:{won:row.cohort.won,lost:row.cohort.lost,binaryN:row.cohort.binaryN,strikeRate:row.cohort.strikeRate,interval:row.cohort.interval},state:'scheduled',result:'pending',score:null};
+ shard.rows[id]={id,fixtureId:row.fixtureId,sport:row.sport,family:row.sport==='nba'?'basketball':row.sport,matchTitle:row.matchTitle,league:row.league,country:row.country,tournament:row.tournament,kickoff:row.kickoff,publishedAt:row.publishedAt,firstQualifiedAt:old?.firstQualifiedAt??now,lastQualifiedAt:now,ruleVersion:row.evidenceTier==='forecast-only'?'basketball-open-55-v2':'default-v1',evidenceTier:row.evidenceTier,key:row.key,selection:row.selection,group:row.group,modelProb:row.modelProb,pricing:row.pricing,odds:row.odds,modelVersion:row.artifact,source:row.source,scope:row.scope,title:row.title,probabilityBand:row.probabilityBand,cohort:row.cohort,state:'scheduled',result:'pending',score:null};
  }
  for(const row of Object.values(shard.rows)){
   const g=store.games?.[row.fixtureId],p=store.projections?.[row.fixtureId],finished=catalog.fixtures?.[row.fixtureId];
@@ -25,5 +25,5 @@ export async function updateEvidenceHistory({catalog,report,store,blobs,now}){
  const values=Object.values(shard.rows),version=hash(shard);if(version!==catalog.historyIndex[d]?.version)await blobs.put(key,gzipJson(shard));
  catalog.historyIndex[d]={version,count:values.length,completed:values.filter(r=>r.state==='finished').length,pending:values.filter(r=>!['finished','unresolved'].includes(r.state)).length,updatedAt:now};
  }
- return {startedAt:catalog.historyStartedAt,days:catalog.historyIndex,ruleVersion:'default-and-period-open-v1'};
+ return {startedAt:catalog.historyStartedAt,days:catalog.historyIndex,ruleVersion:'default-and-basketball-open-55-v2'};
 }

@@ -87,7 +87,7 @@
 			</div>
 		</header>
 
-		<div class="flex-1 space-y-2 overflow-y-auto px-5">
+		<div class="compact-picks flex-1 space-y-2 overflow-y-auto px-3">
 			{#each items as i (i.id)}
 				<div class="ticket option-card block min-w-0 px-4 py-4" transition:fly={{ x: 24, duration: 200 }}>
 					<div class="min-w-0 flex-1">

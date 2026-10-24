@@ -68,8 +68,6 @@
 		/>
 	{/if}
 
- <p class="text-xs text-haze">Basis: {p.ratingsSource === 'market' ? 'market consensus · no independent team ratings' : p.ratingsSource}.</p>
- {#if p.analysisEvidence}<p class="rounded-lg bg-raised p-2 text-xs text-haze">{p.confidenceStatus} · {p.analysisEvidence.modelVersion}. {#if !p.analysisEvidence.approved}Forecast shown for evaluation; no validated stake recommendation.{/if}</p>{:else}<p class="text-xs text-haze">Analytical agreement: {pct(confidence,1)} · not a calibrated confidence rating.</p>{/if}
 
 	{#if p.marketSteamAlert || p.absences.length > 0}
 		<ul class="flex flex-wrap gap-2 text-xs font-medium">
@@ -83,8 +81,8 @@
 	{/if}
 
 	{#if !pick}
-		<div class="grid grid-cols-[1fr_auto] items-center gap-2 text-sm">
-			<p class="text-haze">{p.status.state === 'live' ? '🔴 In play. Pre-match analysis is on the match page.' : opportunity ? 'Model lean available. Open markets to compare projections and prices.' : p.bookmakers.length === 0 ? '⏳ Waiting for bookmaker prices.' : 'No validated recommendation. Review the choice notes.'}</p>
+		<div class="flex justify-end gap-2 text-sm">
+
 			{#if marketCount > 0}
 				<button onclick={() => (app.pickerFixture = p.fixtureId)} class="rounded-xl px-3 py-2 font-semibold text-chalk ring-1 ring-line hover:ring-pop" aria-label="All markets for {p.matchTitle}">🎯 {marketCount} markets</button>
 			{/if}

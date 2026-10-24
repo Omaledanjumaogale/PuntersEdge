@@ -83,7 +83,7 @@
 		aria-modal="true"
 		aria-label="Menu"
 		transition:fly={{ x: 320, duration: 320, easing: cubicOut }}
-		class="safe-top safe-bottom fixed inset-y-0 right-0 z-[60] flex w-[min(22rem,92vw)] flex-col gap-5 overflow-y-auto border-l border-line bg-deep p-5 outline-none"
+		class="menu-scroll safe-top safe-bottom fixed inset-y-0 right-0 z-[60] flex w-[min(22rem,92vw)] flex-col gap-5 overflow-y-auto border-l border-line bg-deep p-5 outline-none"
 	>
 		<div class="flex items-center justify-between">
 			<Logo size={30} />
