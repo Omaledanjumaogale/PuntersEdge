@@ -4,6 +4,7 @@ import {settleTwoConsecutive} from './engine/goal_sequence.js';
 /** @param {any} s */
 const norm=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N}.]+/gu,' ').trim();
 export const EVIDENCE_SCHEMA=1;
+export const EVIDENCE_KICKOFF_GRACE_MS=4*60*60*1000;
 /** @param {number} p */
 export function probabilityBand(p){return Math.min(9,Math.floor(p*10));}
 /** @param {any} source */
@@ -64,8 +65,7 @@ export function buildEvidenceReport(fixtures,upcoming,now=Date.now()){
 /** @param {any} report @param {any} [options] @param {number} [now] @param {Map<string,any>|null} [liveGames] */
 export function evidenceShortlist(report,options={},now=Date.now(),liveGames=null){
  const defaults={minModel:.55,minSamples:20,minStrike:.6,minFloor:.5,sameLeague:false,sport:'all',kind:'all',search:'',hours:168};const o={...defaults,...options},rows=[],rejected={belowModel:0,noHistory:0,smallSample:0,belowStrike:0,belowFloor:0,partialSettlement:0},seen=new Set();
- const kickoffGraceMs=4*60*60*1000;
- for(const f of report?.upcoming??[]){const live=liveGames?.get(f.fixtureId),state=live?.status?.state??f.state,isFinished=state==='finished',isLive=state==='live',stalePast=f.kickoff<now-kickoffGraceMs&&!isLive;
+ for(const f of report?.upcoming??[]){const live=liveGames?.get(f.fixtureId),state=live?.status?.state??f.state,isFinished=state==='finished',isLive=state==='live',stalePast=f.kickoff<now-EVIDENCE_KICKOFF_GRACE_MS&&!isLive;
   // The active board accepts past kickoffs only while the provider confirms live play.
   // History ingestion opts into past/finished snapshots to retain and settle them.
   if(isFinished&&!o.includeFinishedForHistory||stalePast&&!o.includePastForHistory||['postponed','cancelled','abandoned'].includes(state)||!isFinished&&f.kickoff>now+o.hours*3600000||o.sport!=='all'&&o.sport!==f.sport)continue;

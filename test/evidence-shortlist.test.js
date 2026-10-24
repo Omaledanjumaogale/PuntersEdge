@@ -62,6 +62,11 @@ test('runner reconciles provider-finished games into the archive and history eve
  await refreshEvidenceCatalog({rpc,blobs,now});const catalog=parseGzip(blobsMap.get(meta.stateKey)),report=parseGzip(blobsMap.get(meta.reportKey));
  assert.equal(report.upcoming.length,0);assert.ok(catalog.fixtures['provider-finished'],JSON.stringify(Object.keys(catalog.fixtures)));assert.equal(catalog.fixtures['provider-finished'].state,'finished');assert.deepEqual(catalog.fixtures['provider-finished'].score,{home:3,away:0});assert.ok(Object.values(catalog.historyIndex).some(day=>day.completed>0));
 });
+test('catalog drops past scheduled rows after the grace period but preserves confirmed live play',async()=>{
+ const pastScheduled=snap('stale-scheduled','won',{kickoff:now-6*60*60*1000,publishedAt:now-7*60*60*1000,state:'scheduled',finishedAt:undefined,score:undefined}),pastLive=snap('confirmed-live','won',{kickoff:now-6*60*60*1000,publishedAt:now-7*60*60*1000,state:'scheduled',finishedAt:undefined,score:undefined}),blobsMap=new Map([['state/source.gz',gzipJson({games:{'stale-scheduled':{status:{state:'scheduled'}},'confirmed-live':{status:{state:'live'}}},projections:{'stale-scheduled':pastScheduled,'confirmed-live':pastLive}})]]);let meta=null;
+ const blobs={get:async key=>blobsMap.get(key)??null,put:async(key,value)=>blobsMap.set(key,value),delete:async key=>blobsMap.delete(key)},rpc={query:async name=>name==='evidence:state'?{ingest:'state/source.gz',catalog:meta}:{page:[],isDone:true},mutation:async(_name,args)=>{meta=args;return true;}};
+ await refreshEvidenceCatalog({rpc,blobs,now});const report=parseGzip(blobsMap.get(meta.reportKey));assert.deepEqual(report.upcoming.map(f=>f.fixtureId),['confirmed-live']);
+});
 
 test('double chance 1X/X2/12 and either team Over 1.5 have explicit exact-outcome filters',()=>{
  const selections=[['dc1x','Home or draw',.85],['dcx2','Away or draw',.25],['dc12','Home or away',.9],['h15','Home Over 1.5',.75],['a15','Away Over 1.5',.15]].map(([key,selection,modelProb])=>({key,selection,modelProb,modelVersion:'baseline',pricing:'derived',result:'won'}));

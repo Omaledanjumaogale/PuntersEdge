@@ -2,7 +2,7 @@ import {scoringAssessment} from '../src/lib/scoring-assessment.js';
 import {updateEvidenceHistory} from './evidence-history.mjs';
 /** Runner-only ledger catalog. R2 holds the bulk data; Convex stores a small protected pointer. */
 import {settleSnapshot} from '../src/lib/feeds/performance.js';
-import {createHash} from 'node:crypto';import {compactEvidence,buildEvidenceReport,EVIDENCE_SCHEMA} from '../src/lib/evidence-shortlist.js';import {gzipJson,parseGzip} from '../src/lib/feeds/ingest-runtime.js';
+import {createHash} from 'node:crypto';import {compactEvidence,buildEvidenceReport,EVIDENCE_SCHEMA,EVIDENCE_KICKOFF_GRACE_MS} from '../src/lib/evidence-shortlist.js';import {gzipJson,parseGzip} from '../src/lib/feeds/ingest-runtime.js';
 const hash=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
  const state=await rpc.query('evidence:state',{});if(!state.ingest)return {skipped:'Retained production state unavailable'};
@@ -36,7 +36,7 @@ export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
   }
   // Only a provider-confirmed live status keeps a past kickoff on the active board;
   // the shortlist applies a short grace window to scheduled status lag.
-  if(['scheduled','live'].includes(c.state)&&['scheduled','live'].includes(currentState))upcoming.push({...c,state:currentState});
+  if(['scheduled','live'].includes(c.state)&&['scheduled','live'].includes(currentState)&&(currentState==='live'||c.kickoff>=now-EVIDENCE_KICKOFF_GRACE_MS))upcoming.push({...c,state:currentState});
  }
  const report=buildEvidenceReport(Object.values(catalog.fixtures),upcoming,now);
  report.history=await updateEvidenceHistory({catalog,report,store,blobs,now});
