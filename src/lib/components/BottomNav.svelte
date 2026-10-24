@@ -10,7 +10,7 @@
 	}));
 </script>
 
-<nav class="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/92 backdrop-blur-xl md:hidden" aria-label="Main">
+<nav data-sveltekit-preload-code="viewport" class="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/92 backdrop-blur-xl md:hidden" aria-label="Main">
 	<div class="mx-auto grid max-w-lg grid-cols-6 px-1 pt-1.5">
 		{#each tabs as t (t.href)}
 			{@const active = isActive(page.url.pathname, t.href, t.also)}

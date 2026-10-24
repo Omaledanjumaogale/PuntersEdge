@@ -14,3 +14,6 @@ it('history rejects unauthorized and unknown dates, and authorizes before condit
 
 import {GET as fixtureGET} from '../../src/routes/api/fixture-evidence/+server';
 it('retired fixture evidence endpoint denies subscribers as well as guests without database or R2 access',async()=>{const e=event();e.url=new URL('https://example.test/api/fixture-evidence?id=fixture-one');expect((await fixtureGET(e)).status).toBe(403);Object.assign(access,{active:true,role:'subscriber',token:'member'});expect((await fixtureGET(e)).status).toBe(403);expect(query).not.toHaveBeenCalled();expect(e.platform.env.DATA_BUCKET.get).not.toHaveBeenCalled();});
+
+import {GET as indexGET} from '../../src/routes/api/admin/evidence/index/+server';
+it('history index returns small admin metadata without reading the R2 catalog',async()=>{const e=event();expect((await indexGET(e)).status).toBe(403);Object.assign(access,{active:true,role:'super_admin',token:'admin'});query.mockResolvedValue({blobKey:'private-report',coverage:{history:{days:{'2026-10-24':{count:10}}}}});const response=await indexGET(e);expect(await response.json()).toEqual({history:{days:{'2026-10-24':{count:10}}}});expect(e.platform.env.DATA_BUCKET.get).not.toHaveBeenCalled();});

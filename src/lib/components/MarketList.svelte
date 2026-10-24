@@ -4,13 +4,13 @@
  import {odds,pct,signed} from '#lib/format.ts';
  import SelectionIdentity from './SelectionIdentity.svelte';
  let {groups,valueOnly=false,home='',away=''}:{groups:MarketGroup[];valueOnly?:boolean;home?:string;away?:string}=$props();
- let feedback=$state('');
+ let feedback=$state('');let opened=$state<Record<string,boolean>>({});
  const shown=$derived(groups.map(g=>({...g,selections:[...(valueOnly?g.selections.filter(s=>(s as any).opportunity?.green):g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id))})).filter(g=>g.selections.length));
 </script>
 {#if !shown.length}<p class="surface p-4 text-sm text-haze">No choices match this market filter.</p>{/if}
 <div class="market-groups">
- {#each shown as g(g.key)}<details class="market-accordion"><summary class="market-summary"><span class="min-w-0"><strong><span aria-hidden="true">{g.emoji}</span> {g.title}</strong><small>{g.selections.length} options · Model % high to low</small></span><span class="accordion-chevron" aria-hidden="true">⌄</span></summary>
- <p class="px-3 pb-3 text-xs text-haze">{g.blurb}</p>
+ {#each shown as g(g.key)}<details ontoggle={(event)=>{opened[g.key]=event.currentTarget.open;}} class="market-accordion"><summary class="market-summary"><span class="min-w-0"><strong><span aria-hidden="true">{g.emoji}</span> {g.title}</strong><small>{g.selections.length} options · Model % high to low</small></span><span class="accordion-chevron" aria-hidden="true">⌄</span></summary>
+ {#if opened[g.key]}<p class="px-3 pb-3 text-xs text-haze">{g.blurb}</p>
  <ul class="market-tiles">{#each g.selections as s(s.id)}
  {@const inSlip=app.inSlip(s.id)}{@const selectable=app.gameById(s.fixtureId)?.status.state==='scheduled'&&Date.parse(app.gameById(s.fixtureId)?.kickoff??'')>app.now}{@const opportunity=(s as any).opportunity}
  <li class="option-card" class:selected={inSlip}>
@@ -22,7 +22,7 @@
  {#if !selectable&&!inSlip}<span class="choice-unavailable">Pre-match selection closed</span>{/if}
  </div>
  <details class="choice-note"><summary>Analysis <span>{s.pricing==='quoted'?`${signed(s.edgePercent,1)}% EV`:'Quote unavailable'}{#if s.pushProb>.005} · {pct(s.pushProb)} refund{/if}</span></summary><div><p>{opportunity?.note??'No market choice note is available.'}</p><p class="mt-2">{opportunity?.gradeBasis??'Model probabilities are estimates, not measured accuracy.'}</p><p class="mt-2">Fair price {odds(s.fairOdds)}. {s.pricing==='quoted'?`Value grade ${s.grade}. Confirm current bookmaker price.`:'Add this unpriced selection to your slip. Its fair estimate is excluded from quoted combined odds.'}</p></div></details>
- </li>{/each}</ul></details>{/each}
+ </li>{/each}</ul>{/if}</details>{/each}
 </div>
 <p class="sr-only" role="status" aria-live="polite">{feedback}</p>
 <style>
