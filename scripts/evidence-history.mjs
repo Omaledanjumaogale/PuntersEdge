@@ -3,7 +3,10 @@ import {createHash} from 'node:crypto';import {evidenceShortlist} from '../src/l
 const day=t=>new Date(t+3600000).toISOString().slice(0,10),hash=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 export async function updateEvidenceHistory({catalog,report,store,blobs,now}){
  catalog.historyStartedAt??=now;catalog.historyIndex??={};
- const rows=evidenceShortlist(report,{includePeriodForecasts:true},now,new Map(Object.entries(store.games??{}))).rows,byDay=new Map();
+ // Retain every published shortlist option at the platform-wide 55% floor.
+ // Admin-selected recurrence filters only control the view; they must not
+ // silently decide which finished outcomes enter the production history.
+ const rows=evidenceShortlist(report,{includePeriodForecasts:true,minModel:.55,minSamples:1,minStrike:0,minFloor:0},now,new Map(Object.entries(store.games??{}))).rows,byDay=new Map();
  for(const row of rows){const d=day(row.kickoff);if(!byDay.has(d))byDay.set(d,[]);byDay.get(d).push(row);}
  // Recheck the retained correction window and every unresolved day. Older completed days stay in R2.
  const active=new Set([...byDay.keys(),...Object.keys(catalog.historyIndex).filter(d=>catalog.historyIndex[d].pending>0||Date.parse(d+'T00:00:00Z')>now-8*86400000)]);

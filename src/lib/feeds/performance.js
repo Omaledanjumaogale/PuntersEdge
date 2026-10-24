@@ -52,7 +52,7 @@ export function contributionsFor(snapshot) {
  for(const row of snapshot.selections){
   const c=countersFor(row);if(!c.n)continue;
   const lower=Math.min(90,Math.floor(row.modelProb*10)*10);
-  const keys=['summary',`versions:${encodeURIComponent(snapshot.modelVersion??'unversioned')}`,`grades:${row.grade}`,`markets:${encodeURIComponent(row.market)}`,`bands:${lower}-${lower+10}%`,`days:${new Date((snapshot.finishedAt??snapshot.kickoff)+3600000).toISOString().slice(0,10)}`,`pricing:${row.pricing}`];
+  const keys=['summary',`versions:${encodeURIComponent(snapshot.modelVersion??'unversioned')}`,`grades:${row.grade}`,`markets:${encodeURIComponent(marketCategory(row))}`,`bands:${lower}-${lower+10}%`,`days:${new Date((snapshot.finishedAt??snapshot.kickoff)+3600000).toISOString().slice(0,10)}`,`pricing:${row.pricing}`];
   if(row.verdict)keys.push('verdict');
   if(row.modelVersion??snapshot.artifactVersion)keys.push(`artifacts:${encodeURIComponent(row.modelVersion??snapshot.artifactVersion)}`);
   keys.push(`scopes:${row.scope??'full'}`,`directions:${encodeURIComponent(marketCategory(row))}`);
@@ -71,5 +71,5 @@ export function marketCategory(row){
  const key=row.key??'',label=(row.selection??'').toLowerCase(),market=(row.market??'').toLowerCase();
  const direction=/\bunder\b/.test(label)||/^(?:u[\d.]|under)/.test(key)?'Under':/\bover\b/.test(label)||/^(?:o[\d.]|over|th[\d.]|ta[\d.])/.test(key)?'Over':null;
  const team=/:(?:home|away):(over|under):/.test(key)||/^t[ha][\d.]/.test(key)||/team total/.test(market);
- return `${row.scope??'full'} · ${direction?(team?'Team total':'Match total')+' · '+direction:/handicap|spread/i.test(market)||/^(?:ah[ha]|sp[ha])/.test(key)?'Handicap / spread':/winner|moneyline|match result|1x2/i.test(market)||/^(?:home|away|draw|homeMl|awayMl)$/.test(key)?'Winner / result':row.market??'Other'}`;
+ return `${row.scope??'full'} · ${direction?(team?'Team total':'Match total')+' · '+direction:/handicap|spread|puck line|run line/i.test(market)||/^(?:ah[ha]|sp[ha])/.test(key)?'Handicap / spread':/winner|moneyline|match result|1x2/i.test(market)||/^(?:home|away|draw|homeMl|awayMl)$/.test(key)?'Winner / result':/both teams to score|btts/i.test(market)||/^(?:bttsYes|bttsNo)$/.test(key)?'Both teams to score':/double chance/i.test(market)||/^(?:dc1x|dc12|dcx2)$/.test(key)?'Double chance':/draw no bet/i.test(market)||/^(?:dnbh|dnba)$/.test(key)?'Draw no bet':'Other'}`;
 }

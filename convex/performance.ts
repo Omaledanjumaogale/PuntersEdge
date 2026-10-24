@@ -33,7 +33,27 @@ async function recordOne(ctx:any,args:any,metrics:Map<string,any>){
   values.fixtures+=old?0:1;values.settledFixtures+=Number(Object.keys(args.contributions).length>0)-Number(Object.keys(old?.contributions??{}).length>0);values.verdicts+=Number(!!args.contributions.verdict)-Number(!!old?.contributions?.verdict);
  }
 }
-async function flushMetrics(ctx:any,metrics:Map<string,any>){for(const {row,values}of metrics.values())if(row)await ctx.db.patch(row._id,values);else await ctx.db.insert('performance_metrics',values);}
+/** Collapse legacy exact-line market keys into the bounded market families now used by the dashboard. */
+function marketDimension(key:string){
+ let label=key.slice('markets:'.length);try{label=decodeURIComponent(label);}catch{}
+ const scopes=['first_quarter','first_half','first_period','first_five','first_inning','regulation','full'];
+ let scope='full';for(const candidate of scopes){const human=candidate.replaceAll('_',' ');if(label.toLowerCase().startsWith(human+' · ')){scope=candidate;label=label.slice(human.length+3);break;}}
+ const text=label.toLowerCase(),direction=/\bunder\b/.test(text)?'Under':/\bover\b/.test(text)?'Over':null;
+ let family='Other';
+ if(/handicap|spread|puck line|run line/.test(text))family='Handicap / spread';
+ else if(/double chance|\b1x\b|\bx2\b/.test(text))family='Double chance';
+ else if(/draw.no.bet/.test(text))family='Draw no bet';
+ else if(/both teams|\bbtts\b/.test(text))family='Both teams to score';
+ else if(/winner|moneyline|match result|1x2/.test(text))family='Winner / result';
+ else if(direction)family=`${/team|home|away/.test(text)?'Team':'Match'} total · ${direction}`;
+ return `${scope} · ${family}`;
+}
+function compactMarketGroups(groups:any){
+ const merged:any={};
+ for(const key of Object.keys(groups))if(key.startsWith('markets:')){const normalized=`markets:${encodeURIComponent(marketDimension(key))}`;addCounters(merged[normalized]??=emptyCounters(),groups[key]);delete groups[key];}
+ Object.assign(groups,merged);
+}
+async function flushMetrics(ctx:any,metrics:Map<string,any>){for(const {row,values}of metrics.values()){compactMarketGroups(values.groups);if(row)await ctx.db.patch(row._id,values);else await ctx.db.insert('performance_metrics',values);}}
 export const record=internalMutation({args:recordArgs,handler:async(ctx,args)=>{const metrics=new Map();await recordOne(ctx,args,metrics);await flushMetrics(ctx,metrics);}});
 export const archiveBatch=internalMutation({args:{publications:v.array(v.object(publicationArgs)),records:v.array(v.object(recordArgs))},handler:async(ctx,args)=>{
  if(args.records.length>20||args.publications.length>40)throw new Error('Archive batch too large');const metrics=new Map();for(const row of args.publications)await publish(ctx,row);for(const row of args.records)await recordOne(ctx,row,metrics);await flushMetrics(ctx,metrics);

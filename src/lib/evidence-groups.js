@@ -10,7 +10,15 @@ export function groupEvidenceSports(rows){
 }
 
 /** Explicit market order shared across sports; unsupported families are simply absent. @param {any} m */
-export function marketOrder(m){const order=['handicap','team-total:over','double-chance','draw-no-bet','team-total:under','match-total','btts','winner'];const i=order.indexOf(m.family??combinedMarket(m).key);return (m.scope==='full'?0:100)+(i<0?50:i);}
+export function marketOrder(m){
+ const order=['handicap','team-total:over','double-chance','draw-no-bet','team-total:under','match-total','btts','winner'];
+ // Keep each sport's shorter period forecasts together before full-game markets.
+ // Basketball has a useful chronology: quarter, half, then full match.
+ const periods=/** @type {Record<string,number>} */({first_quarter:0,first_half:1,first_period:0,first_inning:0,first_five:1,regulation:2,full:100});
+ const scopeRank=periods[m.scope]??50;
+ const i=order.indexOf(m.family??combinedMarket(m).key);
+ return scopeRank*100+(i<0?50:i);
+}
 
 /** Yellow scoring families share a dedicated Top markets section. @param {any} row */
 export function topMarket(row){return ['football','basketball','nba'].includes(row.sport)&&(['match-total','team-home','team-away','handicap'].includes(row.kind)||['bttsYes','bttsNo'].includes(row.side));}
