@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {compactEvidence,buildEvidenceReport,evidenceShortlist,evidenceMarket,wilson,cohortKey} from '../src/lib/evidence-shortlist.js';
+import {compactEvidence,buildEvidenceReport,evidenceShortlist,evidenceMarket,wilson,cohortKey,EVIDENCE_KICKOFF_GRACE_MS,EVIDENCE_CATALOG_MAX_AGE_MS,evidenceCatalogIsFresh} from '../src/lib/evidence-shortlist.js';
 import {refreshEvidenceCatalog} from '../scripts/evidence-catalog.mjs';import {gzipJson,parseGzip} from '../src/lib/feeds/ingest-runtime.js';
 const now=Date.now(),DAY=86400000;
 const snap=(id,result='won',extra={})=>({fixtureId:id,sport:'football',family:'football',match:'Home '+id+' vs Away '+id,league:'Test League',country:'Nigeria',kickoff:now-2*DAY,publishedAt:now-3*DAY,finishedAt:now-DAY,modelVersion:'engine-v1',state:'finished',score:{home:3,away:0},input:{ratingsSource:'table'},selections:[{key:'o2.5',market:'Match total',selection:'Over 2.5',modelProb:.75,pricing:'quoted',odds:2,modelVersion:'baseline',result}],...extra});
@@ -26,17 +26,22 @@ test('insufficient samples, other leagues/sources/models/bands and different exa
  for(const change of [g=>g.league='Another League',g=>g.version='another-engine',g=>g.rows[0].artifact='another-fit',g=>g.rows[0].source='market',g=>g.rows[0].modelProb=.85,g=>Object.assign(g.rows[0],evidenceMarket('o1.5','football'))]){const altered=structuredClone(f);change(altered);const r=buildEvidenceReport(history(),[altered],now);assert.equal(evidenceShortlist(r,{sameLeague:true},now).rows.length,0);}
  assert.equal(evidenceShortlist(buildEvidenceReport(history(2,2),[f],now),{},now).rows.length,0);
 });
-test('started fixtures stay on the shortlist until finished; 80 qualified fixtures are not truncated',()=>{
+test('provider-confirmed finished fixtures leave the active shortlist immediately; 80 qualified fixtures are not truncated',()=>{
  const fs=Array.from({length:80},(_,i)=>future('upcoming-'+i)),r=buildEvidenceReport(history(),fs,now),before=JSON.stringify(r);
  assert.equal(evidenceShortlist(r,{},now).rows.length,80);assert.equal(JSON.stringify(r),before);
- const live=new Map([[fs[0].fixtureId,{status:{state:'live'}}],[fs[1].fixtureId,{status:{state:'finished'}}]]);assert.equal(evidenceShortlist(r,{},now,live).rows.length,79);
+ const live=new Map([[fs[0].fixtureId,{status:{state:'live'}}],[fs[1].fixtureId,{status:{state:'finished',home:2,away:1}}]]);assert.equal(evidenceShortlist(r,{},now,live).rows.length,79);
  assert.equal(evidenceShortlist(r,{},now+DAY).rows.length,80);
 });
-test('stale kickoffs leave the active shortlist while provider-confirmed live fixtures remain; history can reconcile past records',()=>{
- const current=future('current'),started=future('started'),stale=future('stale'),r=buildEvidenceReport(history(),[current,started,stale],now);started.kickoff=now-2*60*60*1000;stale.kickoff=now-5*60*60*1000;
+test('unconfirmed past kickoffs leave after one hour while provider-confirmed live fixtures remain; history can reconcile past records',()=>{
+ assert.equal(EVIDENCE_KICKOFF_GRACE_MS,60*60*1000);const current=future('current'),started=future('started'),stale=future('stale'),r=buildEvidenceReport(history(),[current,started,stale],now);started.kickoff=now-30*60*1000;stale.kickoff=now-2*60*60*1000;
  assert.deepEqual(evidenceShortlist(r,{},now).rows.map(x=>x.fixtureId).sort(),['current','started']);
  assert.deepEqual(evidenceShortlist(r,{},now,new Map([['stale',{status:{state:'live'}}]])).rows.map(x=>x.fixtureId).sort(),['current','stale','started']);
  assert.ok(evidenceShortlist(r,{includePastForHistory:true},now).rows.some(x=>x.fixtureId==='stale'));
+});
+test('evidence catalog freshness fails closed at one hour, while finished results remain eligible for history',()=>{
+ assert.equal(EVIDENCE_CATALOG_MAX_AGE_MS,60*60*1000);assert.equal(evidenceCatalogIsFresh(now,now),true);assert.equal(evidenceCatalogIsFresh(now,now+EVIDENCE_CATALOG_MAX_AGE_MS-1),true);assert.equal(evidenceCatalogIsFresh(now,now+EVIDENCE_CATALOG_MAX_AGE_MS),false);assert.equal(evidenceCatalogIsFresh(now+60001,now),false);
+ const finished=future('finished-retained-for-history');finished.state='finished';finished.finishedAt=now-90*60*1000;finished.score={home:2,away:1};const report={...buildEvidenceReport(history(),[],now),upcoming:[finished]};
+ assert.equal(evidenceShortlist(report,{},now).rows.length,0);assert.equal(evidenceShortlist(report,{includeFinishedForHistory:true,includePastForHistory:true},now).rows.length,1);
 });
 test('provider copies and duplicate canonical aliases cannot inflate recurrence',()=>{
  const hs=history(),copy=structuredClone(hs[0]);copy.fixtureId='provider-copy';copy.rows.push({...copy.rows[0],key:'forecast:full:total:over:2.5'});

@@ -4,7 +4,16 @@ import {settleTwoConsecutive} from './engine/goal_sequence.js';
 /** @param {any} s */
 const norm=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N}.]+/gu,' ').trim();
 export const EVIDENCE_SCHEMA=1;
-export const EVIDENCE_KICKOFF_GRACE_MS=4*60*60*1000;
+// Keep the active shortlist bounded when a provider is late to mark a match
+// live or finished. A provider-confirmed live fixture is still retained.
+export const EVIDENCE_KICKOFF_GRACE_MS=60*60*1000;
+// A stale catalog must never leave old selections visible after the next
+// scheduled ingestion window has failed to refresh it.
+export const EVIDENCE_CATALOG_MAX_AGE_MS=60*60*1000;
+/** @param {number} checkedAt @param {number} [now] */
+export function evidenceCatalogIsFresh(checkedAt,now=Date.now()){
+ return Number.isFinite(checkedAt)&&checkedAt>0&&checkedAt<=now+60000&&now-checkedAt<EVIDENCE_CATALOG_MAX_AGE_MS;
+}
 /** @param {number} p */
 export function probabilityBand(p){return Math.min(9,Math.floor(p*10));}
 /** @param {any} source */
