@@ -12,3 +12,6 @@ export function groupEvidenceSports(rows){
 
 /** Explicit market order shared across sports; unsupported families are simply absent. @param {any} m */
 export function marketOrder(m){const keys=['handicap:home','handicap:away','team-home:over','team-away:over','other:dc1x','other:dcx2','other:dc12','other:dnbh','team-home:under','team-away:under','match-total:over','match-total:under'];const i=keys.indexOf(m.kind+':'+m.side);return (m.scope==='full'?0:100)+(i<0?50:i);}
+
+/** Yellow scoring families share a dedicated Top markets section. @param {any} row */
+export function topMarket(row){return ['football','basketball','nba'].includes(row.sport)&&(['match-total','team-home','team-away','handicap'].includes(row.kind)||['bttsYes','bttsNo'].includes(row.side));}
