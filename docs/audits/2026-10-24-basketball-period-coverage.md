@@ -1,0 +1,7 @@
+# NBA grouping and basketball period coverage
+
+Fixture MarketList now groups NBA and non-NBA selections by sport period and combined family, preserving every selection ID, line, probability and quote. Team Over and Under stay separate direction families; each combines home/away. Totals combine Over/Under, spread combines home/away, winners combine both teams. All options sort by original Model %. Admin shortlist/history already share sport-independent combined grouping.
+
+Serving artifact selection now matches case variants of the exact league name. Existing EuroLeague training-corpus team names supply an explicit unique lookup for odds-only Euroleague games missing provider team IDs. A small set of explicit aliases maps known equivalent names. Matching is restricted to basketball EuroLeague and known trained teams; unknown teams and other leagues receive no borrowed parameters. No new provider calls, model training, approval, or invented periods.
+
+Current production preview: 144 first-half and 144 first-quarter non-NBA options, 57 in each period at Model >=55%, restored from existing separately fitted artifacts. These are forecasts, not validated strike rates. Other non-NBA leagues currently have 1–23 recent verified period results per league and no serving fitted artifacts; full coverage cannot honestly be claimed from this sample. The unsupported leagues remain a data/training gap. No bulk storage is moved to Convex.

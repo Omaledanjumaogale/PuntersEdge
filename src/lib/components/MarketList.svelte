@@ -1,11 +1,12 @@
 <script lang="ts">
+ import {basketballMarketGroups} from '#lib/basketball-market-groups.js';
  import {app} from '#lib/state.svelte.ts';
  import type {MarketGroup} from '#lib/engine/market_book.js';
  import {odds,pct,signed} from '#lib/format.ts';
  import SelectionIdentity from './SelectionIdentity.svelte';
  let {groups,valueOnly=false,home='',away=''}:{groups:MarketGroup[];valueOnly?:boolean;home?:string;away?:string}=$props();
  let feedback=$state('');let opened=$state<Record<string,boolean>>({});
- const shown=$derived(groups.map(g=>({...g,selections:[...(valueOnly?g.selections.filter(s=>(s as any).opportunity?.green):g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id))})).filter(g=>g.selections.length));
+ const shown=$derived(basketballMarketGroups(groups).map(g=>({...g,selections:[...(valueOnly?g.selections.filter(s=>(s as any).opportunity?.green):g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id))})).filter(g=>g.selections.length));
 </script>
 {#if !shown.length}<p class="surface p-4 text-sm text-haze">No choices match this market filter.</p>{/if}
 <div class="market-groups">

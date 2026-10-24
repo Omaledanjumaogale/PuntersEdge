@@ -1,0 +1,2 @@
+/** Verified API-Sports EuroLeague team identities from the existing training corpus. */
+export const basketballTeamNames={"1065": "Crvena zvezda", "26": "Lyon-Villeurbanne", "687": "Maccabi Tel Aviv", "1068": "Partizan", "2329": "Barcelona", "1263": "Anadolu Efes", "522": "Bayern", "519": "Alba Berlin", "732": "Virtus Bologna", "796": "Zalgiris Kaunas", "1270": "Fenerbahce", "722": "Olimpia Milano", "614": "Panathinaikos", "1542": "Olympiacos", "2331": "Baskonia", "2338": "Real Madrid", "2341": "Valencia", "16": "Monaco", "108": "Paris"};

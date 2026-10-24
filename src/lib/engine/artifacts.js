@@ -1,3 +1,5 @@
+import {basketballTeamNames} from './basketball-team-names.js';
+import {teamKey} from '../feeds/matching.js';
 import {LEAGUE_PROFILES} from './basketball_model.js';
 /** Versioned, administrator-reviewed artifacts. Import never implies approval. */
 /** @param {any} a */
@@ -19,11 +21,18 @@ export function validateArtifact(a) {
 }
 /** @param {any} input @param {any} game @param {any[]} records @param {number} now */
 export function fittedInput(input,game,records,now) {
+ // Resolve only the trained competition; never transfer NBA parameters to other leagues.
+ const leagueMatch=(/** @type {any} */a)=>a?.league?.toLowerCase()===String(game.league).toLowerCase();
+ if(game.sport==='basketball'&&String(game.league).toLowerCase()==='euroleague'){
+  const aliases=/** @type {Record<string,string>} */({'kk partizan belgrade':'Partizan','kk partizan nis':'Partizan','kk crvena zvezda belgrade':'Crvena zvezda','kk crvena zvezda':'Crvena zvezda','bc olympiakos piraeus':'Olympiacos','panathinaikos bc':'Panathinaikos','valencia basket':'Valencia','baskonia vitoria-gasteiz':'Baskonia','saski baskonia':'Baskonia','bayern munich':'Bayern','fc barcelona':'Barcelona'});
+  const resolve=(/** @type {string} */name,/** @type {any} */id)=>{const key=teamKey(aliases[String(name).toLowerCase()]??name),matches=Object.entries(basketballTeamNames).filter(([,n])=>teamKey(n)===key);return id??(matches.length===1?matches[0][0]:undefined);};
+  game={...game,homeId:resolve(game.home,game.homeId),awayId:resolve(game.away,game.awayId)};
+ }
  input.homeId=game.homeId;input.awayId=game.awayId;
- input.periodArtifacts=records.filter(r=>r.artifact?.sport===game.sport&&r.artifact.league===game.league&&r.mode==='active'&&r.artifact.scope&&r.artifact.scope!=='full'&&Date.parse(r.artifact.trainedThrough)<now).map(r=>r.artifact).filter(a=>{try{validateArtifact(a);return true;}catch{return false;}});
+ input.periodArtifacts=records.filter(r=>r.artifact?.sport===game.sport&&leagueMatch(r.artifact)&&r.mode==='active'&&r.artifact.scope&&r.artifact.scope!=='full'&&Date.parse(r.artifact.trainedThrough)<now).map(r=>r.artifact).filter(a=>{try{validateArtifact(a);return true;}catch{return false;}});
  // Version the prospective line policy only where a mapped period artifact can serve.
  if(['football','basketball','nba'].includes(game.sport)&&input.periodArtifacts.some((/** @type {any} */a)=>a.teams[String(game.homeId)]&&a.teams[String(game.awayId)]))input.periodLinePolicy='alternatives-v2';
- const record=records.find(r=>r.artifact?.sport===game.sport&&r.artifact.league===game.league&&r.mode==='active'&&(!r.artifact.scope||r.artifact.scope==='full'));
+ const record=records.find(r=>r.artifact?.sport===game.sport&&leagueMatch(r.artifact)&&r.mode==='active'&&(!r.artifact.scope||r.artifact.scope==='full'));
  if(!record)return input;
  const a=record.artifact;
  try {validateArtifact(a);} catch {return input;}
