@@ -8,6 +8,8 @@ GitHub scheduled executions were several hours apart despite the configured `7,3
 
 The evidence page also depended on changes to the main feed's `generatedAt` to fetch its catalog. A catalog-only publication or temporary request failure could leave an already-open page behind until focus or manual refresh. The stale warning still referred to the older 48-hour rule.
 
+A manual refresh during release testing completed provider ingestion but failed during output publication with a network timeout. The previous direct R2 transport made only one attempt, and publication had no stage-specific diagnostics. This left the catalog behind even though the underlying retained ingest state had committed successfully.
+
 ## Changes
 
 - Subscribe directly to the protected evidence metadata. Fetch only when its catalog version changes. Conditional requests avoid repeatedly downloading unchanged R2 data.
@@ -17,6 +19,8 @@ The evidence page also depended on changes to the main feed's `generatedAt` to f
 - Remove confirmed finished fixtures immediately. Require a status observation less than one hour old to retain past fixtures; continue enforcing the one-hour grace for unconfirmed scheduled kickoffs.
 - Keep provider status observation times separate from price updates and catalog generation times. An older scheduled/live copy cannot resurrect a known finished fixture.
 - Preserve evidence history, frozen model percentages and verified-result settlement. Keep bulk data in R2 and small metadata in Convex. Do not increase provider budgets or ingestion frequency.
+- Retry safe R2 operations up to three times on network interruptions, rate limits and temporary server failures. Keep authorization failures immediate, cap backoff and redact error details. Treat repeated deletes as successful when the object is already absent.
+- Publish the evidence catalog and limited public preview independently, identify failed stages, and expose a publication-only workflow input to retry retained data without spending additional sports-provider quota.
 
 ## Verification
 

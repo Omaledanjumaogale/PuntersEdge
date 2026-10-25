@@ -2,6 +2,7 @@
 
 ## 2026-10-25 — Evidence refresh recovery
 
+- Retry transient direct-R2 failures safely, isolate publication stages and allow publication-only recovery without additional sports-provider calls.
 - Keep future published forecasts available when the scheduled runner is delayed, with an accurate data-age notice. Expire stale past-game status independently.
 - Subscribe directly to evidence metadata and retry in the background, on return and on network recovery. Bound hanging requests and preserve the current page state.
 - Track provider status observation times independently of odds updates; prevent older feed copies from resurrecting known final results.

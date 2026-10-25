@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
+    inputs:
+      publication_only:
+        description: 'Rebuild evidence and public preview from retained R2 data without calling sports providers'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -14,6 +19,7 @@ jobs:
     timeout-minutes: 15
     environment: production
     env:
+      PUBLICATION_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.publication_only && 'true' || 'false' }}
       PUBLIC_CONVEX_URL: https://reliable-duck-539.eu-west-1.convex.cloud
       CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       EDGE_DATA_URL: https://puntersedge.ewinproject.org
