@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-25 — Evidence refresh recovery
+
+- Keep future published forecasts available when the scheduled runner is delayed, with an accurate data-age notice. Expire stale past-game status independently.
+- Subscribe directly to evidence metadata and retry in the background, on return and on network recovery. Bound hanging requests and preserve the current page state.
+- Track provider status observation times independently of odds updates; prevent older feed copies from resurrecting known final results.
+- Add automated refresh regression tests and mobile/desktop browser coverage for delayed data, catalog-only updates and failed-request recovery.
+
 ## 2026-10-21 — Ranked shortlists and totals evaluation
 
 - Sort all machine output by the visible Model % descending while retaining the optimizer's chosen legs and push-adjusted combination calculation.

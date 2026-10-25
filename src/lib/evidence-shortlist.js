@@ -7,8 +7,8 @@ export const EVIDENCE_SCHEMA=1;
 // Keep the active shortlist bounded when a provider is late to mark a match
 // live or finished. A provider-confirmed live fixture is still retained.
 export const EVIDENCE_KICKOFF_GRACE_MS=60*60*1000;
-// A stale catalog must never leave old selections visible after the next
-// scheduled ingestion window has failed to refresh it.
+// After this window, a status cannot establish that a past fixture is live.
+// Future published forecasts remain usable even when ingestion is delayed.
 export const EVIDENCE_CATALOG_MAX_AGE_MS=60*60*1000;
 /** @param {number} checkedAt @param {number} [now] */
 export function evidenceCatalogIsFresh(checkedAt,now=Date.now()){
@@ -74,7 +74,10 @@ export function buildEvidenceReport(fixtures,upcoming,now=Date.now()){
 /** @param {any} report @param {any} [options] @param {number} [now] @param {Map<string,any>|null} [liveGames] */
 export function evidenceShortlist(report,options={},now=Date.now(),liveGames=null){
  const defaults={minModel:.55,minSamples:20,minStrike:.6,minFloor:.5,sameLeague:false,sport:'all',kind:'all',search:'',hours:168};const o={...defaults,...options},rows=[],rejected={belowModel:0,noHistory:0,smallSample:0,belowStrike:0,belowFloor:0,partialSettlement:0},seen=new Set();
- for(const f of report?.upcoming??[]){const live=liveGames?.get(f.fixtureId),state=live?.status?.state??f.state,isFinished=state==='finished',isLive=state==='live',stalePast=f.kickoff<now-EVIDENCE_KICKOFF_GRACE_MS&&!isLive;
+ const catalogAt=options.catalogCheckedAt??report?.generatedAt,liveAt=options.liveCheckedAt??catalogAt;
+ for(const f of report?.upcoming??[]){const live=liveGames?.get(f.fixtureId),snapshotAt=f.statusObservedAt??catalogAt,providerAt=live?.statusObservedAt??liveAt,useLive=!!live&&providerAt>=snapshotAt;
+  // A verified final state must never be resurrected by an older scheduled/live copy.
+  const state=f.state==='finished'||live?.status?.state==='finished'?'finished':useLive?live.status.state:f.state,isFinished=state==='finished',isLive=state==='live',statusFresh=evidenceCatalogIsFresh(useLive?providerAt:snapshotAt,now),stalePast=f.kickoff<=now&&(!statusFresh||f.kickoff<now-EVIDENCE_KICKOFF_GRACE_MS&&!isLive);
   // The active board accepts past kickoffs only while the provider confirms live play.
   // History ingestion opts into past/finished snapshots to retain and settle them.
   if(isFinished&&!o.includeFinishedForHistory||stalePast&&!o.includePastForHistory||['postponed','cancelled','abandoned'].includes(state)||!isFinished&&f.kickoff>now+o.hours*3600000||o.sport!=='all'&&o.sport!==f.sport)continue;

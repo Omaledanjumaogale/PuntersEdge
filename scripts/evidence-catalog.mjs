@@ -36,7 +36,7 @@ export async function refreshEvidenceCatalog({rpc,blobs,now=Date.now()}){
   }
   // Only a provider-confirmed live status keeps a past kickoff on the active board;
   // the shortlist applies a short grace window to scheduled status lag.
-  if(['scheduled','live'].includes(c.state)&&['scheduled','live'].includes(currentState)&&(currentState==='live'||c.kickoff>=now-EVIDENCE_KICKOFF_GRACE_MS))upcoming.push({...c,state:currentState});
+  if(['scheduled','live'].includes(c.state)&&['scheduled','live'].includes(currentState)&&(currentState==='live'||c.kickoff>=now-EVIDENCE_KICKOFF_GRACE_MS))upcoming.push({...c,state:currentState,statusObservedAt:game?.statusObservedAt??game?.updated??c.observedAt});
  }
  const report=buildEvidenceReport(Object.values(catalog.fixtures),upcoming,now);
  report.history=await updateEvidenceHistory({catalog,report,store,blobs,now});

@@ -29,6 +29,7 @@ import { bestMatch } from './matching.js';
  * @property {{ as?: string, toa?: string, op?: string }} ext provider ids
  * @property {Record<string, Record<string, number> & { at: number }>} odds book → prices (+ fetch time)
  * @property {number} updated
+ * @property {number} [statusObservedAt] Last actual fixture-status observation, independent of odds updates
  */
 
 /**
@@ -145,6 +146,7 @@ export function upsertGames(store, games, now) {
       awayId: n.awayId,
       kickoff: n.kickoff,
       status: n.status,
+      statusObservedAt: now,
       updated: now
     });
     g.ext.as = n.id;

@@ -231,6 +231,7 @@ export function buildFeed(store, now, usage) {
       away: g.away,
       kickoff: new Date(g.kickoff).toISOString(),
       status: g.status,
+      statusObservedAt: g.statusObservedAt??g.updated,
       books: Object.keys(g.odds).length,
       projected: Boolean(input),
       availabilityReason: !input ? (Object.keys(g.odds).length ? 'No complete supported market or sufficient team-strength data.' : 'No usable bookmaker prices or sufficient team-strength data from this provider plan.') : undefined,

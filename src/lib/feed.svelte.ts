@@ -24,6 +24,7 @@ export interface FeedGame {
 	away: string;
 	kickoff: string;
 	status: { state: 'scheduled' | 'live' | 'finished' | 'postponed'; home?: number; away?: number; detail?: string };
+ statusObservedAt?: number;
 	books: number;
 	priced: boolean;
 	projected?: boolean;
