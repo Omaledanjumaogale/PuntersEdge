@@ -1,3 +1,4 @@
+/** @typedef {{picks:any[],odds:number,probability:number}} Ticket */
 /** Lagos calendar date. @param {number} time */
 export const rolloverDay=time=>new Date(time+3600000).toISOString().slice(0,10);
 /** Bounded deterministic beam search. Each fixture can appear once across a day's tickets.
@@ -17,12 +18,12 @@ export function rolloverTickets(rows,day,now=Date.now()){
  }
  pool.sort((a,b)=>b.screenProbability-a.screenProbability||b.conservativeEdge-a.conservativeEdge||a.id.localeCompare(b.id));
  const used=new Set(),tickets=[];
- for(const target of [2,3,5,10]){const lower=target*.9,upper=target*1.1;let beam=[{picks:[],odds:1,probability:1}],best=null;
+ for(const target of [2,3,5,10]){const lower=target*.9,upper=target*1.1;let beam=/** @type {Ticket[]} */([{picks:[],odds:1,probability:1}]),best=/** @type {Ticket|null} */(null);
   const events=new Map();for(const r of pool){if(used.has(event(r)))continue;const key=event(r);if(!events.has(key))events.set(key,[]);events.get(key).push(r);}
   for(const options of events.values()){
    const next=[...beam];for(const ticket of beam){if(ticket.picks.length>=12)continue;for(const r of options.slice(0,4)){const odds=ticket.odds*r.odds;if(odds>upper)continue;const candidate={picks:[...ticket.picks,r],odds,probability:ticket.probability*r.screenProbability};next.push(candidate);if(candidate.picks.length>=2&&odds>=lower&&(!best||candidate.probability>best.probability||candidate.probability===best.probability&&Math.abs(odds-target)<Math.abs(best.odds-target)))best=candidate;}}
    // Preserve diversity in odds progress, rather than pruning all low-probability long tickets.
-   const buckets=new Map();for(const t of next){const key=Math.floor(Math.log(t.odds)/Math.log(upper)*100),bucket=buckets.get(key)??[];bucket.push(t);bucket.sort((a,b)=>b.probability-a.probability);buckets.set(key,bucket.slice(0,3));}beam=[...buckets.values()].flat();
+   const buckets=/** @type {Map<number,Ticket[]>} */(new Map());for(const t of next){const key=Math.floor(Math.log(t.odds)/Math.log(upper)*100),bucket=buckets.get(key)??[];bucket.push(t);bucket.sort((a,b)=>b.probability-a.probability);buckets.set(key,bucket.slice(0,3));}beam=[...buckets.values()].flat();
   }
   if(best)for(const r of best.picks)used.add(event(r));tickets.push({target,...(best??{picks:[],odds:0,probability:0}),status:best?'available':'no-qualified-combination'});
  }
