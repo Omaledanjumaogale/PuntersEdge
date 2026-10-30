@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 const base=process.env.PUBLIC_SITE_URL??'https://puntersedge.ewinproject.org';
-for(const path of ['/','/board','/login','/tester','/match','/betslips','/tennis','/privacy','/account/security','/account/privacy','/admin/payments','/admin/privacy']){
+for(const path of ['/','/board','/login','/tester','/match','/betslips','/tennis','/privacy','/account/security','/account/privacy','/admin/rollover','/admin/payments','/admin/privacy']){
  let ok=false,detail='';
  for(let attempt=0;attempt<3;attempt++){
   const response=await fetch(new URL(path,base),{signal:AbortSignal.timeout(20000)});

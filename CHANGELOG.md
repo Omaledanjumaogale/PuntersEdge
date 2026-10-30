@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — Admin daily rollover research
+
+- Add a private 30-day calendar with 2×, 3×, 5× and 10× combined ticket targets, evidence metrics, risk illustrations and betslip actions.
+- Select only matching fresh bookmaker quotes with sufficient comparable history and positive conservative screening edge. Prevent duplicate events within or across the day's tickets.
+- Keep unsupported targets empty and clearly distinguish descriptive historical evidence from validated future returns. Reuse the existing evidence catalog without new provider calls or database tables.
+
 ## 2026-10-25 — Evidence refresh recovery
 
 - Retry transient direct-R2 failures safely, isolate publication stages and allow publication-only recovery without additional sports-provider calls.
