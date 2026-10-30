@@ -2,6 +2,7 @@
 
 ## 2026-10-30 — Admin daily rollover research
 
+- Automatically settle frozen daily tickets from verified provider results, show green winning-day ticks, and calculate separate streaks and 30-day accuracy for each odds target.
 - Add a private 30-day calendar with 2×, 3×, 5× and 10× combined ticket targets, evidence metrics, risk illustrations and betslip actions.
 - Select only matching fresh bookmaker quotes with sufficient comparable history and positive conservative screening edge. Prevent duplicate events within or across the day's tickets.
 - Keep unsupported targets empty and clearly distinguish descriptive historical evidence from validated future returns. Reuse the existing evidence catalog without new provider calls or database tables.

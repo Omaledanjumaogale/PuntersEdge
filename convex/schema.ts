@@ -5,6 +5,7 @@ import {bankTransferValidator} from './lib/paymentValidators';
 import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
+  rollover_tickets:defineTable({day:v.string(),target:v.number(),status:v.string(),legs:v.array(v.object({fixtureId:v.string(),key:v.string(),matchTitle:v.string(),selection:v.string(),kickoff:v.number(),odds:v.number()})),totalOdds:v.number(),settledOdds:v.optional(v.number()),createdAt:v.number(),updatedAt:v.number(),actorId:v.id('users')}).index('by_day_target',['day','target']).index('by_status',['status']),
   // Convex Auth: users, sessions, accounts, refresh tokens, verification codes.
   ...authTables,
   users: defineTable({

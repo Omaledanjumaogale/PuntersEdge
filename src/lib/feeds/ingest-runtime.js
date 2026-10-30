@@ -85,6 +85,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   // Public preview is intentionally limited; premium data is never written to this key.
   await blobs.put('preview/current.gz',gzipJson(preview));
   progress('commit_outbox',batches.length);await flushArchive(pendingArchiveKey);
+  await rpc.mutation('rollover:settlePending',{});
   // Replaced hot blobs have a two-hour grace period for in-flight readers and training jobs.
   await rpc.mutation('feed:completeEdge',{});
   progress('complete');return {ran:result.ran.length,archiveChanges:changes.length,feedUpdated:version!==state.feedVersion,storeBytes:gzipJson(store).length,feedBytes:gzipJson(feed).length,publicChanged};
