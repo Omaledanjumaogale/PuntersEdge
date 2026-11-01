@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-31 — Rollover population and midnight refresh
+
+- Build the rollover pool from supported published forecasts instead of the stricter evidence-shortlist display filter. Rank by frozen Model %, with comparable historical evidence as a tie-breaker; offer positive model-implied value as an optional filter.
+- Match the latest bookmaker price by exact canonical market and line, including football totals aliases. Accept recorded quotes up to 36 hours old, display their observation time, and never use estimated fair odds or renew missing timestamps.
+- Follow the Lagos day change without reloading the app, refresh both the feed and evidence catalog, preserve explicitly selected history, and align the page clock with the evidence response. Add a midnight publication run using the existing provider budget meters.
+- Keep duplicate prevention, automatic settlement and immutable saved tickets. Restore the betslip action on automatically recorded tickets. Unreachable targets remain explicit rather than receiving fabricated prices or repeated events.
+
 ## 2026-10-30 — Admin daily rollover research
 
 - Automatically settle frozen daily tickets from verified provider results, show green winning-day ticks, and calculate separate streaks and 30-day accuracy for each odds target.

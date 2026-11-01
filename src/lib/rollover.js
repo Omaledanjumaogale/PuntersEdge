@@ -1,4 +1,26 @@
 /** @typedef {{picks:any[],odds:number,probability:number}} Ticket */
+import {cohortKey,evidenceMarket} from './evidence-shortlist.js';
+export const ROLLOVER_QUOTE_MAX_AGE_MS=36*3600000;
+/** All published options, without the evidence-shortlist's display thresholds.
+ * Current quoted prices may change after publication; probabilities remain frozen.
+ * @param {any} report @param {Map<string,any>} predictions @param {Map<string,any>} games @param {Map<string,any>} inputs @param {number} [now] */
+export function rolloverCandidates(report,predictions,games,inputs,now=Date.now()){
+ const rows=[];
+ for(const f of report?.upcoming??[]){const g=games.get(f.fixtureId);if(f.kickoff<=now||f.publishedAt>now||g?.status?.state!=='scheduled'||f.state==='finished')continue;
+  const p=predictions.get(f.fixtureId),input=inputs.get(f.fixtureId),quotes=new Map();
+  for(const s of p?.markets?.flatMap((/** @type {any} */m)=>m.selections)??[]){if(s.pricing!=='quoted'||s.bestOdds<=1)continue;const key=s.id.slice(f.fixtureId.length+1),market=evidenceMarket(key,f.sport);if(!market)continue;
+   let at=s.quoteObservedAt;
+   if(!Number.isFinite(at)){const fields=f.sport==='football'&&['o2.5','u2.5'].includes(key)?[key==='o2.5'?'over25':'under25']:key==='homeMl'?['homeMoneyline']:key==='awayMl'?['awayMoneyline']:/^[ou]\d/.test(key)?['totalLine',key[0]==='o'?'overOdds':'underOdds']:/^sp[ha]/.test(key)?['spreadLine',key[2]==='h'?'homeSpreadOdds':'awaySpreadOdds']:[key];const times=fields.map(k=>{const fetched=input?.quoteFetchedAt?.[s.bookmaker]?.[k],source=input?.quoteSourceAt?.[s.bookmaker]?.[k];return Number.isFinite(source)?Number.isFinite(fetched)?Math.min(source,fetched):source:fetched;});at=times.every(Number.isFinite)?Math.min(...times):null;}
+   const old=quotes.get(market.signature);if(!old||at>old.at||at===old.at&&s.bestOdds>old.selection.bestOdds)quotes.set(market.signature,{selection:s,at});
+  }
+  for(const r of f.rows??[]){const q=quotes.get(r.signature),cohort=report.groups?.[cohortKey(f,r)]??{binaryN:0,won:0,lost:0,push:0,partial:0,strikeRate:null,interval:{low:0,high:1}};
+   rows.push({...f,...r,id:`${f.fixtureId}:${r.key}`,cohort,odds:q?.selection.bestOdds??(r.pricing==='quoted'?r.odds:0),pricing:q?'quoted':r.pricing,bookmaker:q?.selection.bookmaker??'Published quote',quoteObservedAt:q?q.at:r.quoteObservedAt,quotedSelectionId:q?.selection.id??null});
+  }
+ }return rows;
+}
+/** Preserve a historical tab when the date rolls forward; only a selected Today follows midnight.
+ * @param {string} selected @param {number} before @param {number} after */
+export function rolloverSelectedDay(selected,before,after){return selected===rolloverDay(before)?rolloverDay(after):selected;}
 /** Lagos calendar date. @param {number} time */
 export const rolloverDay=time=>new Date(time+3600000).toISOString().slice(0,10);
 /** Consecutive calendar wins ending at the most recent completed day. Gaps,
@@ -11,22 +33,22 @@ export function rolloverStreak(records,target,now=Date.now()){
  let streak=0;for(let i=0;i<90;i++){if(map.get(date)?.status!=='won')break;streak++;date=rolloverDay(Date.parse(date+'T12:00:00Z')-86400000);}return streak;
 }
 /** Bounded deterministic beam search. Each fixture can appear once across a day's tickets.
- * Conservative edge uses the lower of published Model % and the historical Wilson floor.
+ * Published model probabilities drive the screen; historical cohorts break ties.
  * Historical cohorts are descriptive, not independent validation of future returns.
- * @param {any[]} rows @param {string} day @param {number} [now] @param {any[]} [recorded] */
-export function rolloverTickets(rows,day,now=Date.now(),recorded=[]){
+ * @param {any[]} rows @param {string} day @param {number} [now] @param {any[]} [recorded] @param {{positiveValueOnly?:boolean}} [options] */
+export function rolloverTickets(rows,day,now=Date.now(),recorded=[],options={}){
  const frozen=recorded.filter(r=>r.day===day),reserved=new Set(frozen.flatMap(t=>t.legs.map((/** @type {any} */l)=>l.fixtureId))),names=new Set(frozen.flatMap(t=>t.legs.map((/** @type {any} */l)=>eventName(l))));
  const rejected={unpriced:0,staleQuote:0,insufficientEvidence:0,noEdge:0},pool=[];
  for(const row of rows){if(reserved.has(row.fixtureId)||names.has(eventName(row))||row.kickoff<=now||rolloverDay(row.kickoff)!==day||row.state==='finished')continue;
   if(row.pricing!=='quoted'||!Number.isFinite(row.odds)||row.odds<=1){rejected.unpriced++;continue;}
-  if(!Number.isFinite(row.quoteObservedAt)||now-row.quoteObservedAt>1800000||row.quoteObservedAt>now+60000){rejected.staleQuote++;continue;}
-  const c=row.cohort;if(!c||c.binaryN<20||!Number.isFinite(c.interval?.low)||!Number.isFinite(row.modelProb)||row.modelProb<.55){rejected.insufficientEvidence++;continue;}
-  const probability=Math.min(row.modelProb,c.interval.low),edge=probability*row.odds-1;
+  if(!Number.isFinite(row.quoteObservedAt)||now-row.quoteObservedAt>ROLLOVER_QUOTE_MAX_AGE_MS||row.quoteObservedAt>now+60000){rejected.staleQuote++;continue;}
+  if(!Number.isFinite(row.modelProb)||row.modelProb<.55||row.modelProb>=1){rejected.insufficientEvidence++;continue;}
+  const probability=row.modelProb,edge=probability*row.odds-1;
   // Exclude push/partial markets from the simple binary accumulator calculation.
-  if(edge<=0||row.pushProb>0||c.push>0||c.partial>0){rejected.noEdge++;continue;}
-  pool.push({...row,screenProbability:probability,conservativeEdge:edge});
+  if(options.positiveValueOnly&&edge<=0||row.pushProb>0||row.line!==null&&row.line!==undefined&&!Number.isInteger(row.line*2)){rejected.noEdge++;continue;}
+  pool.push({...row,screenProbability:probability,modelEdge:edge});
  }
- pool.sort((a,b)=>b.screenProbability-a.screenProbability||b.conservativeEdge-a.conservativeEdge||a.id.localeCompare(b.id));
+ pool.sort((a,b)=>b.screenProbability-a.screenProbability||(b.cohort?.interval?.low??0)-(a.cohort?.interval?.low??0)||b.modelEdge-a.modelEdge||a.id.localeCompare(b.id));
  const used=new Set(),tickets=[];
  for(const target of [2,3,5,10]){if(frozen.some(t=>t.target===target)){tickets.push({target,picks:[],odds:0,probability:0,status:'recorded'});continue;}const lower=target*.9,upper=target*1.1;let beam=/** @type {Ticket[]} */([{picks:[],odds:1,probability:1}]),best=/** @type {Ticket|null} */(null);
   const events=new Map();for(const r of pool){if(used.has(event(r)))continue;const key=event(r);if(!events.has(key))events.set(key,[]);events.get(key).push(r);}
