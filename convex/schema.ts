@@ -5,7 +5,7 @@ import {bankTransferValidator} from './lib/paymentValidators';
 import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  rollover_tickets:defineTable({day:v.string(),target:v.number(),status:v.string(),legs:v.array(v.object({fixtureId:v.string(),key:v.string(),matchTitle:v.string(),selection:v.string(),kickoff:v.number(),odds:v.number()})),totalOdds:v.number(),settledOdds:v.optional(v.number()),createdAt:v.number(),updatedAt:v.number(),actorId:v.id('users')}).index('by_day_target',['day','target']).index('by_status',['status']),
+  rollover_tickets:defineTable({settlementComplete:v.optional(v.boolean()),day:v.string(),target:v.number(),status:v.string(),legs:v.array(v.object({sport:v.optional(v.string()),league:v.optional(v.string()),country:v.optional(v.string()),tournament:v.optional(v.string()),result:v.optional(v.string()),score:v.optional(v.object({home:v.number(),away:v.number()})),fixtureId:v.string(),key:v.string(),matchTitle:v.string(),selection:v.string(),kickoff:v.number(),odds:v.number()})),totalOdds:v.number(),settledOdds:v.optional(v.number()),createdAt:v.number(),updatedAt:v.number(),actorId:v.id('users')}).index('by_day_target',['day','target']).index('by_status',['status']).index('by_open_settlement',['settlementComplete']),
   // Convex Auth: users, sessions, accounts, refresh tokens, verification codes.
   ...authTables,
   users: defineTable({

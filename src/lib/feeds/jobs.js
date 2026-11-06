@@ -85,6 +85,10 @@ export function listJobs(store, lookups, now, keys, ledgers = {}) {
       jobs.push({ id: `as:${sport}:all-leagues-v2:day:1:${dateOffset(now,1)}`, ledger, cost: 1, priority: 2, every: 6 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 1) } });
       jobs.push({ id: `as:${sport}:all-leagues-v2:day:-1:${dateOffset(now,-1)}`, ledger, cost: 1, priority: previousLive ? 1 : 3, every: (previousLive ? 30 * MIN : 12 * H) - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, -1) } });
       jobs.push({ id: `as:${sport}:all-leagues-v2:day:2:${dateOffset(now,2)}`, ledger, cost: 1, priority: 4, every: 12 * H - 2 * MIN, params: { kind: 'games', sport, date: dateOffset(now, 2) } });
+      // Recover missed result days, including odds-only fixtures without an API-Sports ID.
+      // Existing planner reserves, per-tick caps and date-denial caching remain authoritative.
+      const recoveryDates=[...new Set(games.filter(g=>g.sport===sport&&store.projections?.[g.uid]&&g.kickoff>now-14*DAY&&g.kickoff<Date.parse(dateOffset(now,-1)+'T00:00:00Z')&&!['finished','postponed'].includes(g.status.state)).map(g=>new Date(g.kickoff).toISOString().slice(0,10)))];
+      for(const date of recoveryDates)jobs.push({id:`as:${sport}:result-recovery:${date}`,ledger,cost:1,priority:3,every:12*H,params:{kind:'games',sport,date}});
       // Keep enough for the rest of today's schedule refreshes before spending on extras.
       protect[ledger] = Math.ceil(hoursLeft * (live ? 2 : 1)) + Math.ceil(hoursLeft / 6) + 2 + (previousLive ? Math.ceil(Math.min(hoursLeft,4)*2) : 0);
 

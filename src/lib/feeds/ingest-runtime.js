@@ -1,3 +1,4 @@
+import {refreshPublicResults} from './public-results.js';
 import {refreshFootballResearch} from '../engine/football_research.js';
 /** Heavy ingest runs on the public repository's scheduled runner; Convex holds metadata only. */
 import {gzipSync,gunzipSync} from 'node:zlib';
@@ -51,7 +52,8 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   store.modelArtifacts=await rpc.query('models:serving',{});
   const previousGames=structuredClone(store.games);
   progress('public_sources');const publicChanged=await refreshPublicSports(store,now,publicFetcher);
-  progress('provider_refresh');const result=await runTick({store,lookups,ledgers:state.ledgers,lastRun:state.lastRun,now,fetcher,keys:{apiSports:!!keys.apiSports,oddsApi:!!keys.oddsApi,oddspapi:!!keys.oddspapi},sleep,reserve:async ledgers=>{reserved=ledgers;await rpc.mutation('feed:reserve',{ledgers});}});
+  progress('public_result_recovery');const publicRecovery=await refreshPublicResults(store,now,publicFetcher);
+  progress('provider_refresh');const result=await runTick({store,lookups,ledgers:state.ledgers,lastRun:store.schedulerLastRun??state.lastRun,now,fetcher,keys:{apiSports:!!keys.apiSports,oddsApi:!!keys.oddsApi,oddspapi:!!keys.oddspapi},sleep,reserve:async ledgers=>{reserved=ledgers;await rpc.mutation('feed:reserve',{ledgers});}});
   reserved=result.ledgers;
   progress('research_training');refreshFootballResearch(store,now);
   const changes=updateRecord(store,now),batches=[];
@@ -74,6 +76,7 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   for(const [id,p]of Object.entries(store.projections))store.projections[id]=compactSnapshot(p);
   const usage=usageSummary(result.ledgers,now),feed=buildFeed(store,now,usage),{generatedAt,usage:_usage,...content}=feed,version=hash(content).slice(0,16);
   const preview=buildBoardPreview(feed,now),{generatedAt:_time,...previewContent}=preview,previewVersion=hash(previewContent).slice(0,16);
+  store.schedulerLastRun=result.lastRun;
   progress('commit_state');const storeKey=await put('state',store),lookupsKey=result.lookupsChanged||!state.lookupsKey?await put('state',lookups):state.lookupsKey;
   const feedKey=version!==state.feedVersion||!state.feedKey?await put('feed',feed):state.feedKey;
   const previewKey=previewVersion!==state.previewVersion||!state.previewKey?await put('preview',preview):state.previewKey;
@@ -81,13 +84,13 @@ export async function executeIngest({rpc,blobs,keys,now=Date.now(),fetcher=provi
   const events=Object.entries(notificationCounts(previousGames,store.games,now)).filter(([,count])=>count>0).map(([event,count])=>({event,count,batchId:`${now}:${event}`}));
   const pendingArchiveKey=batches.length||changedStates.length||events.length?await put('outbox',{batches,states:changedStates,events}):undefined;
   for(const key of [state.storeKey,state.lookupsKey,state.feedKey,state.previewKey])if(key&&![storeKey,lookupsKey,feedKey,previewKey].includes(key)&&!retiredKeys.some(entry=>entry.key===key))retiredKeys.push({key,after:now+2*3600000});
-  await rpc.mutation('feed:commitEdge',{retiredKeys,now,ledgers:result.ledgers,lastRun:result.lastRun,log:result.log,storeKey,lookupsKey,feedKey,version,generatedAt,previewKey,previewVersion,counts:{...Object.fromEntries(Object.entries(feed.inputs).map(([s,rows])=>[s,rows.length])),games:feed.games.length},usage,coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter(g=>!g.priced).length,pending:Object.keys(store.record.pending).length,modelVersion:MODEL_VERSION},...(pendingArchiveKey?{pendingArchiveKey}:{}),...(migrationBackupKey?{migrationBackupKey}:{})});
+  await rpc.mutation('feed:commitEdge',{retiredKeys,now,ledgers:result.ledgers,lastRun:Object.fromEntries(Object.entries(result.lastRun).sort((a,b)=>b[1]-a[1]).slice(0,512)),log:result.log,storeKey,lookupsKey,feedKey,version,generatedAt,previewKey,previewVersion,counts:{...Object.fromEntries(Object.entries(feed.inputs).map(([s,rows])=>[s,rows.length])),games:feed.games.length},usage,coverage:{fixtures:feed.games.length,projected:feed.projections.length,unavailable:feed.games.filter(g=>!g.priced).length,pending:Object.keys(store.record.pending).length,modelVersion:MODEL_VERSION},...(pendingArchiveKey?{pendingArchiveKey}:{}),...(migrationBackupKey?{migrationBackupKey}:{})});
   // Public preview is intentionally limited; premium data is never written to this key.
   await blobs.put('preview/current.gz',gzipJson(preview));
   progress('commit_outbox',batches.length);await flushArchive(pendingArchiveKey);
   await rpc.mutation('rollover:settlePending',{});
   // Replaced hot blobs have a two-hour grace period for in-flight readers and training jobs.
   await rpc.mutation('feed:completeEdge',{});
-  progress('complete');return {ran:result.ran.length,archiveChanges:changes.length,feedUpdated:version!==state.feedVersion,storeBytes:gzipJson(store).length,feedBytes:gzipJson(feed).length,publicChanged};
+  progress('complete');return {ran:result.ran.length,archiveChanges:changes.length,feedUpdated:version!==state.feedVersion,storeBytes:gzipJson(store).length,feedBytes:gzipJson(feed).length,publicChanged,publicRecovery};
  }catch(error){let message=error instanceof Error?error.message:String(error);for(const value of Object.values(keys))if(value)message=message.split(value).join('[redacted]');await rpc.mutation('feed:release',{now,error:message.slice(0,300),...(reserved?{ledgers:reserved}:{})});throw new Error(message);}
 }

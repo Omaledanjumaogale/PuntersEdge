@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-06 — Result recovery and market accountability
+
+- Keep the full scheduler job history in R2 and bound Convex's copy to 512 fields to prevent the observed 1024-field commit failure.
+- Publish evidence and preview from retained state even after an ingest failure; isolate rollover settlement as its own retryable publication stage.
+- Store and show per-leg verified rollover outcomes and final scores. Mark a ticket lost as soon as one verified leg loses, while keeping absent results pending. Preserve sport, league, tournament and country metadata on saved tickets.
+- Recover uniquely matched final results from bounded, cached public scoreboards for supported competitions, with explicit period scores and no inferred winners or extra paid calls.
+- Extend archived calibration assessment to all supported sports and market families, separate winner orientations and use daily uncertainty blocks. Show recorded model bands in the private evidence console. Existing serving probabilities remain unchanged unless chronological evaluation qualifies an improvement.
+
 ## 2026-10-31 — Rollover population and midnight refresh
 
 - Build the rollover pool from supported published forecasts instead of the stricter evidence-shortlist display filter. Rank by frozen Model %, with comparable historical evidence as a tie-breaker; offer positive model-implied value as an optional filter.

@@ -34,3 +34,13 @@ test('replaced R2 state has a grace period before cleanup and active pointers su
  await h.run(now+30*60000);assert.ok(h.files.has('state/initial.gz'));assert.ok(h.files.has(active));
  await h.run(now+3*3600000);assert.equal(h.files.has('state/initial.gz'),false);assert.ok(h.files.has(h.state.storeKey));
 });
+
+test('scheduler history above Convex object field limit remains complete in R2 and bounded in commit',async()=>{
+ const h=harness();h.state.lastRun=Object.fromEntries(Array.from({length:1100},(_,i)=>['job-'+i,now-i]));await h.run(now);
+ const commit=h.calls.find(([name])=>name==='feed:commitEdge')[1];assert.equal(Object.keys(commit.lastRun).length,512);
+ const store=parseGzip(h.files.get(h.state.storeKey));assert.equal(Object.keys(store.schedulerLastRun).length,1100);
+ await h.run(now+60000);const next=parseGzip(h.files.get(h.state.storeKey));assert.equal(Object.keys(next.schedulerLastRun).length,1100);
+});
+
+import {listJobs} from '../src/lib/feeds/jobs.js';
+test('missed odds-only result days are recovered under the existing metered scheduler',()=>{const store=emptyStore(),kickoff=now-4*86400000;store.games.old={uid:'old',sport:'football',home:'A',away:'B',league:'L',kickoff,status:{state:'scheduled'},ext:{toa:'odds-only'},odds:{},updated:now};store.projections.old={};const {jobs}=listJobs(store,{},now,{apiSports:true,oddsApi:false,oddspapi:false},{});assert.ok(jobs.some(j=>j.id.startsWith('as:football:result-recovery:')&&j.cost===1&&j.params.date==='2026-10-12'));});

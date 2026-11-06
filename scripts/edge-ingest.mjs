@@ -7,7 +7,10 @@ import {runnerBlobs} from './runner-blobs.mjs';
 import {publishIngestOutputs} from './ingest-publication.mjs';
 const client=new ConvexHttpClient(process.env.PUBLIC_CONVEX_URL);client.setAdminAuth(process.env.CONVEX_DEPLOY_KEY);
 const rpc=Object.fromEntries(['query','mutation','action'].map(kind=>[kind,(name,args)=>client[kind](makeFunctionReference(name),args)]));
-const result=process.env.PUBLICATION_ONLY==='true'?{publicationOnly:true}:await executeIngest({rpc,progress:(phase,count)=>console.log(JSON.stringify({phase,...(count===undefined?{}:{count})})),blobs:runnerBlobs(),keys:{apiSports:process.env.API_SPORTS_KEY||process.env.API_FOOTBALL_KEY||'',oddsApi:process.env.THE_ODDS_API_KEY||'',oddspapi:process.env.ODDSPAPI_KEY||''}});
-const outputs=await publishIngestOutputs({refreshEvidence:()=>result.skipped?{skipped:true}:refreshEvidenceCatalog({rpc,blobs:runnerBlobs()}),publishPreview:()=>publishPublicPreview(),progress:phase=>console.log(JSON.stringify({phase}))});
+let ingestError;let result;try{result=process.env.PUBLICATION_ONLY==='true'?{publicationOnly:true}:await executeIngest({rpc,progress:(phase,count)=>console.log(JSON.stringify({phase,...(count===undefined?{}:{count})})),blobs:runnerBlobs(),keys:{apiSports:process.env.API_SPORTS_KEY||process.env.API_FOOTBALL_KEY||'',oddsApi:process.env.THE_ODDS_API_KEY||'',oddspapi:process.env.ODDSPAPI_KEY||''}});
+}catch(error){ingestError=error;result={ingestFailed:true};}
+const outputs=await publishIngestOutputs({settleRollover:()=>rpc.mutation('rollover:settlePending',{}),refreshEvidence:()=>result.skipped?{skipped:true}:refreshEvidenceCatalog({rpc,blobs:runnerBlobs()}),publishPreview:()=>publishPublicPreview(),progress:phase=>console.log(JSON.stringify({phase}))});
 console.log(JSON.stringify({...result,...outputs}));
 if(outputs.failedStages.length)throw Error(`Output publication failed: ${outputs.failedStages.join(', ')}. Provider ingest already committed; retained data is available for publication-only retry.`);
+
+if(ingestError)throw ingestError;

@@ -39,3 +39,7 @@ test('evidence publication failure does not block the public preview or hide the
  const phases=[];let previews=0;const result=await publishIngestOutputs({refreshEvidence:async()=>{throw new DOMException('private details','TimeoutError');},publishPreview:async()=>{previews++;return {published:true};},progress:p=>phases.push(p)});
  assert.equal(previews,1);assert.deepEqual(result.failedStages,['evidence_catalog']);assert.deepEqual(result.evidence,{failed:true,errorType:'TimeoutError'});assert.equal(result.publicPreview.published,true);assert.deepEqual(phases,['evidence_catalog','public_preview']);assert.ok(!JSON.stringify(result).includes('private details'));
 });
+
+test('rollover settles even when evidence publication fails and errors stay isolated',async()=>{
+ let settled=0;const result=await publishIngestOutputs({refreshEvidence:async()=>{throw Error('outage');},publishPreview:async()=>({published:true}),settleRollover:async()=>({updated:++settled})});assert.equal(settled,1);assert.equal(result.rollover.updated,1);assert.deepEqual(result.failedStages,['evidence_catalog']);
+});
