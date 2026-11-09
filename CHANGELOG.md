@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-09 — Ranked overview and consistent published forecasts
+
+- Rank market overview buttons by descending Model %, with numbered ranks, market icons, clear selection labels, consistent spacing and visible selected/focus states.
+- Share compact published probabilities and settlement identities across the board, sports, market choices, fixture analysis and overview. Keep current quotes separate, retain missing published lines as unpriced options, and omit private recurrence information.
+- Retain published analysis when current inputs cannot rebuild it or a future fixture sits beyond the normal seven-day input window. Match stale past-status handling to the evidence shortlist; replace the board's silent 40-fixture cutoff with an explicit count and Show more button.
+- Resolve exact odds-provider team names against retained training identities so supported full-game and period models attach to more NBA, football, hockey and baseball fixtures. Unknown identities and unsupported leagues remain unmapped.
+- Retry stale/interrupted feed metadata in the background without page reloads and add a manual published-fixture refresh action. Preserve provider caps, R2 bulk storage and small Convex metadata.
+
 ## 2026-11-09 — Compact market prediction overview
 
 - Add a shared reference-inspired prediction tile overview to fixture market analysis across football, basketball/NBA, hockey, baseball and the supported tennis workspace.
