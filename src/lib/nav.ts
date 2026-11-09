@@ -48,12 +48,14 @@ export const ADMIN_NAV = [
  {href:'/admin/members',label:'User management',emoji:'👥',hint:'Profiles and tester access',section:'users'},
  {href:'/admin',label:'Overview',emoji:'💎',hint:'Performance and coverage',section:'performance'},
  {href:'/admin?workspace=operations',label:'Data operations',emoji:'📡',hint:'Sources, budgets and refreshes',section:'operations'},
+ {href:'/admin/evidence/board',label:'Evidence Board',emoji:'📊',hint:'Compact fixture and market forecasts',section:'evidence-board'},
  {href:'/admin/evidence/history',label:'Evidence history',emoji:'📜',hint:'Recorded shortlist selections and final outcomes',section:'evidence-history'},
  {href:'/admin/evidence',label:'Evidence shortlist',emoji:'🌡️',hint:'Upcoming picks with comparable outcomes',section:'evidence'},
  {href:'/admin/models',label:'Model registry',emoji:'🧮',hint:'Candidates and evaluation',section:'models'},
  {href:'/admin?workspace=memberships',label:'Members & payments',emoji:'🔑',hint:'Access and billing records',section:'memberships'}
 ] as const;
 export function adminActive(pathname:string,search:string,section:string){
+ if(pathname.startsWith('/admin/evidence/board'))return section==='evidence-board';
  if(pathname.startsWith('/admin/rollover'))return section==='rollover';
  return pathname.startsWith('/admin/results')?section==='results':pathname.startsWith('/admin/evidence/history')?section==='evidence-history':pathname.startsWith('/admin/evidence')?section==='evidence':pathname.startsWith('/admin/payments')?section==='payments':pathname.startsWith('/admin/privacy')?section==='privacy':pathname.startsWith('/admin/members')?section==='users':pathname.startsWith('/admin/models')?section==='models':pathname==='/admin'&&(new URLSearchParams(search).get('workspace')??'performance')===section;
 }
