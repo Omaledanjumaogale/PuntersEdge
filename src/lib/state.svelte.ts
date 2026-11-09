@@ -108,7 +108,7 @@ class AppState {
 	}
 
 	#build(sport: SportKey, input: any): Prediction | null {
-		const opts = { modelWeight: this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
+		const opts = { modelWeight: input.publishedForecast?0.6:this.settings.modelWeight, kellyFraction: this.settings.kellyFraction, now: this.now };
   const key=`${sport}:${opts.modelWeight}:${opts.kellyFraction}:${opts.now}`;
   const cached=this.#predictionCache.get(input);if(cached?.key===key)return cached.value;
 		try {

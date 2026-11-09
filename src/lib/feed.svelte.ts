@@ -1,3 +1,4 @@
+import {startEvidenceRefresh} from '#lib/evidence-refresh.js';
 /**
  * Live feed loader.
  *
@@ -107,6 +108,7 @@ class FeedState {
 	#dispose: (() => void) | undefined;
 	#unsubscribe: (() => void) | undefined;
 	#started = false;
+ #retryDispose:(()=>void)|undefined;
 	#previewTimer:ReturnType<typeof setInterval>|undefined;
 	#generation = 0;
 	#requestId = 0;
@@ -121,6 +123,7 @@ class FeedState {
 	start() {
 		if (!browser || this.#started || !convexUrl) return;
 		this.#started = true;
+  this.#retryDispose=startEvidenceRefresh({refresh:()=>this.refresh(),canRefresh:()=>!!this.#client&&this.status!=='downloading'&&(this.status==='error'||this.ageHours>.75)});
 		// The server checks subscription entitlement before releasing the file URL.
 		// Never hydrate another user's premium data from a shared browser cache.
 		this.#dispose = $effect.root(() => {
@@ -191,6 +194,7 @@ class FeedState {
 
 	stop() {
 		this.#generation++;
+  this.#retryDispose?.();this.#retryDispose=undefined;
 		clearInterval(this.#previewTimer);
 		this.#unsubscribe?.(); this.#dispose?.(); this.#client = null;
 		this.#unsubscribe = undefined; this.#dispose = undefined; this.#accessKey=null;this.#started = false;

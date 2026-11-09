@@ -1,3 +1,4 @@
+import {publishedForecast,publicationVisible} from '../engine/published-forecast.js';
 import {cornerFeatures} from '../engine/football_research.js';
 /**
  * Store → app feed.
@@ -215,12 +216,13 @@ export function buildFeed(store, now, usage) {
   for (const g of Object.values(store.games).sort((a, b) => a.kickoff - b.kickoff)) {
     const snapshot = store.projections[g.uid];
     const reviewable = snapshot?.finishedAt && now < snapshot.finishedAt + REVIEW_MS;
-    const inWindow = reviewable || g.kickoff > now - 3 * DAY && g.kickoff < now + 7 * DAY;
+    const inWindow = reviewable || (snapshot&&g.kickoff>now&&['scheduled','live'].includes(g.status.state)) || g.kickoff > now - 3 * DAY && g.kickoff < now + 7 * DAY;
     if (!inWindow) continue;
     const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
-    const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now) : null;
+    const retained=priceable&&snapshot?.input&&(g.kickoff>now||g.status.state==='live')?{...snapshot.input,status:g.status}:null;
+    const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now)??retained : retained;
     if (!input && !snapshot) continue;
-    if (input) inputs[g.sport].push(input);
+    if (input&&(!snapshot||publicationVisible(snapshot,g,now))){const publication=publishedForecast(snapshot);if(publication)input.publishedForecast=publication;inputs[g.sport].push(input);}
     games.push({
       id: g.uid,
       sport: g.sport,
@@ -239,15 +241,16 @@ export function buildFeed(store, now, usage) {
     });
   }
   const settled = store.record.settled;
+  const publicForecasts=new Map(Object.values(inputs).flat().filter(i=>i.publishedForecast).map(i=>[i.fixtureId,i.publishedForecast]));
   return {
     v: 1,
     generatedAt: new Date(now).toISOString(),
     inputs,
     games,
     record: { summary: recordSummary(settled), recent: settled.slice(-60).reverse(), pending: Object.values(store.record.pending).length },
-    projections: Object.values(store.projections).filter((/** @type {any} */ p) => !p.finishedAt || now < p.finishedAt + REVIEW_MS).map((/** @type {any} */ p) => ({fixtureId:p.fixtureId,sport:p.sport,match:p.match,league:p.league,kickoff:new Date(p.kickoff).toISOString(),publishedAt:p.publishedAt,state:p.state,...(p.score?{score:`${p.score.home}–${p.score.away}`}:{})})),
+    projections: Object.values(store.projections).filter((/** @type {any} */ p) => publicationVisible(p,store.games[p.fixtureId],now)).map((/** @type {any} */ p) => ({fixtureId:p.fixtureId,sport:p.sport,match:p.match,league:p.league,kickoff:new Date(p.kickoff).toISOString(),publishedAt:p.publishedAt,state:p.state,...(p.score?{score:`${p.score.home}–${p.score.away}`}:{})})),
     gradeHistory: Object.fromEntries(Object.values(store.projections).map((p)=>[p.fixtureId,p.gradeHistory??[]])),
-    reviewInputs: Object.fromEntries(Object.values(store.projections).filter((/** @type {any} */ p) => !p.finishedAt || now < p.finishedAt+REVIEW_MS).map((/** @type {any} */ p) => [p.fixtureId,{sport:p.sport,frozenVerdictKey:p.selections.find((/** @type {any} */ s)=>s.verdict)?.key??null,frozenGrades:Object.fromEntries(p.selections.map((/** @type {any} */ s)=>[s.key,s.grade])),input:{...p.input,status:store.games[p.fixtureId]?.status??p.input.status},publishedAt:p.publishedAt,modelVersion:p.modelVersion}])),
+    reviewInputs: Object.fromEntries(Object.values(store.projections).filter((/** @type {any} */ p) => !p.finishedAt || now < p.finishedAt+REVIEW_MS).map((/** @type {any} */ p) => [p.fixtureId,{sport:p.sport,frozenVerdictKey:p.selections.find((/** @type {any} */ s)=>s.verdict)?.key??null,frozenGrades:Object.fromEntries(p.selections.map((/** @type {any} */ s)=>[s.key,s.grade])),input:{...p.input,publishedForecast:publicForecasts.get(p.fixtureId),status:store.games[p.fixtureId]?.status??p.input.status},publishedAt:p.publishedAt,modelVersion:p.modelVersion}])),
     // Quotas and source logs belong exclusively to the protected admin console.
     usage: null,
     sources: {}

@@ -3,7 +3,9 @@
 	import Tooltip from './Tooltip.svelte';
 	import { feed } from '#lib/feed.svelte.ts';
 	import { isConvexConfigured } from '#lib/convex.ts';
-	import { ago } from '#lib/format.ts';
+	let refreshing=$state(false);
+ async function refresh(){if(refreshing)return;refreshing=true;try{await feed.refresh();}finally{refreshing=false;}}
+ import { ago } from '#lib/format.ts';
 </script>
 
 {#if feed.mode === 'live' && feed.data}
@@ -18,3 +20,5 @@
 {/if}
 
 <Tooltip text="Live feeds require a subscription. Scores refresh through quota-controlled backend jobs; displayed data may be delayed."><button class="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-line text-xs text-haze" aria-label="How data freshness works">i</button></Tooltip>
+
+<button class="ml-2 inline-flex min-h-11 items-center gap-1 rounded-full border border-line px-3 text-xs font-semibold text-chalk disabled:opacity-50" disabled={refreshing} onclick={refresh} aria-label="Refresh published fixtures">↻ {refreshing?'Checking…':'Refresh fixtures'}</button>

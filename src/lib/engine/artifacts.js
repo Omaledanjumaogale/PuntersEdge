@@ -1,3 +1,5 @@
+import {nbaTeamNames} from './nba-team-names.js';
+import trainedTeamNames from '../feeds/trained-teams.json' with {type:'json'};
 import {basketballTeamNames} from './basketball-team-names.js';
 import {teamKey} from '../feeds/matching.js';
 import {LEAGUE_PROFILES} from './basketball_model.js';
@@ -27,6 +29,12 @@ export function fittedInput(input,game,records,now) {
   const aliases=/** @type {Record<string,string>} */({'kk partizan belgrade':'Partizan','kk partizan nis':'Partizan','kk crvena zvezda belgrade':'Crvena zvezda','kk crvena zvezda':'Crvena zvezda','bc olympiakos piraeus':'Olympiacos','panathinaikos bc':'Panathinaikos','valencia basket':'Valencia','baskonia vitoria-gasteiz':'Baskonia','saski baskonia':'Baskonia','bayern munich':'Bayern','fc barcelona':'Barcelona'});
   const resolve=(/** @type {string} */name,/** @type {any} */id)=>{const key=teamKey(aliases[String(name).toLowerCase()]??name),matches=Object.entries(basketballTeamNames).filter(([,n])=>teamKey(n)===key);return id??(matches.length===1?matches[0][0]:undefined);};
   game={...game,homeId:resolve(game.home,game.homeId),awayId:resolve(game.away,game.awayId)};
+ }
+ // Odds-only events have names but often no API-Sports IDs. Resolve only exact,
+ // unique identities from the same retained training corpus; unknown names stay unmapped.
+ if(game.sport==='nba'||['football','hockey','baseball'].includes(game.sport)){
+  const names=game.sport==='nba'?Object.entries(nbaTeamNames):Object.entries(trainedTeamNames[/** @type {keyof typeof trainedTeamNames} */(game.sport)]??{}).map(([name,id])=>[id,name]);
+  const resolve=(/** @type {any} */id,/** @type {string} */name)=>{if(id!==undefined&&id!==null)return id;const ids=[...new Set(names.filter(([,n])=>teamKey(String(n))===teamKey(name)).map(([i])=>String(i)))];return ids.length===1?ids[0]:undefined;};game={...game,homeId:resolve(game.homeId,game.home),awayId:resolve(game.awayId,game.away)};
  }
  input.homeId=game.homeId;input.awayId=game.awayId;
  input.periodArtifacts=records.filter(r=>r.artifact?.sport===game.sport&&leagueMatch(r.artifact)&&r.mode==='active'&&r.artifact.scope&&r.artifact.scope!=='full'&&Date.parse(r.artifact.trainedThrough)<now).map(r=>r.artifact).filter(a=>{try{validateArtifact(a);return true;}catch{return false;}});

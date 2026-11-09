@@ -99,10 +99,10 @@
 		<p class="mt-1 text-sm text-haze">
 			How much to trust the model over the de-vigged bookmaker consensus. At 0% you'd find no edges; at 100% every model error looks like value.
 		</p>
-		<input type="range" min="0" max="1" step="0.05" bind:value={app.settings.modelWeight} aria-labelledby="weight-title" class="mt-4 w-full accent-[var(--color-model)]" />
+		<p class="mt-3 text-xs text-haze">Published fixture Model % uses the shared production forecast and stays identical across pages. This preference applies only to independent calculations without a published forecast.</p><input type="range" min="0" max="1" step="0.05" bind:value={app.settings.modelWeight} aria-labelledby="weight-title" class="mt-4 w-full accent-[var(--color-model)]" />
 		<div class="mt-1 flex justify-between text-sm">
 			<span class="text-haze">Market</span>
-			<span><span class="text-model">{Math.round(app.settings.modelWeight * 100)}%</span> model, {app.valueBets.length} value bets</span>
+			<span><span class="text-model">{Math.round(app.settings.modelWeight * 100)}%</span> calculation preference · published forecasts stay fixed</span>
 			<span class="text-haze">Model</span>
 		</div>
 	</section>

@@ -11,13 +11,13 @@
 	import { feed } from '#lib/feed.svelte.ts';
 	import { SPORTS, SPORT_ORDER, type SportKey } from '#lib/sports.ts';
 
-	let sport = $state<'all' | SportKey>('all');
+	let sport = $state<'all' | SportKey>('all');let fixtureLimit=$state(40);$effect(()=>{sport;fixtureLimit=40;});
 	let innerWidth = $state(1024);
 
 	const f = $derived(app.featured);
 	const top = $derived(f?.topScorelines[0]);
 	// Upcoming and live games only; finished ones live on the Results page.
-	const fixtures = $derived(app.all.filter((p) => p.status.state !== 'finished' && (sport === 'all' || p.sport === sport)).slice(0, 40));
+	const availableFixtures = $derived(app.all.filter((p) => p.status.state !== 'finished' && (sport === 'all' || p.sport === sport)));const fixtures=$derived(availableFixtures.slice(0,fixtureLimit));
 	const filters = $derived<Array<[string, string]>>([
 		['all', '✨ All'],
 		...SPORT_ORDER.filter((s) => app.bySport(s).length > 0).map((s) => [s, `${SPORTS[s].emoji} ${SPORTS[s].label}`] as [string, string])
@@ -109,9 +109,9 @@
 			<FixtureCard {p} />
 		{/each}
 	</div>
+	<p class="mt-4 text-sm text-haze">Showing {fixtures.length} of {availableFixtures.length} published fixtures.</p>{#if fixtures.length<availableFixtures.length}<button class="btn-secondary mt-3" onclick={()=>fixtureLimit+=40}>Show more published fixtures</button>{/if}
 	<p class="mt-6 text-sm text-haze">
-		{feed.mode === 'live' ? '📡 Fixtures and prices from the live feed' : '🧪 Prices come from a sample feed'}; every probability, fair price and stake is computed on your device.
-		Model weight {Math.round(app.settings.modelWeight * 100)}% vs market, adjustable in <a href="/settings" class="text-chalk underline underline-offset-4">Settings</a>.
+		{feed.mode === 'live' ? '📡 Fixtures and prices from the live feed' : '🧪 Prices come from a sample feed'}; published Model % stays consistent with the production forecast ledger. Bookmaker quotes may update independently.
 	</p>
 </section>
 
