@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-09 — Compact market prediction overview
+
+- Add a shared reference-inspired prediction tile overview to fixture market analysis across football, basketball/NBA, hockey, baseball and the supported tennis workspace.
+- Show each market's highest existing Model % selection, recorded bookmaker odds or an explicit Unpriced label, and a fixture-leading model shortcut. Preserve original probabilities, prices, analysis and betslip actions.
+- Use keyboard-operable market shortcuts to open the matching accordion. Keep all markets collapsed initially, preserve home/away colors, fit small screens, and respect reduced-motion preferences.
+
 ## 2026-11-06 — Result recovery and market accountability
 
 - Keep the full scheduler job history in R2 and bound Convex's copy to 512 fields to prevent the observed 1024-field commit failure.

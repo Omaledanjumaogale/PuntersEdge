@@ -1,16 +1,20 @@
 <script lang="ts">
+ import PredictionOverview from './PredictionOverview.svelte';
  import {basketballMarketGroups} from '#lib/basketball-market-groups.js';
  import {app} from '#lib/state.svelte.ts';
  import type {MarketGroup} from '#lib/engine/market_book.js';
  import {odds,pct,signed} from '#lib/format.ts';
  import SelectionIdentity from './SelectionIdentity.svelte';
  let {groups,valueOnly=false,home='',away=''}:{groups:MarketGroup[];valueOnly?:boolean;home?:string;away?:string}=$props();
+ let root:HTMLDivElement;
+ function chooseMarket(key:string){for(const detail of root.querySelectorAll<HTMLDetailsElement>('details[data-market-key]')){detail.open=detail.dataset.marketKey===key;}opened={[key]:true};requestAnimationFrame(()=>{const target=[...root.querySelectorAll<HTMLDetailsElement>('details[data-market-key]')].find(d=>d.dataset.marketKey===key);target?.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});target?.querySelector('summary')?.focus({preventScroll:true});});}
  let feedback=$state('');let opened=$state<Record<string,boolean>>({});
  const shown=$derived(basketballMarketGroups(groups).map(g=>({...g,selections:[...(valueOnly?g.selections.filter(s=>(s as any).opportunity?.green):g.selections)].sort((a,b)=>b.modelProb-a.modelProb||a.id.localeCompare(b.id))})).filter(g=>g.selections.length));
 </script>
 {#if !shown.length}<p class="surface p-4 text-sm text-haze">No choices match this market filter.</p>{/if}
-<div class="market-groups">
- {#each shown as g(g.key)}<details ontoggle={(event)=>{opened[g.key]=event.currentTarget.open;}} class="market-accordion"><summary class="market-summary"><span class="min-w-0"><strong><span aria-hidden="true">{g.emoji}</span> {g.title}</strong><small>{g.selections.length} options · Model % high to low</small></span><span class="accordion-chevron" aria-hidden="true">⌄</span></summary>
+<PredictionOverview groups={shown} {home} {away} onChoose={chooseMarket}/>
+<div class="market-groups" bind:this={root}>
+ {#each shown as g(g.key)}<details data-market-key={g.key} ontoggle={(event)=>{opened[g.key]=event.currentTarget.open;}} class="market-accordion"><summary class="market-summary"><span class="min-w-0"><strong><span aria-hidden="true">{g.emoji}</span> {g.title}</strong><small>{g.selections.length} options · Model % high to low</small></span><span class="accordion-chevron" aria-hidden="true">⌄</span></summary>
  {#if opened[g.key]}<p class="px-3 pb-3 text-xs text-haze">{g.blurb}</p>
  <ul class="market-tiles">{#each g.selections as s(s.id)}
  {@const inSlip=app.inSlip(s.id)}{@const selectable=app.gameById(s.fixtureId)?.status.state==='scheduled'&&Date.parse(app.gameById(s.fixtureId)?.kickoff??'')>app.now}{@const opportunity=(s as any).opportunity}
