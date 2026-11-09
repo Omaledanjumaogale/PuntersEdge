@@ -222,7 +222,7 @@ export function buildFeed(store, now, usage) {
     const retained=priceable&&snapshot?.input&&(g.kickoff>now||g.status.state==='live')?{...snapshot.input,status:g.status}:null;
     const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now)??retained : retained;
     if (!input && !snapshot) continue;
-    if (input&&(!snapshot||publicationVisible(snapshot,g,now))){const publication=publishedForecast(snapshot);if(publication)input.publishedForecast=publication;inputs[g.sport].push(input);}
+    if (input&&(!snapshot||publicationVisible(snapshot,g,now))){const publication=publishedForecast(snapshot);if(publication){input.publishedForecast=publication;input.analysisEvidence=snapshot.input?.analysisEvidence??input.analysisEvidence;}inputs[g.sport].push(input);}
     games.push({
       id: g.uid,
       sport: g.sport,
