@@ -30,7 +30,7 @@
  }catch(reason){if(!disposed&&allowed)error=request.signal.aborted?'Evidence request timed out. Automatic retry is active.':(reason as Error).message;}finally{clearTimeout(timeout);loading=false;if(reloadQueued&&!disposed&&allowed){reloadQueued=false;void load();}}}
 </script>
 <svelte:head><title>Evidence Board · PuntersEdge admin</title><meta name="robots" content="noindex,nofollow"/></svelte:head>
-<header class="surface p-5 sm:p-7"><p class="text-xs font-bold uppercase tracking-widest text-model">📊 Private research workspace</p><h1 class="mt-2 text-3xl font-bold">Evidence Board</h1><p class="mt-2 text-sm text-haze">Published fixtures at a glance. One leading selection per market and period, ranked by Model %.</p><div class="mt-4 flex flex-wrap gap-2"><button class="btn-primary" disabled={!allowed||loading} onclick={load}>{loading?'Checking…':'↻ Refresh evidence'}</button><a class="btn-secondary" href="/admin/evidence">🌡️ Shortlist</a><a class="btn-secondary" href="/admin/evidence/history">📜 History</a></div></header>
+<header class="surface board-hero p-5 sm:p-7"><p class="text-xs font-bold uppercase tracking-widest text-model">📊 Private research workspace</p><h1 class="mt-2 text-3xl font-bold">Evidence Board</h1><p class="mt-2 text-sm text-haze">Published fixtures at a glance. One leading selection per market and period, ranked by Model %.</p><div class="mt-4 flex flex-wrap gap-2"><button class="btn-primary" disabled={!allowed||loading} onclick={load}>{loading?'Checking…':'↻ Refresh evidence'}</button><a class="btn-secondary" href="/admin/evidence">🌡️ Shortlist</a><a class="btn-secondary" href="/admin/evidence/history">📜 History</a></div></header>
 {#if !checked}<p class="workspace-state mt-4">Checking administrator access…</p>{:else if !allowed}<p class="workspace-state mt-4">Administrator access required.</p>{:else}
  <div class="filters surface mt-4 p-4">
  <label>Sort fixtures<select bind:value={sort}><option value="model">Highest Model % first</option><option value="kickoff">Kickoff time first</option></select></label>
@@ -44,9 +44,9 @@
  <article class="surface board-row">
   <div class="schedule"><span class="rank">#{i+1}</span><time datetime={new Date(f.kickoff).toISOString()}><strong>{time(f.kickoff)} WAT</strong><small>{day(f.kickoff)}{f.state==='live'?' · Live':''}</small></time></div>
   <div class="identity"><p>{info?.emoji??'📊'} {f.country?f.country+' · ':''}{f.league}</p><a href={href}>{f.matchTitle}</a><small>Top Model {percent(f.best)} · {f.options.length} markets</small></div>
-  <div class="market-strip" role="group" aria-label={'Market predictions for '+f.matchTitle}>{#each f.options as m(m.key)}
-   <a class="market-mini" href={href} aria-label={m.title+' · '+m.selection+' · Model '+percent(m.modelProb)}>
-    <span class="mini-title">{m.scope==='full'?'':m.scope.replaceAll('_',' ')+' · '}{m.title}</span>
+  <div class="market-strip" role="group" aria-label={'Market predictions for '+f.matchTitle}>{#each f.options as m,j(m.key)}
+   <a class="market-mini" class:market-leader={j===0} href={href} aria-label={m.title+' · '+m.selection+' · Model '+percent(m.modelProb)}>
+    <span class="mini-title">{#if j===0}<span aria-hidden="true">★ </span>{/if}{m.scope==='full'?'':m.scope.replaceAll('_',' ')+' · '}{m.title}</span>
     <strong class="mini-pick">{m.selection}</strong>
     <span class="model"><b>{percent(m.modelProb)}</b> Model</span>
     {#if m.cohort}<span class="proof">Confidence <b>{percent(m.cohort.interval?.low)}</b><br/>Recurrence <b>{percent(m.cohort.strikeRate)}</b> · n={m.cohort.binaryN}</span>{:else}<span class="proof">No comparable history</span>{/if}
@@ -61,4 +61,13 @@
  .board-row{display:grid;grid-template-columns:92px minmax(150px,1fr) minmax(0,2.7fr);align-items:center;gap:12px;padding:10px;min-width:0}.schedule,.identity{min-width:0;overflow-wrap:anywhere}.schedule strong,.schedule small,.identity small{display:block}.schedule strong{font-size:.78rem}.rank,.schedule small,.identity p,.identity small{font-size:.68rem;color:var(--color-haze)}.identity a{display:block;font-weight:750;font-size:.88rem;line-height:1.35}.identity a:hover{text-decoration:underline}
  .market-strip{display:flex;gap:6px;min-width:0;overflow-x:auto;padding:4px 4px 8px;scrollbar-width:thin}.market-mini{display:grid;gap:3px;align-content:start;flex:0 0 126px;min-width:0;border:1px solid #c7d2cb;border-radius:10px;padding:7px;background:#f6faf7;color:#182c26;overflow-wrap:anywhere}.mini-title{font-size:.63rem;color:#40564e;line-height:1.25}.mini-pick{font-size:.7rem;line-height:1.25}.model{background:#fff099;color:#2e2500;border-radius:5px;padding:2px 4px;font-size:.63rem}.model b{font-size:.85rem}.proof{font-size:.61rem;line-height:1.35;color:#38534a}.market-mini:hover{border-color:#867019;background:#fff9db}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #a06b00;outline-offset:2px}
  @media(max-width:740px){.board-row{grid-template-columns:76px minmax(0,1fr);gap:7px}.market-strip{grid-column:1/-1}.market-mini{flex-basis:116px}}
+
+ .board-hero{background:radial-gradient(ellipse at top right,#c8e9dc 0%,transparent 52%),linear-gradient(125deg,#f6fbf8,#eaf4ef);border-color:#a8c4b6;box-shadow:inset 0 1px 0 #fff,0 12px 24px -20px #12382a}
+ .board-hero h1{letter-spacing:-.035em}
+ .board-row{border-radius:14px;background:linear-gradient(135deg,#fff,#f1f7f3);border-color:#b9ccc1;box-shadow:0 4px 14px -13px #0c3e2e}
+ .schedule strong{font-variant-numeric:tabular-nums}.rank{display:inline-block;padding:1px 6px;margin-bottom:3px;border-radius:5px;background:#e3efe8;color:#234c3d;font-weight:750}
+ .identity p{font-weight:650;color:#39574a;margin-bottom:3px}.identity a{color:#15352a}.identity small{margin-top:3px}
+ .market-mini{background:linear-gradient(145deg,#fff,#edf5ef);transition:border-color .15s,background .15s}.market-mini.market-leader{border-color:#bb962e;background:linear-gradient(145deg,#fffdf1,#fff5cb)}
+ .mini-title{font-weight:700}.model{display:flex;align-items:baseline;justify-content:space-between;gap:3px;font-variant-numeric:tabular-nums}.market-leader .model{background:#ffe15c}.proof b{color:#133f31;font-variant-numeric:tabular-nums}
+ @media(prefers-reduced-motion:reduce){.market-mini{transition:none}}
 </style>
