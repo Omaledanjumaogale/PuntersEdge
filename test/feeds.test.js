@@ -221,11 +221,12 @@ test('runner: a simulated month never exceeds any quota, and every day gets fres
   for (const p of store.record.settled) assert.ok(['won', 'lost', 'push', 'half-won', 'half-lost'].includes(/** @type {string} */ (p.result)));
 });
 
-test('build: unpublished games without prices or ratings are excluded from the feed', () => {
+test('build: unpublished games without prices or ratings stay schedule-only', () => {
   const store = emptyStore();
   store.games['football-as-1'] = { uid: 'football-as-1', sport: 'football', league: 'NPFL', home: 'Enyimba', away: 'Rangers', kickoff: T0 + 3600_000, status: { state: 'scheduled' }, ext: { as: '1' }, odds: {}, updated: T0 };
   assert.equal(inputFor(store, store.games['football-as-1']), null);
   const feed = buildFeed(store, T0);
   assert.equal(feed.inputs.football.length, 0);
-  assert.equal(feed.games.length, 0);
+  assert.equal(feed.games.length, 1);
+  assert.equal(feed.games[0].projected, false);
 });
