@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-14 — Sports schedule and result recovery
+
+- Restore verified schedule and final-score coverage independently of published forecasts. Retain finals for 24 hours and preserve published markets when analysis regeneration fails.
+- Show the most recent completed history date initially and retain published options without requiring prior comparable outcomes.
+
+
 ## 2026-11-09 — Ranked overview and consistent published forecasts
 
 - Rank market overview buttons by descending Model %, with numbered ranks, market icons, clear selection labels, consistent spacing and visible selected/focus states.

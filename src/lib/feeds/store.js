@@ -221,7 +221,8 @@ export function prune(store, now) {
   for (const [uid, g] of Object.entries(store.games)) {
     const age = now - g.kickoff;
     const oddsOnly = !g.ext.as;
-    if (age > (store.projections[uid]?7:3) * 24 * H || (oddsOnly && age > 6 * H && !store.projections[uid]) || (g.status.state === 'postponed' && age > 12 * H && !store.projections[uid])) {
+    const retainedFinal=g.status.state==='finished'&&now-(store.projections[uid]?.finishedAt??g.statusObservedAt??g.updated)<24*H;
+    if (!retainedFinal&&(age > (store.projections[uid]?7:3) * 24 * H || (oddsOnly && age > 6 * H && !store.projections[uid]) || (g.status.state === 'postponed' && age > 12 * H && !store.projections[uid]))) {
       delete store.games[uid];
       continue;
     }

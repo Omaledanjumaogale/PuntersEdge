@@ -213,15 +213,21 @@ export function buildFeed(store, now, usage) {
   /** @type {Record<string, any[]>} */
   const inputs = Object.fromEntries(SPORT_KEYS.map((s) => [s, []]));
   const games = [];
-  for (const g of Object.values(store.games).sort((a, b) => a.kickoff - b.kickoff)) {
+  const schedule={...store.games};
+  for(const p of Object.values(store.projections))if(!schedule[p.fixtureId]&&p.state==='finished'&&p.score&&now<(p.finishedAt??0)+REVIEW_MS){
+    schedule[p.fixtureId]={uid:p.fixtureId,sport:p.sport,league:p.league,home:p.input.homeTeam,away:p.input.awayTeam,kickoff:p.kickoff,status:{state:'finished',...p.score},odds:{},ext:{},updated:p.finishedAt};
+  }
+  for (const g of Object.values(schedule).sort((a, b) => a.kickoff - b.kickoff)) {
     const snapshot = store.projections[g.uid];
-    const reviewable = snapshot?.finishedAt && now < snapshot.finishedAt + REVIEW_MS;
+    const finalAt=snapshot?.finishedAt??(g.status.state==='finished'?(g.statusObservedAt??g.updated):0);
+    const reviewable = g.status.state==='finished'&&finalAt>0&&now<finalAt+REVIEW_MS;
+    if(g.status.state==='finished'&&!reviewable)continue;
     const inWindow = reviewable || (snapshot&&g.kickoff>now&&['scheduled','live'].includes(g.status.state)) || g.kickoff > now - 3 * DAY && g.kickoff < now + 7 * DAY;
     if (!inWindow) continue;
     const priceable = g.status.state === 'scheduled' || g.status.state === 'live';
     const retained=priceable&&snapshot?.input&&(g.kickoff>now||g.status.state==='live')?{...snapshot.input,status:g.status}:null;
-    const input = reviewable ? {...snapshot.input,status:g.status} : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now)??retained : retained;
-    if (!input && !snapshot) continue;
+    const input = reviewable ? (snapshot?.input?{...snapshot.input,status:g.status}:null) : priceable && g.kickoff > now - 4 * H ? inputFor(store, g,now)??retained : retained;
+    if(!input&&!snapshot&&!reviewable&&g.status.state!=='live'&&!(g.status.state==='scheduled'&&g.kickoff>now))continue;
     if (input&&(!snapshot||publicationVisible(snapshot,g,now))){const publication=publishedForecast(snapshot);if(publication){input.publishedForecast=publication;input.analysisEvidence=snapshot.input?.analysisEvidence??input.analysisEvidence;}inputs[g.sport].push(input);}
     games.push({
       id: g.uid,

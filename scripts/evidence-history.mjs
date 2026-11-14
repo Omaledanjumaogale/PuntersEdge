@@ -25,8 +25,8 @@ export async function updateEvidenceHistory({catalog,report,store,blobs,now}){
   if(g?.status.state==='finished'||p?.state==='finished'||finished?.state==='finished'){
    const score=g?.status.state==='finished'?g.status:p?.score??finished?.score;const snapshot={family:row.family,selections:[{key:row.key,odds:row.odds}],goalSequence:p?.goalSequence,corners:p?.corners};
    settleSnapshot(snapshot,g?.status.state==='finished'?g:{status:{state:'finished',...score,periodScores:p?.periodScores??{}},goalSequence:p?.goalSequence,corners:p?.corners},now);
-   const result=snapshot.selections[0].result??'ungraded',finalScore=snapshot.score??row.score;if(row.state!=='finished'||row.result!==result||JSON.stringify(row.score)!==JSON.stringify(finalScore))row.resultUpdatedAt=now;row.state='finished';row.score=finalScore;row.result=result;
-  }else if(g){row.state=g.status.state;if(g.status.state==='postponed'){row.result='pending';}else if(row.kickoff<=now)row.result='pending';}
+   const archived=finished?.rows?.find(r=>r.key===row.key);const result=archived?.result&&archived.result!=='ungraded'?archived.result:snapshot.selections[0].result??'ungraded',finalScore=snapshot.score??row.score;if(row.state!=='finished'||row.result!==result||JSON.stringify(row.score)!==JSON.stringify(finalScore))row.resultUpdatedAt=now;row.state='finished';row.score=finalScore;row.result=result;
+  }else if(g&&row.state!=='finished'){row.state=g.status.state;if(g.status.state==='postponed'){row.result='pending';}else if(row.kickoff<=now)row.result='pending';}
   // A stale scheduled record has no verified outcome. Keep its published evidence
   // in history as ungraded instead of claiming it is live or leaving it on the board.
   if(row.state!=='finished'&&row.kickoff<now-4*60*60*1000&&g?.status.state!=='live'&&!['postponed','cancelled','abandoned'].includes(g?.status.state)){

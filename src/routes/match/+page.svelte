@@ -6,7 +6,8 @@
 	import { sportOf } from '#lib/sports.ts';
 	import { kickoff, countdown, pct, odds, statusLabel } from '#lib/format.ts';
 	import ScoreSurface3D from '#lib/components/ScoreSurface3D.svelte';
-	import MarketList from '#lib/components/MarketList.svelte';
+	import {alignPublishedForecast} from '#lib/engine/published-forecast.js';
+ import MarketList from '#lib/components/MarketList.svelte';
 	import AgentPanel from '#lib/components/AgentPanel.svelte';
 	import AIExplanation from '#lib/components/AIExplanation.svelte';
 	import PaceLab from '#lib/components/PaceLab.svelte';
@@ -22,8 +23,12 @@
 	const id = $derived(page.url.searchParams.get('id') ?? '');
 	const recorded = $derived(feed.data?.reviewInputs?.[id]);
 	const review = $derived(page.url.searchParams.get('review') === '1' || ['live','finished'].includes(app.gameById(id)?.status.state ?? ''));
-	const p = $derived(id ? (review ? app.reviewById(id) : app.byId(id)) : undefined);
-	const game = $derived(id ? app.gameById(id) : undefined);
+	const p = $derived(id ? (review ? (app.reviewById(id) ?? app.byId(id)) : (app.byId(id) ?? app.reviewById(id))) : undefined);
+	const game = $derived(id ? app.gameById(id) ?? feed.data?.games.find(g=>g.id===id) : undefined);
+ const retainedMarkets=$derived.by(()=>{
+  if(p?.markets.some(g=>g.selections.length)||!game||!recorded?.input.publishedForecast)return [];
+  return alignPublishedForecast({fixtureId:id,sport:game.sport,league:game.league,matchTitle:game.home+' vs '+game.away,markets:[]},recorded.input.publishedForecast).markets;
+ });
 	const info = $derived(sportOf(p?.sport ?? game?.sport ?? 'football'));
 	const hasMarkets = $derived(Boolean(p && p.markets.some((g) => g.selections.length > 0)));
  const opportunity=$derived(p?fixtureOpportunity(p):undefined);
@@ -215,7 +220,8 @@
 			<p class="text-haze">We know about this game but can't price it yet: no bookmaker prices and no league table to rate the teams from. It will appear on the {info.label} dashboard as soon as we can.</p>
 		{/if}
 	</section>
-	{#if game.sport!=='tennis'}<AIExplanation fixtureId={game.id} sport={game.sport} />{:else}<a class="btn-primary mt-4" href="/tennis">Open tennis analysis</a>{/if}
+	{#if retainedMarkets.length}<section class="mt-6" aria-label="Retained published markets"><MarketList groups={retainedMarkets} home={game.home} away={game.away}/></section>{/if}
+ {#if game.sport!=='tennis'}<AIExplanation fixtureId={game.id} sport={game.sport} />{:else}<a class="btn-primary mt-4" href="/tennis">Open tennis analysis</a>{/if}
 {:else}
 	<section class="surface mt-6 p-6">
 		<h1 class="text-2xl font-bold text-chalk">🤷 That game isn't on the board</h1>

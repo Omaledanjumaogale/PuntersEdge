@@ -3,7 +3,8 @@
 	 * One sport's dashboard: live games, upcoming priced games with picks,
 	 * the rest of the schedule, and recent results. Shared by all five sports.
 	 */
-	import { app } from '#lib/state.svelte.ts';
+	import {feed} from '#lib/feed.svelte.ts';
+ import { app } from '#lib/state.svelte.ts';
 	import { SPORTS, type SportKey } from '#lib/sports.ts';
 	import FixtureCard from './FixtureCard.svelte';
 	import GameRow from './GameRow.svelte';
@@ -19,16 +20,16 @@
 	$effect(() => { sport; league = 'all'; competitionSearch = ''; scheduleLimit=20;resultLimit=24; });
 
 	const preds = $derived(app.bySport(sport));
-	const games = $derived(app.games.filter((g) => g.sport === sport));
+	const games = $derived((feed.data?.games ?? app.games).filter(g => g.sport === sport));
 	const leagues = $derived([...new Set([...preds.map((p) => p.league), ...games.map((g) => g.league)])].sort());
 	const visibleLeagues = $derived(leagues.filter((name) => name.toLocaleLowerCase().includes(competitionSearch.trim().toLocaleLowerCase())));
 	const inLeague = (l: string) => league === 'all' || l === league;
 
 	const live = $derived(preds.filter((p) => p.status.state === 'live' && inLeague(p.league)));
-	const upcoming = $derived(preds.filter((p) => p.status.state === 'scheduled' && inLeague(p.league)));
+	const upcoming = $derived(preds.filter((p) => p.status.state === 'scheduled' && Date.parse(p.kickoffTime)>app.now && inLeague(p.league)));
 	const pricedIds = $derived(new Set(preds.map((p) => p.fixtureId)));
 	const liveUnpriced = $derived(games.filter((g) => g.status.state === 'live' && !pricedIds.has(g.id) && inLeague(g.league)));
-	const unpriced = $derived(games.filter((g) => g.status.state === 'scheduled' && !pricedIds.has(g.id) && inLeague(g.league)));
+	const unpriced = $derived(games.filter((g) => g.status.state === 'scheduled' && Date.parse(g.kickoff)>app.now && !pricedIds.has(g.id) && inLeague(g.league)));
 	const results = $derived(
 		games
 			.filter((g) => (g.status.state === 'finished' || g.status.state === 'postponed') && inLeague(g.league))
