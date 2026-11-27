@@ -1,14 +1,35 @@
 {
   "version": 1,
+  "contractVersion": "1.0.0",
   "platformId": "puntersedge",
   "repository": "Omaledanjumaogale/PuntersEdge",
+  "hub": {
+    "site": "https://ewinproject.org",
+    "convexSite": "https://affable-dragon-883.eu-west-1.convex.site",
+    "ssoStart": "https://ewinproject.org/api/sso/start",
+    "ssoRedeem": "https://affable-dragon-883.eu-west-1.convex.site/sso/redeem"
+  },
+  "sso": {
+    "status": "ready",
+    "version": 1,
+    "paths": {
+      "start": "src/routes/auth/ewin/start/+server.ts",
+      "callback": "src/routes/auth/ewin/callback/+page.server.ts",
+      "action": "convex/ewin.ts"
+    }
+  },
+  "capabilities": {
+    "identity": "ready",
+    "wallet": "hub-owned",
+    "marketplace": "pending_audit"
+  },
   "policyVersion": "naira-v3.1",
   "moneyAuthority": "ewin-hub",
   "currency": "NGN",
   "amountUnit": "kobo",
   "sdk": {
     "path": "packages/ewin-wallet-sdk/index.ts",
-    "sha256": "eed9e4a7dcb584eb68aaf6f85d6d59edcfc8ff07ac5c42f5cde68d08555abb41"
+    "sha256": "f7629aa61cc5a81436243a40b66ff5bbcd2ad7dccb2f77979b82e0a369cf7f1f"
   },
   "rollout": {
     "status": "mapped",
