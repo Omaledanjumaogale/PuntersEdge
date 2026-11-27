@@ -8,7 +8,10 @@ if (manifest.version !== 1 || manifest.policyVersion !== 'naira-v3.1' ||
 if (!/^[-A-Za-z0-9_]+\/[-A-Za-z0-9_.]+$/.test(manifest.repository)) fail('Invalid repository binding.');
 if (manifest.sdk.path !== 'packages/ewin-wallet-sdk/index.ts') fail('Use the reviewed SDK path.');
 const sdk = readFileSync(manifest.sdk.path);
-if (createHash('sha256').update(sdk).digest('hex') !== manifest.sdk.sha256) fail('SDK content differs from the reviewed manifest.');
+// The digest describes the committed artifact, whose lines are LF. Normalise
+// before hashing so a Windows checkout (CRLF working tree) validates too.
+const normalised = Buffer.from(sdk.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+if (createHash('sha256').update(normalised).digest('hex') !== manifest.sdk.sha256) fail('SDK content differs from the reviewed manifest.');
 for (const source of manifest.legacyFinancialSources) {
   if (source.includes('..') || source.startsWith('/') || !existsSync(source)) fail('Update the legacy source inventory: ' + source);
 }
