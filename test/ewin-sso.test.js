@@ -18,6 +18,15 @@ test('the SSO callback never hardcodes a secure cookie', () => {
   assert.doesNotMatch(callback, /secure:\s*true/);
 });
 
+test('both SSO routes run per request instead of being prerendered', () => {
+  for (const path of [
+    'src/routes/auth/ewin/callback/+page.server.ts',
+    'src/routes/auth/ewin/start/+server.ts',
+  ]) {
+    assert.match(read(path), /export const prerender = false/, path);
+  }
+});
+
 test('the start route targets the configured platform and the hub', () => {
   const start = read('src/routes/auth/ewin/start/+server.ts');
   assert.match(start, /https:\/\/ewinproject\.org/);

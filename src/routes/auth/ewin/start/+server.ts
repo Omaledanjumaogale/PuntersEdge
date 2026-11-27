@@ -7,6 +7,10 @@ import type { RequestHandler } from './$types';
 const HUB = 'https://ewinproject.org';
 const PLATFORM = 'puntersedge';
 
+// Redirects with a per-request origin in the return URL, so it cannot be
+// prerendered.
+export const prerender = false;
+
 function safeNext(raw: string | null): string {
   return raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.includes('\\') ? raw : '';
 }

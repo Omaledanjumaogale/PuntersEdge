@@ -10,6 +10,11 @@ import type { PageServerLoad } from './$types';
 const LOGIN_PATH = '/login';
 const FALLBACK_LANDING = '/account';
 
+// Reads the request cookie, the ticket query and runtime bindings, so it must
+// run per request. Prerendering this route fails the build with
+// `prerender_unseen_routes` on a static adapter.
+export const prerender = false;
+
 const bounce = (reason: string, next: string): never =>
   redirect(303, `${LOGIN_PATH}?ewin=${reason}&next=${encodeURIComponent(next)}`);
 
