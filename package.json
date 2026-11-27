@@ -16,7 +16,9 @@
     "pipeline": "node scripts/pipeline.js",
     "build:single": "vite build && node scripts/build-single-file.mjs",
     "test:backend": "svelte-kit sync && vitest run --config vitest.config.ts",
-    "check:backend": "tsc --noEmit -p convex/tsconfig.json"
+    "check:backend": "tsc --noEmit -p convex/tsconfig.json",
+    "ewin:validate": "node scripts/validate-ewin-v31.mjs",
+    "pretest": "node scripts/validate-ewin-v31.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",

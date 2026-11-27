@@ -63,6 +63,7 @@
 <button type="button" class="btn-ghost" disabled={busy} onclick={resend}>Resend verification email</button>{#if notice}<p role="status" class="text-sm text-model">{notice}</p>{/if}
 	</form>{/if}
 	{#snippet footer()}
+		<a href={`/auth/ewin/start${next !== '/account' ? `?next=${encodeURIComponent(next)}` : ''}`} class="mb-3 flex items-center justify-center gap-2 rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-chalk hover:border-model">Continue with E-WIN</a>
 		New here? <a href="/signup{next !== '/account' ? `?next=${encodeURIComponent(next)}` : ''}" class="font-semibold text-pop underline underline-offset-4">Create an account</a>
 	{/snippet}
 </AuthShell>

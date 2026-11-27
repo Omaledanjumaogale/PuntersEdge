@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - name: E-WIN contract
+        run: npm run ewin:validate
+      - name: Svelte and TypeScript diagnostics
+        run: npm run check
+      - name: Convex typecheck
+        run: npm run check:backend
+      - name: Tests
+        run: npm test
+      - name: Production build
+        run: npm run build

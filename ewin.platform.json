@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "contractVersion": "1.0.0",
+  "platformId": "puntersedge",
+  "repository": "Omaledanjumaogale/PuntersEdge",
+  "hub": {
+    "site": "https://ewinproject.org",
+    "convexSite": "https://affable-dragon-883.eu-west-1.convex.site",
+    "ssoStart": "https://ewinproject.org/api/sso/start",
+    "ssoRedeem": "https://affable-dragon-883.eu-west-1.convex.site/sso/redeem"
+  },
+  "sso": {
+    "status": "ready",
+    "version": 1,
+    "paths": {
+      "start": "src/routes/auth/ewin/start/+server.ts",
+      "callback": "src/routes/auth/ewin/callback/+page.server.ts",
+      "action": "convex/ewin.ts"
+    }
+  },
+  "capabilities": {
+    "identity": "ready",
+    "wallet": "hub-owned",
+    "marketplace": "pending_audit"
+  },
+  "policyVersion": "naira-v3.1",
+  "moneyAuthority": "ewin-hub",
+  "currency": "NGN",
+  "amountUnit": "kobo",
+  "sdk": {
+    "path": "packages/ewin-wallet-sdk/index.ts",
+    "sha256": "eed9e4a7dcb584eb68aaf6f85d6d59edcfc8ff07ac5c42f5cde68d08555abb41"
+  },
+  "rollout": {
+    "status": "mapped",
+    "nativeCheckoutEnabled": false
+  },
+  "sharedModules": {
+    "wallet": {
+      "url": "https://ewinproject.org/wallet",
+      "implementation": "hub"
+    },
+    "bounties": {
+      "url": "https://ewinproject.org/bounties",
+      "implementation": "hub"
+    },
+    "squads": {
+      "url": "https://ewinproject.org/squads",
+      "implementation": "hub"
+    }
+  },
+  "legacyFinancialSources": [
+    "convex/lib/paymentSecurity.ts",
+    "convex/lib/paymentValidators.ts",
+    "convex/paymentOps.ts",
+    "convex/payments.ts",
+    "src/lib/slip-pricing.js",
+    "src/routes/admin/payments/+page.svelte"
+  ],
+  "migration": {
+    "backupVerified": false,
+    "ownershipVerified": false,
+    "sourceSettlementsFrozen": false,
+    "reconciled": false,
+    "credited": false
+  },
+  "billableActions": []
+}
